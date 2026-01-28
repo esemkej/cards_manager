@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.12.3-alpha
+- Fixed a crash when trying to create/change card colors
+
+---
+
 ## v0.12.2-alpha
 - Fixed cards saving as debug_code, debug_type
 - Added the option to sort by item type
