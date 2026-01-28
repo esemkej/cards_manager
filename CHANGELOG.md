@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.12.2-alpha
+- Fixed cards saving as debug_code, debug_type
+- Added the option to filter by item type
+
 ## v0.12.1-alpha
 - Main screen now displays a notification when no items exist.
 - Added the ability to edit names of created items.
