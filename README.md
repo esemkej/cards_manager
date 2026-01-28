@@ -27,3 +27,4 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 ## What's New (v0.12.2-alpha)
 - Fixed cards saving as debug_code, debug_type
 - Added the option to sort by item type
+- Unfortunately needed to change keystores, so please make sure to reinstall the app, and backup your data with import export feature, and don't use any older versions than this
