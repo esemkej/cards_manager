@@ -10,7 +10,7 @@
 		android:layout_width="match_parent"
 		android:layout_height="350dp"
 		android:orientation="vertical">
-		<com.eas.cards.HsvColorPickerView
+		<com.eas.cards2.HsvColorPickerView
 			android:id="@+id/color_picker"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
