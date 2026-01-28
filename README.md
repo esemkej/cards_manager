@@ -12,7 +12,7 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 
 - **Membership Cards & Folders:** Store membership cards and organize them into folders, including nested folder structures.
 - **Favorites:** Mark both membership cards and folders as favorites for quick access.
-- **Sorting Options:** Sort items by name, creation order (based on internal IDs), or usage count, with ascending and descending modes.
+- **Sorting Options:** Sort items by name, creation order (based on internal IDs), usage count or item type, with ascending and descending modes.
 - **Filtering:** Switch between viewing all items or favorites only.
 - **Visual Customization:** Customize cards using gradient styles for better visual distinction.
 - **QR & Barcode Scanning:** Add membership codes by scanning with the camera or by scanning existing images from device storage.
@@ -24,7 +24,6 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 
 ---
 
-## What's New (v0.12.1-alpha)
-
-- Main screen now displays a notification when no items exist.
-- Added the ability to edit names of created items.
+## What's New (v0.12.2-alpha)
+- Fixed cards saving as debug_code, debug_type
+- Added the option to sort by item type
