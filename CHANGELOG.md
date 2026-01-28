@@ -2,7 +2,7 @@
 
 ## v0.12.2-alpha
 - Fixed cards saving as debug_code, debug_type
-- Added the option to filter by item type
+- Added the option to sort by item type
 
 ---
 
