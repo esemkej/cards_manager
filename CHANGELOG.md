@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.13.0-alpha
+- Updated card display dialog
+- Ability to edit all information of existing cards and folders
+- Ability to enter codes manually and pick code types
+- Fixed a bug that allowed creation of folders with no name
+- Optimized certain parts of the code
+- WARNING: After importing data and later adding items, some of the new items could have duplicate ids. This will be fixed in upcoming updates
+
+---
+
 ## v0.12.3-alpha
 - Fixed a crash when trying to create/change card colors
 
