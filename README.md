@@ -11,6 +11,7 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 ## Features
 
 - **Membership Cards & Folders:** Store membership cards and organize them into folders, including nested folder structures.
+- **Editing of existing items:** You can edit all information (including the code and code type) of existing items
 - **Favorites:** Mark both membership cards and folders as favorites for quick access.
 - **Sorting Options:** Sort items by name, creation order (based on internal IDs), usage count or item type, with ascending and descending modes.
 - **Filtering:** Switch between viewing all items or favorites only.
@@ -24,5 +25,10 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 
 ---
 
-## What's New (v0.12.3-alpha)
-- Fixed a crash when trying to create/change card colors
+## v0.13.0-alpha
+- Updated card display dialog
+- Ability to edit all information of existing cards and folders
+- Ability to enter codes manually and pick code types
+- Fixed a bug that allowed creation of folders with no name
+- Optimized certain parts of the code
+- WARNING: After importing data and later adding items, some of the new items could have duplicate ids. This will be fixed in upcoming updates
