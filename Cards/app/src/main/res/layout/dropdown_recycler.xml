@@ -1,0 +1,49 @@
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical">
+	<LinearLayout
+		android:id="@+id/parent"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical">
+		<LinearLayout
+			android:id="@+id/item"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:padding="4dp"
+			android:gravity="center_horizontal"
+			android:orientation="vertical">
+			<TextView
+				android:id="@+id/item_txt"
+				android:focusable="false"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:padding="4dp"
+				android:text="TextView"
+				android:textSize="14sp"
+				android:textColor="#212121" />
+			<TextView
+				android:id="@+id/label_txt"
+				android:focusable="false"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:paddingLeft="4dp"
+				android:paddingRight="4dp"
+				android:paddingBottom="4dp"
+				android:text="TextView"
+				android:textSize="12sp"
+				android:textColor="#424242" />
+		</LinearLayout>
+		<LinearLayout
+			android:id="@+id/div"
+			android:layout_width="match_parent"
+			android:layout_height="2dp"
+			android:layout_marginLeft="4dp"
+			android:layout_marginRight="4dp"
+			android:background="#212121" />
+	</LinearLayout>
+</LinearLayout>
