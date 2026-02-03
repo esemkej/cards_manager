@@ -25,10 +25,9 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 
 ---
 
-## v0.13.0-alpha
-- Updated card display dialog
-- Ability to edit all information of existing cards and folders
-- Ability to enter codes manually and pick code types
-- Fixed a bug that allowed creation of folders with no name
-- Optimized certain parts of the code
-- WARNING: After importing data and later adding items, some of the new items could have duplicate ids. This will be fixed in upcoming updates
+## What's new: v0.13.1-alpha
+- Fixed duplicate ID issue after import by recalculating `lastId` from the highest existing ID, including nested folders
+- Fixed RecyclerView height and display inconsistencies
+- Added an explanation dialog for potentially valid EAN-13 codes with an incorrect checksum
+- Fixed an issue where importing data from a file did not refresh the list immediately
+- Fixed an APK installation issue caused by faulty signing
