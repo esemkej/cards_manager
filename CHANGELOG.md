@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.13.1-alpha
+- Fixed duplicate ID issue after import by recalculating `lastId` from the highest existing ID, including nested folders
+- Fixed RecyclerView height and display inconsistencies
+- Added an explanation dialog for potentially valid EAN-13 codes with an incorrect checksum
+- Fixed an issue where importing data from a file did not refresh the list immediately
+- Fixed an APK installation issue caused by faulty signing
+
+---
+
 ## v0.13.0-alpha
 - Updated card display dialog
 - Ability to edit all information of existing cards and folders
