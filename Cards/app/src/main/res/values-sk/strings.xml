@@ -65,6 +65,7 @@
     <string name="import_title">Importovanie dát</string>
     <string name="import_warning">POZOR: Importovanie dát prepíše všetky aktuálne dáta</string>
     <string name="invalid_checksum">POZOR: Nesprávny EAN 13 Checksum</string>
+    <string name="invalid_checksum_desc">EAN-13 čiarové kódy používajú posledné číslo na overenie ich platnosti. V tomto kóde to ale nesedí, a preto veľmi pravdepodobne nebude fungovať. Ak sa nejedná o čiarový kód, prosím vyberte Code 128 alebo QR.</string>
     <string name="invalid_edit">Meno karty nemôže ostať prázdne</string>
     <string name="left_right">Zľava doprava</string>
     <string name="no">Nie</string>

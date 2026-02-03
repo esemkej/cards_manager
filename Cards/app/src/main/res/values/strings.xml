@@ -64,7 +64,8 @@
     <string name="import_success">Data was imported successfully</string>
     <string name="import_title">Importing data</string>
     <string name="import_warning">WARNING: Importing data will overwrite any current data</string>
-    <string name="invalid_checksum">WARNING: Invalid EAN 13 checksum</string>
+    <string name="invalid_checksum">WARNING: Invalid EAN-13 checksum</string>
+    <string name="invalid_checksum_desc">EAN-13 barcodes use the last digit to verify the code. This one doesn\'t match and will likely not work. If this isn\'t a card barcode, kindly choose Code 128 or QR instead.</string>
     <string name="invalid_edit">Card name can\'t be empty</string>
     <string name="left_right">Left to right</string>
     <string name="no">No</string>

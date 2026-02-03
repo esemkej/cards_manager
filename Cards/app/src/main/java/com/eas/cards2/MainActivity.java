@@ -58,6 +58,7 @@ import com.google.zxing.*;
 import java.io.*;
 import java.io.InputStream;
 import java.text.*;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -885,13 +886,6 @@ public class MainActivity extends AppCompatActivity {
 											cards_list_all.clear();
 											cards_list.addAll(tmp);
 											cards_list_all.addAll(tmp);
-											
-											if (cards_rec.getAdapter() == null) {
-												cardsAdapter = new Cards_recAdapter(cards_list);
-												cards_rec.setAdapter(cardsAdapter);
-											} else {
-												cardsAdapter.notifyDataSetChanged();
-											}
 											SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_success));
 										}catch(Exception e){
 											card_prefs.edit().putString("cards", backup).commit();
@@ -916,15 +910,9 @@ public class MainActivity extends AppCompatActivity {
 											cards_list_all.clear();
 											cards_list.addAll(tmp);
 											cards_list_all.addAll(tmp);
-											
-											if (cards_rec.getAdapter() == null) {
-												cardsAdapter = new Cards_recAdapter(cards_list);
-												cards_rec.setAdapter(cardsAdapter);
-											} else {
-												cardsAdapter.notifyDataSetChanged();
-											}
 											SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_fail).concat(" ".concat(e.getMessage())));
 										}
+										_loadLastId();
 										applySortFilter(
 										search_txt.getText().toString(),
 										loadSortTypeId(),
@@ -1189,58 +1177,67 @@ public class MainActivity extends AppCompatActivity {
 						settings.put("text_level", (double)(textLevel));
 						settings.put("scan_image", scanImage);
 						card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
-						cards_rec.removeItemDecorationAt(0);
-						final StaggeredGridLayoutManager cards_rec_layoutManager =
-						new StaggeredGridLayoutManager((int) progress, StaggeredGridLayoutManager.VERTICAL);
-						
-						cards_rec_layoutManager.setGapStrategy(
-						StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+						final androidx.recyclerview.widget.GridLayoutManager cards_rec_layoutManager =
+						new androidx.recyclerview.widget.GridLayoutManager(
+						cards_rec.getContext(),
+						(int) progress,
+						androidx.recyclerview.widget.RecyclerView.VERTICAL,
+						false
 						);
 						cards_rec.setLayoutManager(cards_rec_layoutManager);
 						
-						final Context cards_rec_ctx = cards_rec.getContext();
+						final android.content.Context cards_rec_ctx = cards_rec.getContext();
 						
-						final int cards_rec_hSpacingPx = (int) TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
+						final int cards_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+						android.util.TypedValue.COMPLEX_UNIT_DIP,
 						(float) 8,
 						cards_rec_ctx.getResources().getDisplayMetrics()
-						);
+						));
 						
-						final int cards_rec_vSpacingPx = (int) TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
+						final int cards_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+						android.util.TypedValue.COMPLEX_UNIT_DIP,
 						(float) 2,
 						cards_rec_ctx.getResources().getDisplayMetrics()
-						);
+						));
 						
-						cards_rec.addItemDecoration(new RecyclerView.ItemDecoration() {
+						if (cards_rec.getItemDecorationCount() > 0) {
+							cards_rec.removeItemDecorationAt(0);
+						}
+						
+						cards_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
 							@Override
-							public void getItemOffsets(
-							Rect outRect,
-							View view,
-							RecyclerView parent,
-							RecyclerView.State state
-							) {
+							public void getItemOffsets(android.graphics.Rect outRect,
+							android.view.View view,
+							androidx.recyclerview.widget.RecyclerView parent,
+							androidx.recyclerview.widget.RecyclerView.State state) {
 								
-								int cards_rec_position = parent.getChildAdapterPosition(view);
-								if (cards_rec_position == RecyclerView.NO_POSITION) return;
+								int cards_rec_pos = parent.getChildAdapterPosition(view);
+								if (cards_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
 								
-								RecyclerView.LayoutManager cards_rec_lm = parent.getLayoutManager();
-								if (!(cards_rec_lm instanceof StaggeredGridLayoutManager)) return;
+								androidx.recyclerview.widget.RecyclerView.LayoutManager cards_rec_lm =
+								parent.getLayoutManager();
+								if (!(cards_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
 								
-								StaggeredGridLayoutManager.LayoutParams cards_rec_lp =
-								(StaggeredGridLayoutManager.LayoutParams) view.getLayoutParams();
+								androidx.recyclerview.widget.GridLayoutManager cards_rec_glm =
+								(androidx.recyclerview.widget.GridLayoutManager) cards_rec_lm;
 								
-								int cards_rec_spanCount =
-								((StaggeredGridLayoutManager) cards_rec_lm).getSpanCount();
-								int cards_rec_spanIndex = cards_rec_lp.getSpanIndex();
+								int cards_rec_spanCount = cards_rec_glm.getSpanCount();
 								
-								outRect.left  =
+								androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup cards_rec_ssl =
+								cards_rec_glm.getSpanSizeLookup();
+								
+								int cards_rec_spanSize = cards_rec_ssl.getSpanSize(cards_rec_pos);
+								int cards_rec_spanIndex = cards_rec_ssl.getSpanIndex(cards_rec_pos, cards_rec_spanCount);
+								
+								outRect.left =
 								(cards_rec_spanIndex * cards_rec_hSpacingPx) / cards_rec_spanCount;
+								
 								outRect.right =
 								cards_rec_hSpacingPx
-								- ((cards_rec_spanIndex + 1) * cards_rec_hSpacingPx) / cards_rec_spanCount;
+								- ((cards_rec_spanIndex + cards_rec_spanSize) * cards_rec_hSpacingPx)
+								/ cards_rec_spanCount;
 								
-								if (cards_rec_position >= cards_rec_spanCount) {
+								if (cards_rec_pos >= cards_rec_spanCount) {
 									outRect.top = cards_rec_vSpacingPx;
 								}
 							}
@@ -1248,7 +1245,7 @@ public class MainActivity extends AppCompatActivity {
 					}
 				});
 				bottomShii.show();
-				if ((boolean)settings.get("settings_tutorial")) {
+				if ((boolean)settings.get("settings_tutorial") && !debug) {
 					View import_btn_targetView = bottomShii.findViewById(R.id.import_btn);
 					
 					TapTarget import_btn_tapTarget = TapTarget.forView(import_btn_targetView, getString(R.string.import_title), getString(R.string.import_desc))
@@ -1305,9 +1302,6 @@ public class MainActivity extends AppCompatActivity {
 				loadOrderId(),
 				loadFilterId()
 				);
-				if (_charSeq.equals("switchDebug")) {
-					debug = !debug;
-				}
 			}
 			
 			@Override
@@ -1330,59 +1324,70 @@ public class MainActivity extends AppCompatActivity {
 	}
 	
 	private void initializeLogic() {
+		debug = false;
 		if (card_prefs.contains("settings")) {
 			settings = new Gson().fromJson(card_prefs.getString("settings", ""), new TypeToken<HashMap<String, Object>>(){}.getType());
-			final StaggeredGridLayoutManager cards_rec_layoutManager =
-			new StaggeredGridLayoutManager((int) (double)settings.get("grid_amount"), StaggeredGridLayoutManager.VERTICAL);
-			
-			cards_rec_layoutManager.setGapStrategy(
-			StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+			final androidx.recyclerview.widget.GridLayoutManager cards_rec_layoutManager =
+			new androidx.recyclerview.widget.GridLayoutManager(
+			cards_rec.getContext(),
+			(int) (double)settings.get("grid_amount"),
+			androidx.recyclerview.widget.RecyclerView.VERTICAL,
+			false
 			);
 			cards_rec.setLayoutManager(cards_rec_layoutManager);
 			
-			final Context cards_rec_ctx = cards_rec.getContext();
+			final android.content.Context cards_rec_ctx = cards_rec.getContext();
 			
-			final int cards_rec_hSpacingPx = (int) TypedValue.applyDimension(
-			TypedValue.COMPLEX_UNIT_DIP,
+			final int cards_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+			android.util.TypedValue.COMPLEX_UNIT_DIP,
 			(float) 8,
 			cards_rec_ctx.getResources().getDisplayMetrics()
-			);
+			));
 			
-			final int cards_rec_vSpacingPx = (int) TypedValue.applyDimension(
-			TypedValue.COMPLEX_UNIT_DIP,
+			final int cards_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+			android.util.TypedValue.COMPLEX_UNIT_DIP,
 			(float) 2,
 			cards_rec_ctx.getResources().getDisplayMetrics()
-			);
+			));
 			
-			cards_rec.addItemDecoration(new RecyclerView.ItemDecoration() {
+			if (cards_rec.getItemDecorationCount() > 0) {
+				cards_rec.removeItemDecorationAt(0);
+			}
+			
+			cards_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
 				@Override
-				public void getItemOffsets(
-				Rect outRect,
-				View view,
-				RecyclerView parent,
-				RecyclerView.State state
-				) {
+				public void getItemOffsets(android.graphics.Rect outRect,
+				android.view.View view,
+				androidx.recyclerview.widget.RecyclerView parent,
+				androidx.recyclerview.widget.RecyclerView.State state) {
 					
-					int cards_rec_position = parent.getChildAdapterPosition(view);
-					if (cards_rec_position == RecyclerView.NO_POSITION) return;
+					int cards_rec_pos = parent.getChildAdapterPosition(view);
+					if (cards_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
 					
-					RecyclerView.LayoutManager cards_rec_lm = parent.getLayoutManager();
-					if (!(cards_rec_lm instanceof StaggeredGridLayoutManager)) return;
+					androidx.recyclerview.widget.RecyclerView.LayoutManager cards_rec_lm =
+					parent.getLayoutManager();
+					if (!(cards_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
 					
-					StaggeredGridLayoutManager.LayoutParams cards_rec_lp =
-					(StaggeredGridLayoutManager.LayoutParams) view.getLayoutParams();
+					androidx.recyclerview.widget.GridLayoutManager cards_rec_glm =
+					(androidx.recyclerview.widget.GridLayoutManager) cards_rec_lm;
 					
-					int cards_rec_spanCount =
-					((StaggeredGridLayoutManager) cards_rec_lm).getSpanCount();
-					int cards_rec_spanIndex = cards_rec_lp.getSpanIndex();
+					int cards_rec_spanCount = cards_rec_glm.getSpanCount();
 					
-					outRect.left  =
+					androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup cards_rec_ssl =
+					cards_rec_glm.getSpanSizeLookup();
+					
+					int cards_rec_spanSize = cards_rec_ssl.getSpanSize(cards_rec_pos);
+					int cards_rec_spanIndex = cards_rec_ssl.getSpanIndex(cards_rec_pos, cards_rec_spanCount);
+					
+					outRect.left =
 					(cards_rec_spanIndex * cards_rec_hSpacingPx) / cards_rec_spanCount;
+					
 					outRect.right =
 					cards_rec_hSpacingPx
-					- ((cards_rec_spanIndex + 1) * cards_rec_hSpacingPx) / cards_rec_spanCount;
+					- ((cards_rec_spanIndex + cards_rec_spanSize) * cards_rec_hSpacingPx)
+					/ cards_rec_spanCount;
 					
-					if (cards_rec_position >= cards_rec_spanCount) {
+					if (cards_rec_pos >= cards_rec_spanCount) {
 						outRect.top = cards_rec_vSpacingPx;
 					}
 				}
@@ -1396,57 +1401,67 @@ public class MainActivity extends AppCompatActivity {
 			settings.put("colors_tutorial", true);
 			settings.put("settings_tutorial", true);
 			card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
-			final StaggeredGridLayoutManager cards_rec_layoutManager =
-			new StaggeredGridLayoutManager((int) 2, StaggeredGridLayoutManager.VERTICAL);
-			
-			cards_rec_layoutManager.setGapStrategy(
-			StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+			final androidx.recyclerview.widget.GridLayoutManager cards_rec_layoutManager =
+			new androidx.recyclerview.widget.GridLayoutManager(
+			cards_rec.getContext(),
+			(int) 2,
+			androidx.recyclerview.widget.RecyclerView.VERTICAL,
+			false
 			);
 			cards_rec.setLayoutManager(cards_rec_layoutManager);
 			
-			final Context cards_rec_ctx = cards_rec.getContext();
+			final android.content.Context cards_rec_ctx = cards_rec.getContext();
 			
-			final int cards_rec_hSpacingPx = (int) TypedValue.applyDimension(
-			TypedValue.COMPLEX_UNIT_DIP,
+			final int cards_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+			android.util.TypedValue.COMPLEX_UNIT_DIP,
 			(float) 8,
 			cards_rec_ctx.getResources().getDisplayMetrics()
-			);
+			));
 			
-			final int cards_rec_vSpacingPx = (int) TypedValue.applyDimension(
-			TypedValue.COMPLEX_UNIT_DIP,
+			final int cards_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+			android.util.TypedValue.COMPLEX_UNIT_DIP,
 			(float) 2,
 			cards_rec_ctx.getResources().getDisplayMetrics()
-			);
+			));
 			
-			cards_rec.addItemDecoration(new RecyclerView.ItemDecoration() {
+			if (cards_rec.getItemDecorationCount() > 0) {
+				cards_rec.removeItemDecorationAt(0);
+			}
+			
+			cards_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
 				@Override
-				public void getItemOffsets(
-				Rect outRect,
-				View view,
-				RecyclerView parent,
-				RecyclerView.State state
-				) {
+				public void getItemOffsets(android.graphics.Rect outRect,
+				android.view.View view,
+				androidx.recyclerview.widget.RecyclerView parent,
+				androidx.recyclerview.widget.RecyclerView.State state) {
 					
-					int cards_rec_position = parent.getChildAdapterPosition(view);
-					if (cards_rec_position == RecyclerView.NO_POSITION) return;
+					int cards_rec_pos = parent.getChildAdapterPosition(view);
+					if (cards_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
 					
-					RecyclerView.LayoutManager cards_rec_lm = parent.getLayoutManager();
-					if (!(cards_rec_lm instanceof StaggeredGridLayoutManager)) return;
+					androidx.recyclerview.widget.RecyclerView.LayoutManager cards_rec_lm =
+					parent.getLayoutManager();
+					if (!(cards_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
 					
-					StaggeredGridLayoutManager.LayoutParams cards_rec_lp =
-					(StaggeredGridLayoutManager.LayoutParams) view.getLayoutParams();
+					androidx.recyclerview.widget.GridLayoutManager cards_rec_glm =
+					(androidx.recyclerview.widget.GridLayoutManager) cards_rec_lm;
 					
-					int cards_rec_spanCount =
-					((StaggeredGridLayoutManager) cards_rec_lm).getSpanCount();
-					int cards_rec_spanIndex = cards_rec_lp.getSpanIndex();
+					int cards_rec_spanCount = cards_rec_glm.getSpanCount();
 					
-					outRect.left  =
+					androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup cards_rec_ssl =
+					cards_rec_glm.getSpanSizeLookup();
+					
+					int cards_rec_spanSize = cards_rec_ssl.getSpanSize(cards_rec_pos);
+					int cards_rec_spanIndex = cards_rec_ssl.getSpanIndex(cards_rec_pos, cards_rec_spanCount);
+					
+					outRect.left =
 					(cards_rec_spanIndex * cards_rec_hSpacingPx) / cards_rec_spanCount;
+					
 					outRect.right =
 					cards_rec_hSpacingPx
-					- ((cards_rec_spanIndex + 1) * cards_rec_hSpacingPx) / cards_rec_spanCount;
+					- ((cards_rec_spanIndex + cards_rec_spanSize) * cards_rec_hSpacingPx)
+					/ cards_rec_spanCount;
 					
-					if (cards_rec_position >= cards_rec_spanCount) {
+					if (cards_rec_pos >= cards_rec_spanCount) {
 						outRect.top = cards_rec_vSpacingPx;
 					}
 				}
@@ -1549,7 +1564,7 @@ public class MainActivity extends AppCompatActivity {
 		loadFilterId()
 		);
 		initImagePicker();
-		if ((boolean)settings.get("main_tutorial")) {
+		if ((boolean)settings.get("main_tutorial") && !debug) {
 			View _fab_targetView = findViewById(R.id._fab);
 			
 			TapTarget _fab_tapTarget = TapTarget.forView(_fab_targetView, getString(R.string.fab_title), getString(R.string.fab_desc))
@@ -1846,12 +1861,13 @@ public class MainActivity extends AppCompatActivity {
 			cards_list.addAll(tmp);
 			cards_list_all.addAll(tmp);
 			
-			if (cards_rec.getAdapter() == null) {
-				cardsAdapter = new Cards_recAdapter(cards_list);
-				cards_rec.setAdapter(cardsAdapter);
-			} else {
-				cardsAdapter.notifyDataSetChanged();
-			}
+			_loadLastId();
+			applySortFilter(
+			search_txt.getText().toString(),
+			loadSortTypeId(),
+			loadOrderId(),
+			loadFilterId()
+			);
 			
 			SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_success));
 		} catch (Exception e) {
@@ -1878,12 +1894,13 @@ public class MainActivity extends AppCompatActivity {
 				cards_list.addAll(tmp);
 				cards_list_all.addAll(tmp);
 				
-				if (cards_rec.getAdapter() == null) {
-					cardsAdapter = new Cards_recAdapter(cards_list);
-					cards_rec.setAdapter(cardsAdapter);
-				} else {
-					cardsAdapter.notifyDataSetChanged();
-				}
+				_loadLastId();
+				applySortFilter(
+				search_txt.getText().toString(),
+				loadSortTypeId(),
+				loadOrderId(),
+				loadFilterId()
+				);
 			} catch (Exception ignored2) {}
 			
 			SketchwareUtil.showMessage(
@@ -3105,7 +3122,7 @@ public class MainActivity extends AppCompatActivity {
 				@Override
 				public void onClick(View _view) {
 					if (_data.get((int)(_position)).containsKey("label") && _data.get((int)(_position)).get("label").toString().equals(getString(R.string.invalid_checksum))) {
-						SketchwareUtil.showMessage(getApplicationContext(), "Ah! Ah! Ah! You didn't say the magic word!");
+						_showEanWarning();
 					} else {
 						String type = _data.get(_position).get("type").toString();
 						cardSaveType = type;
@@ -3218,7 +3235,7 @@ public class MainActivity extends AppCompatActivity {
 				String code_img_data = cardSaveCode;
 				String code_img_typeStr = cardSaveType;
 				
-				int code_img_targetW = (int)(SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.8d);
+				int code_img_targetW = (int)(SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.95d);
 				
 				try {
 					BarcodeFormat code_img_format = BarcodeFormat.valueOf(code_img_typeStr);
@@ -4133,7 +4150,7 @@ public class MainActivity extends AppCompatActivity {
 		colorsAdapter = new Colors_recAdapter(colors_list);
 		colors_rec.setAdapter(colorsAdapter);
 		bottomShii.show();
-		if ((boolean)settings.get("colors_tutorial") && _newItem) {
+		if ((boolean)settings.get("colors_tutorial") && (_newItem && !debug)) {
 			tapTargetRoot = (ViewGroup) bottomShii.getWindow().getDecorView();
 			colors_rec.post(new Runnable() {
 				@Override
@@ -4142,6 +4159,130 @@ public class MainActivity extends AppCompatActivity {
 				}
 			});
 		}
+	}
+	
+	
+	public void _loadLastId() {
+		long new_id = card_prefs.getLong("lastId", -1) + 1;
+		java.util.ArrayDeque<HashMap<String, Object>> stack = new java.util.ArrayDeque<>();
+		for (HashMap<String, Object> m : cards_list_all) {
+			stack.push(m);
+		}
+		while(!stack.isEmpty()) {
+			HashMap<String, Object> map = stack.pop();
+			String id_string = map.get("id").toString();
+			long id_long = Long.valueOf(id_string);
+			if (new_id < id_long) {
+				new_id = id_long;
+			}
+			Boolean isFolder = (Boolean) map.get("folder");
+			if (isFolder) {
+				ArrayList<HashMap<String, Object>> folder_data = (ArrayList<HashMap<String, Object>>) map.get("data");
+				for (HashMap<String, Object> child : folder_data) {
+					stack.push(child);
+				}    
+			}
+		}
+		card_prefs.edit().putLong("lastId", new_id).commit();
+	}
+	
+	
+	public void _showEanWarning() {
+		d = new AlertDialog.Builder(MainActivity.this).create();
+		LayoutInflater dLI = getLayoutInflater();
+		View dCV = (View) dLI.inflate(R.layout.dialog, null);
+		d.setView(dCV);
+		final LinearLayout dialog_parent = (LinearLayout)
+		dCV.findViewById(R.id.parent);
+		final LinearLayout buttons_bar = (LinearLayout)
+		dCV.findViewById(R.id.buttons_bar);
+		final TextView message_txt = (TextView)
+		dCV.findViewById(R.id.message_txt);
+		final TextView positive_txt = (TextView)
+		dCV.findViewById(R.id.positive_txt);
+		final TextView negative_txt = (TextView)
+		dCV.findViewById(R.id.negative_txt);
+		d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+		d.setCancelable(false);
+		dialog_parent.setClickable(true);
+		final float dialog_parent_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
+		final float dialog_parent_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
+		final float dialog_parent_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
+		final float dialog_parent_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
+		final int dialog_parent_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 2, getResources().getDisplayMetrics());
+		final GradientDrawable dialog_parent_bg = new GradientDrawable();
+		dialog_parent_bg.setColor(0xFFFFFFFF);
+		dialog_parent_bg.setCornerRadii(new float[]{dialog_parent_rTL,dialog_parent_rTL,dialog_parent_rTR,dialog_parent_rTR,dialog_parent_rBR,dialog_parent_rBR,dialog_parent_rBL,dialog_parent_rBL});
+		dialog_parent_bg.setStroke(dialog_parent_strokePx, 0xFF212121);
+		dialog_parent.setBackground(dialog_parent_bg);
+		buttons_bar.setClickable(true);
+		
+		final float buttons_bar_rTL = TypedValue.applyDimension(
+		TypedValue.COMPLEX_UNIT_DIP,
+		(float) 0,
+		getResources().getDisplayMetrics()
+		);
+		
+		final float buttons_bar_rTR = TypedValue.applyDimension(
+		TypedValue.COMPLEX_UNIT_DIP,
+		(float) 0,
+		getResources().getDisplayMetrics()
+		);
+		
+		final float buttons_bar_rBR = TypedValue.applyDimension(
+		TypedValue.COMPLEX_UNIT_DIP,
+		(float) 12,
+		getResources().getDisplayMetrics()
+		);
+		
+		final float buttons_bar_rBL = TypedValue.applyDimension(
+		TypedValue.COMPLEX_UNIT_DIP,
+		(float) 12,
+		getResources().getDisplayMetrics()
+		);
+		
+		buttons_bar.setBackground(new ShapeDrawable(new RoundRectShape(
+		new float[]{
+			buttons_bar_rTL, buttons_bar_rTL,
+			buttons_bar_rTR, buttons_bar_rTR,
+			buttons_bar_rBR, buttons_bar_rBR,
+			buttons_bar_rBL, buttons_bar_rBL
+		},
+		null,
+		null
+		)) {{
+				getPaint().setColor(0xFFD2B6DC);
+			}});
+		positive_txt.setClickable(true);
+		positive_txt.setBackground(new RippleDrawable(
+		new ColorStateList(
+		new int[][]{new int[]{}},
+		new int[]{0xFFF2EAF5}
+		),
+		new GradientDrawable() {
+			public GradientDrawable getIns(int a, int b, int c, int d) {
+				this.setCornerRadius(a);
+				this.setStroke(b, c);
+				this.setColor(d);
+				return this;
+			}
+		}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFD2B6DC), 
+		null
+		));
+		
+		negative_txt.setVisibility(View.GONE);
+		message_txt.setText(getString(R.string.invalid_checksum_desc));
+		positive_txt.setText(getString(R.string.close));
+		float scale = textScaleFromLevel((int) textLevel);
+		applyTextScale(message_txt, scale);
+		applyTextScale(positive_txt, scale);
+		positive_txt.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View _view) {
+				d.dismiss();
+			}
+		});
+		d.show();
 	}
 	
 	public class Cards_recAdapter extends RecyclerView.Adapter<Cards_recAdapter.ViewHolder> {
@@ -4288,7 +4429,11 @@ public class MainActivity extends AppCompatActivity {
 						);
 						return;
 					} else {
-						_displayInfo(_data, _position, false);
+						if (debug) {
+							SketchwareUtil.showMessage(getApplicationContext(), "width: ".concat(String.valueOf(parent.getWidth()).concat("\n".concat("height: ".concat(String.valueOf(parent.getHeight()))))));
+						} else {
+							_displayInfo(_data, _position, false);
+						}
 					}
 				}
 			});

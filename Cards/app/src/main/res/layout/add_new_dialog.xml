@@ -160,15 +160,18 @@
 							android:focusable="false"
 							android:layout_width="wrap_content"
 							android:layout_height="wrap_content"
-							android:padding="8dp"
+							android:paddingLeft="8dp"
+							android:paddingTop="8dp"
+							android:paddingBottom="8dp"
 							android:text="@string/card_type"
 							android:textSize="14sp"
 							android:textColor="#212121" />
 						<ImageView
 							android:id="@+id/dropdown_btn"
 							android:focusable="false"
-							android:layout_width="10dp"
-							android:layout_height="15dp"
+							android:layout_width="30dp"
+							android:layout_height="match_parent"
+							android:padding="8dp"
 							android:src="@drawable/ic_arrow_down"
 							android:scaleType="fitCenter" />
 					</LinearLayout>
