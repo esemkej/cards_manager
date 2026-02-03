@@ -31,3 +31,4 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 - Added an explanation dialog for potentially valid EAN-13 codes with an incorrect checksum
 - Fixed an issue where importing data from a file did not refresh the list immediately
 - Fixed an APK installation issue caused by faulty signing
+- Other quality of life updates
