@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.14.0-alpha
+- Support for pictures
+- Ability to attach pictures to card items
+- Ability to create standalone picture items
+
 ## v0.13.1-alpha
 - Fixed duplicate ID issue after import by recalculating `lastId` from the highest existing ID, including nested folders
 - Fixed RecyclerView height and display inconsistencies
