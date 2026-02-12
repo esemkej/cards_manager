@@ -1,9 +1,18 @@
 # Changelog
 
+## v0.14.1-alpha
+- Ability to add or remove codes for picture items (convert image-only items to card+image and back)
+- Display "None" next to Code type when no code is present for better clarity
+- Card name text is now always white for improved readability and consistency
+
+---
+
 ## v0.14.0-alpha
 - Support for pictures
 - Ability to attach pictures to card items
 - Ability to create standalone picture items
+
+---
 
 ## v0.13.1-alpha
 - Fixed duplicate ID issue after import by recalculating `lastId` from the highest existing ID, including nested folders
