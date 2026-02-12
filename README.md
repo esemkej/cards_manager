@@ -28,7 +28,7 @@ The Cards app is developed using **Sketchware Pro v7.0.0**. Because Sketchware u
 
 ---
 
-## What's new: v0.14.1-alpha
-- Add or remove codes for picture items (image-only ↔ card+image conversion)
-- Clear indication when no code is used with "None" shown in Code type
-- Improved visual consistency: card titles now always use white text
+## What's new: v0.14.2-alpha
+- Fixes around creating image-only items (better handling/validation during creation)
+- Added safety nets to prevent saving empty items
+- Bug fix: UI no longer allows adding pictures to folder items
