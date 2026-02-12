@@ -97,11 +97,45 @@
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:orientation="vertical">
+				<TextView
+					android:id="@+id/picture_gallery_txt"
+					android:focusable="false"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:paddingLeft="12dp"
+					android:paddingTop="8dp"
+					android:paddingRight="8dp"
+					android:paddingBottom="8dp"
+					android:text="@string/picture_gallery"
+					android:textSize="16sp"
+					android:textStyle="bold"
+					android:textColor="#212121" />
+				<androidx.recyclerview.widget.RecyclerView
+					android:id="@+id/pictures_rec"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingLeft="8dp"
+					android:paddingRight="8dp"
+					tools:listitem="@layout/pictures_recycler" />
+				<TextView
+					android:id="@+id/color_theme_txt"
+					android:focusable="false"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:paddingLeft="12dp"
+					android:paddingTop="8dp"
+					android:paddingRight="8dp"
+					android:paddingBottom="8dp"
+					android:text="@string/color_theme"
+					android:textSize="16sp"
+					android:textStyle="bold"
+					android:textColor="#212121" />
 				<androidx.recyclerview.widget.RecyclerView
 					android:id="@+id/colors_rec"
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content"
-					android:padding="8dp"
+					android:paddingLeft="8dp"
+					android:paddingRight="8dp"
 					tools:listitem="@layout/colors_recycler" />
 				<TextView
 					android:id="@+id/folder_txt"

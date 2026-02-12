@@ -63,6 +63,7 @@ import java.util.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.*;
+import jp.wasabeef.picasso.transformations.*;
 import org.json.*;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.button.MaterialButton;
@@ -78,7 +79,15 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import android.text.method.KeyListener;
-import android.view.inputmethod.InputMethodManager;
+import android.view.inputmethod.InputMethodManager;
+import android.os.Build;
+import android.provider.MediaStore;
+import android.webkit.MimeTypeMap;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 	
@@ -119,12 +128,23 @@ public class MainActivity extends AppCompatActivity {
 	private EditText code_edit;
 	private TextView type_txt;
 	private HashMap<String, Object> types = new HashMap<>();
-	private boolean validCode = false;
+	private HashMap<String, Object> pictures = new HashMap<>();
+	private static final int REQ_TAKE_PHOTO = 2001;
+	private static final int REQ_PICK_IMAGE = 2002;
+	private Uri pendingCameraUri = null;
+	private String pendingCameraInternalPath = null;
+	private long newId;
+	private boolean scan = false;
+	private boolean newCardSaved = false;
+	private LinearLayout code_menu_lay;
 	
 	private ArrayList<HashMap<String, Object>> cards_list = new ArrayList<>();
 	private ArrayList<HashMap<String, Object>> cards_list_all = new ArrayList<>();
 	private ArrayList<HashMap<String, Object>> colors_list = new ArrayList<>();
 	private ArrayList<HashMap<String, Object>> types_list = new ArrayList<>();
+	private ArrayList<HashMap<String, Object>> pictures_list = new ArrayList<>();
+	private ArrayList<String> pendingImages = new ArrayList<>();
+	private ArrayList<String> pendingDelete = new ArrayList<>();
 	
 	private LinearLayout parent;
 	private LinearLayout filter_parent;
@@ -139,9 +159,11 @@ public class MainActivity extends AppCompatActivity {
 	private RecyclerView cards_rec;
     private RecyclerView colors_rec;
     private RecyclerView items_rec;
+    private RecyclerView pictures_rec;
     private Cards_recAdapter cardsAdapter;
     private Colors_recAdapter colorsAdapter;
     private Items_recAdapter itemsAdapter;
+    private Pictures_recAdapter picturesAdapter;
 	private TextView no_items_txt;
 	
 	private SharedPreferences card_prefs;
@@ -1645,15 +1667,79 @@ public class MainActivity extends AppCompatActivity {
 	@Override
 	protected void onActivityResult(int _requestCode, int _resultCode, Intent _data) {
 		super.onActivityResult(_requestCode, _resultCode, _data);
+		if (_requestCode == REQ_TAKE_PHOTO) {
+			if (_resultCode != Activity.RESULT_OK) {
+				if (pendingCameraInternalPath != null) {
+					File f = new File(pendingCameraInternalPath);
+					if (f.exists()) f.delete();
+				}
+				pendingCameraUri = null;
+				pendingCameraInternalPath = null;
+				return;
+			}
+			
+			if (pendingCameraInternalPath == null) return;
+			
+			File f = new File(pendingCameraInternalPath);
+			if (f.exists() && f.length() > 0) {
+				String filename = f.getName();
+				pendingImages.add(filename);
+				HashMap<String, Object> m = new HashMap<>();
+				m.put("image", filename);
+				int insertPos = Math.max(0, pictures_list.size() - 1);
+				pictures_list.add(insertPos, m);
+				picturesAdapter.notifyItemInserted(insertPos);
+			} else {
+				if (f.exists()) f.delete();
+				SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.photo_save_error));
+			}
+			
+			pendingCameraUri = null;
+			pendingCameraInternalPath = null;
+			return;
+		}
+		
+		if (_requestCode == REQ_PICK_IMAGE) {
+			if (_resultCode != Activity.RESULT_OK || _data == null) return;
+			
+			Uri uri = _data.getData();
+			if (uri == null) return;
+			
+			try {
+				String filename = copyPickedImageIntoInternalStorage(id, uri);
+				pendingImages.add(filename);
+				HashMap<String, Object> m = new HashMap<>();
+				m.put("image", filename);
+				int insertPos = Math.max(0, pictures_list.size() - 1);
+				pictures_list.add(insertPos, m);
+				picturesAdapter.notifyItemInserted(insertPos);
+			} catch (Exception e) {
+				SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.photo_import_error) + " " + e.getMessage());
+			}
+			return;
+		}
+		
 		if (_resultCode != Activity.RESULT_OK || _data == null) return;
 		
 		Uri uri = _data.getData();
-		if (uri == null) return;
+		if (uri != null) {
+			final int takeFlags = _data.getFlags()
+			& (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+			try {
+				getContentResolver().takePersistableUriPermission(uri, takeFlags);
+			} catch (Exception ignored) {}
+		}
 		
 		if (_requestCode == REQ_EXPORT_JSON) {
 			exportCardsToUri(uri);
 		} else if (_requestCode == REQ_IMPORT_JSON) {
 			importCardsFromUri(uri);
+		}
+		
+		switch (_requestCode) {
+			
+			default:
+			break;
 		}
 		switch (_requestCode) {
 			
@@ -1668,6 +1754,7 @@ public class MainActivity extends AppCompatActivity {
 		super.onResume();
 		if (card_prefs.contains("code") && card_prefs.contains("type")) {
 			if (bottomShii != null && bottomShii.isShowing() && code_edit != null) {
+				code_menu_lay.setVisibility(View.VISIBLE);
 				code_edit.setText(card_prefs.getString("code", ""));
 				type_txt.setText(getString(R.string.card_type).concat(" ".concat(card_prefs.getString("type", ""))));
 				cardSaveCode = card_prefs.getString("code", "");
@@ -1747,11 +1834,97 @@ public class MainActivity extends AppCompatActivity {
 			cardsAdapter.notifyDataSetChanged();
 		}
 	}
+	private void openSystemCameraForCard(String cardId) {
+		try {
+			File dir = new File(getFilesDir(), "card_images/" + cardId);
+			if (!dir.exists()) dir.mkdirs();
+			
+			String uuid = UUID.randomUUID().toString();
+			File outFile = new File(dir, "img_" + uuid + ".jpg");
+			
+			Uri outUri = FileProvider.getUriForFile(
+			this,
+			getPackageName() + ".fileprovider",
+			outFile
+			);
+			
+			Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+			intent.putExtra(MediaStore.EXTRA_OUTPUT, outUri);
+			intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+			intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+			
+			pendingCameraUri = outUri;
+			pendingCameraInternalPath = outFile.getAbsolutePath();
+			
+			startActivityForResult(intent, REQ_TAKE_PHOTO);
+		} catch (Exception e) {
+			SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.camera_failed) + " " + e.getMessage());
+			pendingCameraUri = null;
+			pendingCameraInternalPath = null;
+		}
+	}
+	private void pickImageForCard() {
+		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+		intent.addCategory(Intent.CATEGORY_OPENABLE);
+		intent.setType("image/*");
+		intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+		intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+		startActivityForResult(intent, REQ_PICK_IMAGE);
+	}
+	private String copyPickedImageIntoInternalStorage(String cardId, Uri srcUri) throws Exception {
+		File dir = new File(getFilesDir(), "card_images/" + cardId);
+		if (!dir.exists()) dir.mkdirs();
+		
+		String uuid = UUID.randomUUID().toString();
+		
+		String ext = "jpg";
+		String mime = getContentResolver().getType(srcUri);
+		if (mime != null) {
+			String guessed = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime);
+			if (guessed != null && guessed.length() > 0) ext = guessed;
+		}
+		
+		String filename = "img_" + uuid + "." + ext;
+		File outFile = new File(dir, filename);
+		
+		try (InputStream in = getContentResolver().openInputStream(srcUri);
+		OutputStream out = new FileOutputStream(outFile)) {
+			
+			if (in == null) throw new Exception("Unable to open selected image");
+			
+			byte[] buf = new byte[8192];
+			int r;
+			while ((r = in.read(buf)) != -1) out.write(buf, 0, r);
+			out.flush();
+		}
+		
+		if (!outFile.exists() || outFile.length() == 0) {
+			if (outFile.exists()) outFile.delete();
+			throw new Exception("Copy failed (empty file)");
+		}
+		
+		return filename;
+	}
+	private void deleteRecursive(File f) {
+		if (f == null || !f.exists()) return;
+		
+		if (f.isDirectory()) {
+			File[] kids = f.listFiles();
+			if (kids != null) {
+				for (File c : kids) deleteRecursive(c);
+			}
+		}
+		f.delete();
+	}
 	private boolean isValidCode(String input) {
 		types_list.clear();
 		if (isValidEan13(input)) {
 			types = new HashMap<>();
 			types.put("type", "EAN_13");
+			types_list.add(types);
+			types = new HashMap<>();
+			types.put("type", getString(R.string.none));
+			types.put("label", getString(R.string.removes_code));
 			types_list.add(types);
 			return true;
 		} else if (input.matches("\\d+") && input.length() == 13 && !isValidChecksum(input)) {
@@ -1765,6 +1938,10 @@ public class MainActivity extends AppCompatActivity {
 			types = new HashMap<>();
 			types.put("type", "QR_CODE");
 			types_list.add(types);
+			types = new HashMap<>();
+			types.put("type", getString(R.string.none));
+			types.put("label", getString(R.string.removes_code));
+			types_list.add(types);
 			return true;
 		} else if (isValidCode128(input)) {
 			types = new HashMap<>();
@@ -1774,10 +1951,24 @@ public class MainActivity extends AppCompatActivity {
 			types = new HashMap<>();
 			types.put("type", "QR_CODE");
 			types_list.add(types);
+			types = new HashMap<>();
+			types.put("type", getString(R.string.none));
+			types.put("label", getString(R.string.removes_code));
+			types_list.add(types);
 			return true;
 		} else if (input.length() > 0) {
 			types = new HashMap<>();
 			types.put("type", "QR_CODE");
+			types_list.add(types);
+			types = new HashMap<>();
+			types.put("type", getString(R.string.none));
+			types.put("label", getString(R.string.removes_code));
+			types_list.add(types);
+			return true;
+		} else if (input.length() == 0) {
+			types = new HashMap<>();
+			types.put("type", getString(R.string.none));
+			types.put("label", getString(R.string.removes_code));
 			types_list.add(types);
 			return true;
 		} else {
@@ -2136,65 +2327,6 @@ public class MainActivity extends AppCompatActivity {
 		}
 		tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, basePx * scale);
 	}
-	@androidx.annotation.ColorInt
-	private static int pickForegroundForGradient(java.util.List<Integer> bgColors) {
-		if (bgColors == null || bgColors.isEmpty()) return 0xFFFFFFFF;
-		
-		final int WHITE = 0xFFFFFFFF;
-		final int BLACK = 0xFF212121;
-		
-		final double MIN_CONTRAST_FOR_WHITE = 3.0;
-		
-		double worstContrastWithWhite = Double.POSITIVE_INFINITY;
-		
-		for (int c : bgColors) {
-			int opaque = compositeOverWhite(c);
-			worstContrastWithWhite = Math.min(
-			worstContrastWithWhite,
-			contrastRatio(opaque, WHITE)
-			);
-		}
-		
-		return (worstContrastWithWhite >= MIN_CONTRAST_FOR_WHITE)
-		? WHITE
-		: BLACK;
-	}
-	
-	private static int compositeOverWhite(int c) {
-		int a = (c >>> 24) & 0xFF;
-		if (a >= 255) return c;
-		
-		int r = (c >>> 16) & 0xFF;
-		int g = (c >>>  8) & 0xFF;
-		int b = (c       ) & 0xFF;
-		
-		int outR = (r * a + 255 * (255 - a)) / 255;
-		int outG = (g * a + 255 * (255 - a)) / 255;
-		int outB = (b * a + 255 * (255 - a)) / 255;
-		
-		return 0xFF000000 | (outR << 16) | (outG << 8) | outB;
-	}
-	
-	private static double contrastRatio(int c1, int c2) {
-		double l1 = relativeLuminance(c1);
-		double l2 = relativeLuminance(c2);
-		
-		double lighter = Math.max(l1, l2);
-		double darker  = Math.min(l1, l2);
-		
-		return (lighter + 0.05) / (darker + 0.05);
-	}
-	private static double relativeLuminance(int c) {
-		double r = srgbToLinear(((c >>> 16) & 0xFF) / 255.0);
-		double g = srgbToLinear(((c >>>  8) & 0xFF) / 255.0);
-		double b = srgbToLinear(((c       ) & 0xFF) / 255.0);
-		
-		return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-	}
-	private static double srgbToLinear(double x) {
-		if (x <= 0.04045) return x / 12.92;
-		return Math.pow((x + 0.055) / 1.055, 2.4);
-	}
 	private boolean removeByIdInList(ArrayList<HashMap<String, Object>> list, String id) {
 		if (list == null) return false;
 		
@@ -2539,15 +2671,22 @@ public class MainActivity extends AppCompatActivity {
 		i.replaceExtras((Bundle) null);
 		
 		if (Build.VERSION.SDK_INT < 23) {
-			i.setClass(getApplicationContext(), ScannerActivity.class);
-			startActivity(i);
-			return;
+			if (scan) {
+				i.setClass(getApplicationContext(), ScannerActivity.class);
+				startActivity(i);
+				return;
+			} else {
+				openSystemCameraForCard(id);
+			}    
 		}
 		
-		if (checkSelfPermission(android.Manifest.permission.CAMERA)
-		== android.content.pm.PackageManager.PERMISSION_GRANTED) {
-			i.setClass(getApplicationContext(), ScannerActivity.class);
-			startActivity(i);
+		if (checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+			if (scan) {
+				i.setClass(getApplicationContext(), ScannerActivity.class);
+				startActivity(i);
+			} else {
+				openSystemCameraForCard(id);
+			}    
 		} else {
 			requestPermissions(new String[]{android.Manifest.permission.CAMERA}, REQ_CAMERA);
 		}
@@ -2557,10 +2696,13 @@ public class MainActivity extends AppCompatActivity {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		
 		if (requestCode == REQ_CAMERA) {
-			if (grantResults.length > 0
-			&& grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-				i.setClass(getApplicationContext(), ScannerActivity.class);
-				startActivity(i);
+			if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+				if (scan) {
+					i.setClass(getApplicationContext(), ScannerActivity.class);
+					startActivity(i);
+				} else {
+					openSystemCameraForCard(id);
+				}
 				
 			} else {
 				boolean canAskAgain = true;
@@ -3125,6 +3267,9 @@ public class MainActivity extends AppCompatActivity {
 						_showEanWarning();
 					} else {
 						String type = _data.get(_position).get("type").toString();
+						if (type.equals(getString(R.string.none))) {
+							code_edit.setText("");
+						}
 						cardSaveType = type;
 						type_txt.setText(getString(R.string.card_type).concat(" ".concat(type)));
 						p.dismiss();
@@ -3143,26 +3288,296 @@ public class MainActivity extends AppCompatActivity {
 				super(v);
 			}
 		}
+	}    
+	public class Pictures_recAdapter extends RecyclerView.Adapter<Pictures_recAdapter.ViewHolder> {
+		
+		ArrayList<HashMap<String, Object>> _data;
+		
+		public Pictures_recAdapter(ArrayList<HashMap<String, Object>> _arr) {
+			_data = _arr;
+		}
+		
+		@Override
+		public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+			View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.pictures_recycler, parent, false);
+			RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+			v.setLayoutParams(lp);
+			return new ViewHolder(v);
+		}
+		
+		@Override
+		public void onBindViewHolder(ViewHolder _holder, final int _position) {
+			View _view = _holder.itemView;
+			final LinearLayout parent = _view.findViewById(R.id.parent);
+			final ImageView picture = _view.findViewById(R.id.picture);
+			parent.setClickable(true);
+			parent.setBackground(new RippleDrawable(
+			new ColorStateList(
+			new int[][]{new int[]{}},
+			new int[]{0xFF212121}
+			),
+			new GradientDrawable() {
+				public GradientDrawable getIns(int a, int b, int c, int d) {
+					this.setCornerRadius(a);
+					this.setStroke(b, c);
+					this.setColor(d);
+					return this;
+				}
+			}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFFFFFFF), 
+			null
+			));
+			
+			parent.setClipToOutline(true);
+			String v = String.valueOf(_data.get(_position).get("image"));
+			if (v.equals("plus")) {
+				picture.setImageResource(R.drawable.ic_add_grey);
+			} else {
+				File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
+				
+				if (f.exists() && f.length() > 0) {
+					Picasso.with(getApplicationContext())
+					.load(f)
+					.fit()
+					.centerCrop()
+					.into(picture);
+				} else {
+					picture.setImageResource(R.drawable.ic_broken_image);
+				}
+			}
+			parent.setOnClickListener(new View.OnClickListener() {
+				@Override
+				public void onClick(View _view) {
+					if (v.equals("plus")) {
+						try {
+							if (p != null) p.dismiss();
+						} catch (Exception p_e) {}
+						
+						LayoutInflater p_li = getLayoutInflater();
+						View p_pv = p_li.inflate(R.layout.mode_popup, null);
+						
+						p = new PopupWindow(
+						p_pv,
+						ViewGroup.LayoutParams.WRAP_CONTENT,
+						ViewGroup.LayoutParams.WRAP_CONTENT,
+						true
+						);
+						
+						p.setOutsideTouchable(true);
+						p.setFocusable(true);
+						p.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+						final LinearLayout camera_lay = (LinearLayout) p_pv.findViewById(R.id.camera_lay);
+						final LinearLayout image_lay = (LinearLayout) p_pv.findViewById(R.id.image_lay);
+						final TextView camera_scanner_txt = (TextView) p_pv.findViewById(R.id.camera_scanner_txt);
+						final TextView scan_from_image_txt = (TextView) p_pv.findViewById(R.id.scan_from_image_txt);
+						final ImageView camera_img = (ImageView) p_pv.findViewById(R.id.camera_img);
+						final ImageView scan_img = (ImageView) p_pv.findViewById(R.id.scan_img);
+						pictures_rec = (RecyclerView) p_pv.findViewById(R.id.pictures_rec);
+						camera_scanner_txt.setText(getString(R.string.take_photo));
+						scan_from_image_txt.setText(getString(R.string.pick_image));
+						camera_img.setImageResource(R.drawable.ic_camera);
+						applyTextScale(camera_scanner_txt, textScaleFromLevel((int) textLevel));
+						applyTextScale(scan_from_image_txt, textScaleFromLevel((int) textLevel));
+						camera_lay.setClickable(true);
+						camera_lay.setBackground(new RippleDrawable(
+						new ColorStateList(
+						new int[][]{new int[]{}},
+						new int[]{0xFFD2B6DC}
+						),
+						new GradientDrawable() {
+							public GradientDrawable getIns(int a, int b, int c, int d) {
+								this.setCornerRadius(a);
+								this.setStroke(b, c);
+								this.setColor(d);
+								return this;
+							}
+						}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+						null
+						));
+						
+						image_lay.setClickable(true);
+						image_lay.setBackground(new RippleDrawable(
+						new ColorStateList(
+						new int[][]{new int[]{}},
+						new int[]{0xFFD2B6DC}
+						),
+						new GradientDrawable() {
+							public GradientDrawable getIns(int a, int b, int c, int d) {
+								this.setCornerRadius(a);
+								this.setStroke(b, c);
+								this.setColor(d);
+								return this;
+							}
+						}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+						null
+						));
+						
+						final Runnable p_dismissAnim = new Runnable() {
+							@Override
+							public void run() {
+								p_pv.animate()
+								.alpha(0f)
+								.scaleX(0.96f)
+								.scaleY(0.96f)
+								.setDuration(120)
+								.setInterpolator(new android.view.animation.AccelerateInterpolator())
+								.withEndAction(new Runnable() {
+									@Override
+									public void run() {
+										try { p.dismiss(); } catch (Exception p_e) {}
+									}
+								})
+								.start();
+							}
+						};
+						
+						p_pv.setOnTouchListener(new View.OnTouchListener() {
+							@Override
+							public boolean onTouch(View p_v, android.view.MotionEvent p_event) {
+								if (p_event.getAction() == android.view.MotionEvent.ACTION_OUTSIDE) {
+									p_dismissAnim.run();
+									return true;
+								}
+								return false;
+							}
+						});
+						
+						p_pv.measure(
+						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+						);
+						int p_popupW = p_pv.getMeasuredWidth();
+						int p_popupH = p_pv.getMeasuredHeight();
+						
+						int[] p_loc = new int[2];
+						parent.getLocationOnScreen(p_loc);
+						int p_anchorX = p_loc[0];
+						int p_anchorY = p_loc[1];
+						
+						android.util.DisplayMetrics p_dm = getResources().getDisplayMetrics();
+						int p_screenW = p_dm.widthPixels;
+						int p_screenH = p_dm.heightPixels;
+						
+						int p_x = p_anchorX + parent.getWidth() - p_popupW;
+						
+						int p_yBelow = p_anchorY + parent.getHeight();
+						int p_yAbove = p_anchorY - p_popupH;
+						
+						if (p_x < 0) p_x = 0;
+						if (p_x + p_popupW > p_screenW)
+						p_x = Math.max(0, p_screenW - p_popupW);
+						
+						int p_y;
+						if (p_yBelow + p_popupH <= p_screenH) {
+							p_y = p_yBelow;
+						} else if (p_yAbove >= 0) {
+							p_y = p_yAbove;
+						} else {
+							p_y = Math.max(0, p_screenH - p_popupH);
+						}
+						camera_lay.setOnClickListener(new View.OnClickListener() {
+							@Override
+							public void onClick(View _view) {
+								p_dismissAnim.run();
+								scan = false;
+								openScannerOrRequestPermission();
+							}
+						});
+						image_lay.setOnClickListener(new View.OnClickListener() {
+							@Override
+							public void onClick(View _view) {
+								p_dismissAnim.run();
+								pickImageForCard();
+							}
+						});
+						p_pv.setAlpha(0f);
+						p_pv.setScaleX(0.94f);
+						p_pv.setScaleY(0.94f);
+						
+						p.showAtLocation(
+						parent,
+						android.view.Gravity.TOP | android.view.Gravity.START,
+						p_x,
+						p_y
+						);
+						
+						p_pv.setPivotX(p_pv.getMeasuredWidth());
+						p_pv.setPivotY(0f);
+						
+						p_pv.animate()
+						.alpha(1f)
+						.scaleX(1f)
+						.scaleY(1f)
+						.setDuration(140)
+						.setInterpolator(new android.view.animation.DecelerateInterpolator())
+						.start();
+					} else {
+						_displayImage(v);
+					}
+				}
+			});
+			parent.setOnLongClickListener(new View.OnLongClickListener() {
+				@Override
+				public boolean onLongClick(View _view) {
+					int pos = _holder.getBindingAdapterPosition();
+					if (!v.equals("plus")) {
+						_data.remove(pos);
+						picturesAdapter.notifyItemRemoved(pos);
+						picturesAdapter.notifyItemRangeChanged(pos, _data.size() - pos);
+						pendingDelete.add(v);
+						pendingImages.remove(v);
+					}
+					return true;
+				}
+			});
+		}
+		
+		@Override
+		public int getItemCount() {
+			return _data.size();
+		}
+		
+		public class ViewHolder extends RecyclerView.ViewHolder {
+			public ViewHolder(View v) {
+				super(v);
+			}
+		}
 	}
 	
 	
 	public void _displayInfo(final ArrayList<HashMap<String, Object>> _data, final double _position, final boolean _newItem) {
+		pendingImages.clear();
+		pictures_list.clear();
+		boolean noCode = false;
 		if (_newItem) {
+			newId = card_prefs.getLong("lastId", -1) + 1;
 			cardSaveName = "";
-			cardSaveType = "";
+			cardSaveType = getString(R.string.none);
 			cardSaveCode = "";
 			selectedGradStyle = "lr";
+			id = String.valueOf(newId);;
 			favorite = false;
 			folder = false;
+			newCardSaved = false;
 		} else {
 			cardSaveName = _data.get((int)(_position)).get("name").toString();
 			selectedGradStyle = _data.get((int)(_position)).get("grad_style").toString();
 			id = _data.get((int)(_position)).get("id").toString();
 			favorite = (boolean)_data.get((int)(_position)).get("favorite");
 			folder = (boolean)_data.get((int)(_position)).get("folder");
-			if (!folder) {
+			if (!folder && (_data.get((int)(_position)).containsKey("type") && _data.get((int)(_position)).containsKey("code"))) {
 				cardSaveType = _data.get((int)(_position)).get("type").toString();
 				cardSaveCode = _data.get((int)(_position)).get("code").toString();
+			} else {
+				noCode = true;
+			}
+			if (_data.get((int)(_position)).containsKey("images")) {
+				pendingImages.addAll((ArrayList<String>) _data.get((int) _position).get("images"));
+				for (String fn : pendingImages) {
+					if (fn == null) continue;
+					HashMap<String, Object> m = new HashMap<>();
+					m.put("image", fn);
+					pictures_list.add(m);
+				}
 			}
 		}
 		bottomShii = new com.google.android.material.bottomsheet.BottomSheetDialog(MainActivity.this);
@@ -3176,107 +3591,121 @@ public class MainActivity extends AppCompatActivity {
 		final TextView del_btn = (TextView) bottomShiiV.findViewById(R.id.del_btn);
 		final TextView folder_txt = (TextView) bottomShiiV.findViewById(R.id.folder_txt);
 		final TextView code_txt = (TextView) bottomShiiV.findViewById(R.id.code_txt);
-		final RecyclerView colors_rec = (RecyclerView) bottomShiiV.findViewById(R.id.colors_rec);
+		final TextView picture_gallery_txt = (TextView) bottomShiiV.findViewById(R.id.picture_gallery_txt);
+		final TextView color_theme_txt = (TextView) bottomShiiV.findViewById(R.id.color_theme_txt);
 		final ImageView fav_btn = (ImageView) bottomShiiV.findViewById(R.id.fav_btn);
 		final ImageView folder_btn = (ImageView) bottomShiiV.findViewById(R.id.folder_btn);
 		final ImageView dropdown_btn = (ImageView) bottomShiiV.findViewById(R.id.dropdown_btn);
 		final ImageView code_img = (ImageView) bottomShiiV.findViewById(R.id.code_img);
 		final LinearLayout img_parent = (LinearLayout) bottomShiiV.findViewById(R.id.img_parent);
-		final LinearLayout code_menu_lay = (LinearLayout) bottomShiiV.findViewById(R.id.code_menu_lay);
 		code_edit = bottomShiiV.findViewById(R.id.code_edit);
 		type_txt = bottomShiiV.findViewById(R.id.type_txt);
+		pictures_rec = bottomShiiV.findViewById(R.id.pictures_rec);
+		colors_rec = bottomShiiV.findViewById(R.id.colors_rec);
+		code_menu_lay = bottomShiiV.findViewById(R.id.code_menu_lay);
 		float scale = textScaleFromLevel((int) textLevel);
 		applyTextScale(card_name_txt, scale);
 		applyTextScale(scan_btn, scale);
 		applyTextScale(save_btn, scale);
 		applyTextScale(folder_txt, scale);
 		applyTextScale(del_btn, scale);
+		applyTextScale(color_theme_txt, scale);
 		if (!folder) {
 			applyTextScale(code_txt, scale);
 			applyTextScale(code_edit, scale);
 			applyTextScale(type_txt, scale);
+			applyTextScale(picture_gallery_txt, scale);
 		}    
-		code_edit.addTextChangedListener(new TextWatcher() {
+		bottomShii.setOnDismissListener(new DialogInterface.OnDismissListener() {
 			@Override
-			public void onTextChanged(CharSequence _param1, int _param2, int _param3, int _param4) {
-				final String _charSeq = _param1.toString();
-				String q = _charSeq.toString();
-				if (!q.isEmpty()) {    
-					validCode = isValidCode(q);
-				}    
+			public void onDismiss(DialogInterface dialog) {
+				if (_newItem && !newCardSaved) {
+					File dir = new File(getFilesDir(), "card_images/" + id);
+					if (dir.exists()) deleteRecursive(dir);
+				}
+				if (_newItem && !pendingImages.isEmpty()) {
+					for (String v : pendingImages) {
+						File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
+						if (f.exists()) f.delete();
+					}
+					pendingImages.clear();
+				}
 			}
-			
-			@Override
-			public void beforeTextChanged(CharSequence _param1, int _param2, int _param3, int _param4) {}
-			
-			@Override
-			public void afterTextChanged(Editable _param1) {}
 		});
-		final String code = code_edit.getText().toString();
-		if (code.isEmpty()) {
-			validCode = false;
-		} else {
-			validCode = isValidCode(code);
-		}
 		bottomShii.setCancelable(true);
 		if (_newItem) {
 			img_parent.setVisibility(View.GONE);
 			del_btn.setVisibility(View.GONE);
+			pictures_rec.setVisibility(View.VISIBLE);
+			picture_gallery_txt.setVisibility(View.VISIBLE);
+			type_txt.setText(getString(R.string.card_type).concat(" ".concat(cardSaveType)));
 		} else {
 			card_name_txt.setText(cardSaveName);
 			if (folder) {
 				del_btn.setText(getString(R.string.del_folder));
 				img_parent.setVisibility(View.GONE);
 				code_menu_lay.setVisibility(View.GONE);
+				pictures_rec.setVisibility(View.GONE);
+				picture_gallery_txt.setVisibility(View.GONE);
 			} else {
-				code_edit.setText(cardSaveCode);
-				type_txt.setText(getString(R.string.card_type).concat(" ".concat(cardSaveType)));
-				del_btn.setText(getString(R.string.del_card));
-				String code_img_data = cardSaveCode;
-				String code_img_typeStr = cardSaveType;
-				
-				int code_img_targetW = (int)(SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.95d);
-				
-				try {
-					BarcodeFormat code_img_format = BarcodeFormat.valueOf(code_img_typeStr);
+				if (noCode) {
+					code_menu_lay.setVisibility(View.GONE);
+					img_parent.setVisibility(View.GONE);
+					picture_gallery_txt.setVisibility(View.GONE);
+				} else {
+					code_menu_lay.setVisibility(View.VISIBLE);
+					img_parent.setVisibility(View.VISIBLE);
+					picture_gallery_txt.setVisibility(View.VISIBLE);
+					code_edit.setText(cardSaveCode);
+					type_txt.setText(getString(R.string.card_type).concat(" ".concat(cardSaveType)));
+					String code_img_data = cardSaveCode;
+					String code_img_typeStr = cardSaveType;
 					
-					boolean code_img_is2D =
-					code_img_format == BarcodeFormat.QR_CODE ||
-					code_img_format == BarcodeFormat.DATA_MATRIX ||
-					code_img_format == BarcodeFormat.AZTEC ||
-					code_img_format == BarcodeFormat.PDF_417;
+					int code_img_targetW = (int)(SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.95d);
 					
-					int code_img_targetH;
-					if (code_img_is2D) {
-						code_img_targetH = code_img_targetW;
-					} else {
-						code_img_targetH = (int) (code_img_targetW * 0.35d);
-						if (code_img_targetH < 180) code_img_targetH = 180;
-					}
-					
-					ViewGroup.LayoutParams code_img_lp = code_img.getLayoutParams();
-					code_img_lp.width = code_img_targetW;
-					code_img_lp.height = code_img_targetH;
-					code_img.setLayoutParams(code_img_lp);
-					
-					Map<EncodeHintType, Object> code_img_hints = new EnumMap<>(EncodeHintType.class);
-					code_img_hints.put(EncodeHintType.MARGIN, 2);
-					
-					BitMatrix code_img_bm = new MultiFormatWriter().encode(code_img_data, code_img_format, code_img_targetW, code_img_targetH, code_img_hints);
-					
-					Bitmap code_img_bmp = Bitmap.createBitmap(code_img_targetW, code_img_targetH, Bitmap.Config.RGB_565);
-					for (int code_img_y = 0; code_img_y < code_img_targetH; code_img_y++) {
-						for (int code_img_x = 0; code_img_x < code_img_targetW; code_img_x++) {
-							code_img_bmp.setPixel(code_img_x, code_img_y, code_img_bm.get(code_img_x, code_img_y) ? 0xFF000000 : 0xFFFFFFFF);
+					try {
+						BarcodeFormat code_img_format = BarcodeFormat.valueOf(code_img_typeStr);
+						
+						boolean code_img_is2D =
+						code_img_format == BarcodeFormat.QR_CODE ||
+						code_img_format == BarcodeFormat.DATA_MATRIX ||
+						code_img_format == BarcodeFormat.AZTEC ||
+						code_img_format == BarcodeFormat.PDF_417;
+						
+						int code_img_targetH;
+						if (code_img_is2D) {
+							code_img_targetH = code_img_targetW;
+						} else {
+							code_img_targetH = (int) (code_img_targetW * 0.35d);
+							if (code_img_targetH < 180) code_img_targetH = 180;
 						}
+						
+						ViewGroup.LayoutParams code_img_lp = code_img.getLayoutParams();
+						code_img_lp.width = code_img_targetW;
+						code_img_lp.height = code_img_targetH;
+						code_img.setLayoutParams(code_img_lp);
+						
+						Map<EncodeHintType, Object> code_img_hints = new EnumMap<>(EncodeHintType.class);
+						code_img_hints.put(EncodeHintType.MARGIN, 2);
+						
+						BitMatrix code_img_bm = new MultiFormatWriter().encode(code_img_data, code_img_format, code_img_targetW, code_img_targetH, code_img_hints);
+						
+						Bitmap code_img_bmp = Bitmap.createBitmap(code_img_targetW, code_img_targetH, Bitmap.Config.RGB_565);
+						for (int code_img_y = 0; code_img_y < code_img_targetH; code_img_y++) {
+							for (int code_img_x = 0; code_img_x < code_img_targetW; code_img_x++) {
+								code_img_bmp.setPixel(code_img_x, code_img_y, code_img_bm.get(code_img_x, code_img_y) ? 0xFF000000 : 0xFFFFFFFF);
+							}
+						}
+						
+						code_img.setImageBitmap(code_img_bmp);
+						
+						
+					} catch (Exception code_img_e) {
+						SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.code_fail).concat(" ".concat(code_img_e.getClass().getSimpleName())));
 					}
-					
-					code_img.setImageBitmap(code_img_bmp);
-					
-					
-				} catch (Exception code_img_e) {
-					SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.code_fail).concat(" ".concat(code_img_e.getClass().getSimpleName())));
 				}
+				del_btn.setText(getString(R.string.del_card));
+				pictures_rec.setVisibility(View.VISIBLE);
 			}
 			del_btn.setClickable(true);
 			del_btn.setBackground(new RippleDrawable(
@@ -3352,6 +3781,76 @@ public class MainActivity extends AppCompatActivity {
 			null
 			));
 		} else {
+			final androidx.recyclerview.widget.GridLayoutManager pictures_rec_layoutManager =
+			new androidx.recyclerview.widget.GridLayoutManager(
+			pictures_rec.getContext(),
+			(int) 1,
+			androidx.recyclerview.widget.RecyclerView.HORIZONTAL,
+			false
+			);
+			pictures_rec.setLayoutManager(pictures_rec_layoutManager);
+			
+			final android.content.Context pictures_rec_ctx = pictures_rec.getContext();
+			
+			final int pictures_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+			android.util.TypedValue.COMPLEX_UNIT_DIP,
+			(float) 4,
+			pictures_rec_ctx.getResources().getDisplayMetrics()
+			));
+			
+			final int pictures_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+			android.util.TypedValue.COMPLEX_UNIT_DIP,
+			(float) 0,
+			pictures_rec_ctx.getResources().getDisplayMetrics()
+			));
+			
+			if (pictures_rec.getItemDecorationCount() > 0) {
+				pictures_rec.removeItemDecorationAt(0);
+			}
+			
+			pictures_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
+				@Override
+				public void getItemOffsets(android.graphics.Rect outRect,
+				android.view.View view,
+				androidx.recyclerview.widget.RecyclerView parent,
+				androidx.recyclerview.widget.RecyclerView.State state) {
+					
+					int pictures_rec_pos = parent.getChildAdapterPosition(view);
+					if (pictures_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
+					
+					androidx.recyclerview.widget.RecyclerView.LayoutManager pictures_rec_lm =
+					parent.getLayoutManager();
+					if (!(pictures_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
+					
+					androidx.recyclerview.widget.GridLayoutManager pictures_rec_glm =
+					(androidx.recyclerview.widget.GridLayoutManager) pictures_rec_lm;
+					
+					int pictures_rec_spanCount = pictures_rec_glm.getSpanCount();
+					
+					androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup pictures_rec_ssl =
+					pictures_rec_glm.getSpanSizeLookup();
+					
+					int pictures_rec_spanSize = pictures_rec_ssl.getSpanSize(pictures_rec_pos);
+					int pictures_rec_spanIndex = pictures_rec_ssl.getSpanIndex(pictures_rec_pos, pictures_rec_spanCount);
+					
+					outRect.left =
+					(pictures_rec_spanIndex * pictures_rec_hSpacingPx) / pictures_rec_spanCount;
+					
+					outRect.right =
+					pictures_rec_hSpacingPx
+					- ((pictures_rec_spanIndex + pictures_rec_spanSize) * pictures_rec_hSpacingPx)
+					/ pictures_rec_spanCount;
+					
+					if (pictures_rec_pos >= pictures_rec_spanCount) {
+						outRect.top = pictures_rec_vSpacingPx;
+					}
+				}
+			});
+			pictures = new HashMap<>();
+			pictures.put("image", "plus");
+			pictures_list.add(pictures);
+			picturesAdapter = new Pictures_recAdapter(pictures_list);
+			pictures_rec.setAdapter(picturesAdapter);
 			dropdown_btn.setClickable(true);
 			dropdown_btn.setBackground(new RippleDrawable(
 			new ColorStateList(
@@ -3407,6 +3906,7 @@ public class MainActivity extends AppCompatActivity {
 											runOnUiThread(new Runnable() {
 												@Override
 												public void run() {
+													code_menu_lay.setVisibility(View.VISIBLE);
 													code_edit.setText(text);
 													type_txt.setText(getString(R.string.card_type).concat(" ".concat(type)));
 													cardSaveCode = text;
@@ -3432,6 +3932,7 @@ public class MainActivity extends AppCompatActivity {
 							}
 						});
 					} else {
+						scan = true;
 						openScannerOrRequestPermission();
 					}
 				}
@@ -3528,6 +4029,7 @@ public class MainActivity extends AppCompatActivity {
 						@Override
 						public void onClick(View _v) {
 							dismissAnim.run();
+							scan = true;
 							openScannerOrRequestPermission();
 						}
 					});
@@ -3553,6 +4055,7 @@ public class MainActivity extends AppCompatActivity {
 												runOnUiThread(new Runnable() {
 													@Override
 													public void run() {
+														code_menu_lay.setVisibility(View.VISIBLE);
 														code_edit.setText(text);
 														type_txt.setText(getString(R.string.card_type).concat(" ".concat(type)));
 														cardSaveCode = text;
@@ -3635,7 +4138,7 @@ public class MainActivity extends AppCompatActivity {
 			dropdown_btn.setOnClickListener(new View.OnClickListener(){
 				@Override
 				public void onClick(View _clickedView){
-					if (validCode) {
+					if (isValidCode(code_edit.getText().toString())) {
 						try {
 							if (p != null) p.dismiss();
 						} catch (Exception p_e) {}
@@ -3654,7 +4157,7 @@ public class MainActivity extends AppCompatActivity {
 						p.setFocusable(true);
 						p.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
 						final LinearLayout parent = (LinearLayout) p_pv.findViewById(R.id.parent);
-						final RecyclerView items_rec = (RecyclerView) p_pv.findViewById(R.id.items_rec);
+						items_rec = (RecyclerView) p_pv.findViewById(R.id.items_rec);
 						
 						items_rec.setLayoutManager(
 						new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false)
@@ -3769,7 +4272,7 @@ public class MainActivity extends AppCompatActivity {
 				if (!folder) {
 					cardSaveCode = code_edit.getText().toString();
 				}
-				if (cardSaveName.isEmpty() || ((cardSaveType.isEmpty() || cardSaveCode.isEmpty()) && (!folder && !debug))) {
+				if (cardSaveName.isEmpty() || (cardSaveType.equals(getString(R.string.none)) || (((cardSaveType.isEmpty() || cardSaveCode.isEmpty()) && pendingImages.isEmpty()) && (!folder && !debug)))) {
 					SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.empty_err));
 				} else {
 					ArrayList<Integer> picked = new ArrayList<>();
@@ -3781,25 +4284,33 @@ public class MainActivity extends AppCompatActivity {
 					cards = new HashMap<>();
 					cards.put("name", cardSaveName);
 					if (!folder) {
-						if (debug) {
-							cards.put("type", "debug_type");
-							cards.put("code", "debug_code");
-						} else {
+						if (!(cardSaveType.equals(getString(R.string.none)) && cardSaveCode.isEmpty())) {
 							cards.put("type", cardSaveType);
 							cards.put("code", cardSaveCode);
+						}
+						if (!pendingImages.isEmpty()) {
+							cards.put("images", new ArrayList<String>(pendingImages));
+							pendingImages.clear();
+						}
+						if (!pendingDelete.isEmpty()) {
+							for (String v : pendingDelete) {
+								File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
+								if (f.exists()) f.delete();
+							}
+							pendingDelete.clear();
 						}
 					}
 					cards.put("folder", folder);
 					cards.put("grad_style", selectedGradStyle);
+					cards.put("id", id);
 					cards.put("favorite", favorite);
 					cards.put("colors", new Gson().toJson(picked));
 					if (_newItem) {
+						newCardSaved = true;
 						if (folder) {
 							cards.put("data", new ArrayList<HashMap<String,Object>>());
 						}
 						cards.put("used", (double)(0));
-						long newId = card_prefs.getLong("lastId", -1) + 1;
-						cards.put("id", String.valueOf(newId));
 						card_prefs.edit().putLong("lastId", newId).commit();
 						_data.add(cards);
 						if (inFolder) {
@@ -3814,7 +4325,6 @@ public class MainActivity extends AppCompatActivity {
 							cards.put("data", (ArrayList<HashMap<String,Object>>)_data.get((int)(_position)).get("data"));
 						}
 						cards.put("used", (double)((double)_data.get((int)(_position)).get("used")));
-						cards.put("id", id);
 						_data.set((int)(_position), cards);
 						if (inFolder) {
 							ArrayList<HashMap<String, Object>> masterContainer =
@@ -4073,6 +4583,8 @@ public class MainActivity extends AppCompatActivity {
 							}
 							boolean removed = removeByIdInList(container, targetId);
 							if (!removed) removed = removeByIdRecursive(cards_list_all, targetId);
+							File dir = new File(getFilesDir(), "card_images/" + id);
+							if (dir.exists()) deleteRecursive(dir);
 							card_prefs.edit().putString("cards", new Gson().toJson(cards_list_all)).commit();
 							SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.card_del_msg));
 							applySortFilter(
@@ -4098,7 +4610,7 @@ public class MainActivity extends AppCompatActivity {
 		colors_rec.setLayoutManager(
 		new LinearLayoutManager(MainActivity.this, LinearLayoutManager.HORIZONTAL, false)
 		);
-		final int spacingPx = (int) (8 * getResources().getDisplayMetrics().density);
+		final int spacingPx = (int) (4 * getResources().getDisplayMetrics().density);
 		colors_rec.addItemDecoration(new RecyclerView.ItemDecoration() {
 			@Override
 			public void getItemOffsets(
@@ -4285,6 +4797,90 @@ public class MainActivity extends AppCompatActivity {
 		d.show();
 	}
 	
+	
+	public void _displayImage(final String _image) {
+		d = new AlertDialog.Builder(MainActivity.this).create();
+		LayoutInflater dLI = getLayoutInflater();
+		View dCV = (View) dLI.inflate(R.layout.image_display_dialog, null);
+		d.setView(dCV);
+		final FrameLayout parent = (FrameLayout)
+		dCV.findViewById(R.id.parent);
+		final ImageView display_img = (ImageView)
+		dCV.findViewById(R.id.display_img);
+		final ImageView close_img = (ImageView)
+		dCV.findViewById(R.id.close_img);
+		d.setCancelable(true);
+		d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+		Window window = d.getWindow();
+		if (window != null) {
+			window.setLayout(
+			ViewGroup.LayoutParams.WRAP_CONTENT,
+			ViewGroup.LayoutParams.WRAP_CONTENT
+			);
+			window.setGravity(Gravity.CENTER);
+		}
+		parent.setClickable(true);
+		
+		final float parent_rTL = TypedValue.applyDimension(
+		TypedValue.COMPLEX_UNIT_DIP,
+		(float) 12,
+		getResources().getDisplayMetrics()
+		);
+		
+		final float parent_rTR = TypedValue.applyDimension(
+		TypedValue.COMPLEX_UNIT_DIP,
+		(float) 12,
+		getResources().getDisplayMetrics()
+		);
+		
+		final float parent_rBR = TypedValue.applyDimension(
+		TypedValue.COMPLEX_UNIT_DIP,
+		(float) 12,
+		getResources().getDisplayMetrics()
+		);
+		
+		final float parent_rBL = TypedValue.applyDimension(
+		TypedValue.COMPLEX_UNIT_DIP,
+		(float) 12,
+		getResources().getDisplayMetrics()
+		);
+		
+		parent.setBackground(new ShapeDrawable(new RoundRectShape(
+		new float[]{
+			parent_rTL, parent_rTL,
+			parent_rTR, parent_rTR,
+			parent_rBR, parent_rBR,
+			parent_rBL, parent_rBL
+		},
+		null,
+		null
+		)) {{
+				getPaint().setColor(0xFF000000);
+			}});
+		int w = (int) (SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.8);
+		parent.setClipToOutline(true);
+		File f = new File(getFilesDir(), "card_images/" + id + "/" + _image);
+		
+		if (f.exists() && f.length() > 0) {
+			Picasso.with(getApplicationContext())
+			.load(f)
+			.into(display_img);
+		} else {
+			display_img.setImageResource(R.drawable.ic_broken_image);
+			ViewGroup.LayoutParams display_img_layoutParams = display_img.getLayoutParams();
+			display_img_layoutParams.width = w;
+			display_img_layoutParams.height = w;
+			display_img.setLayoutParams(display_img_layoutParams);
+		}
+		close_img.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View _view) {
+				d.dismiss();
+			}
+		});
+		d.show();
+	}
+	
 	public class Cards_recAdapter extends RecyclerView.Adapter<Cards_recAdapter.ViewHolder> {
 		
 		ArrayList<HashMap<String, Object>> _data;
@@ -4366,7 +4962,6 @@ public class MainActivity extends AppCompatActivity {
 			content,
 			null
 			));
-			card_name.setTextColor(pickForegroundForGradient(picked));
 			applyTextScale(card_name, textScaleFromLevel((int) textLevel));
 			parent.post(new Runnable() {
 				@Override

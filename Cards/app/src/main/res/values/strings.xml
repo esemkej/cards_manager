@@ -14,6 +14,7 @@
     <string name="by_type">Type</string>
     <string name="by_use_count">Use count</string>
     <string name="camera_fail">Enable camera permission in settings to continue</string>
+    <string name="camera_failed">Camera failed:</string>
     <string name="camera_perm">Camera permission required for scanning</string>
     <string name="camera_scanner">Camera scanner</string>
     <string name="cancel">Cancel</string>
@@ -26,6 +27,7 @@
     <string name="close">Close</string>
     <string name="code_fail">Code generation failed:</string>
     <string name="color_fail">Couldn\'t load colors:</string>
+    <string name="color_theme">Color theme</string>
     <string name="copy_as_text">Copy as text</string>
     <string name="data_settings">Data settings</string>
     <string name="del_card">Delete card</string>
@@ -70,9 +72,15 @@
     <string name="left_right">Left to right</string>
     <string name="no">No</string>
     <string name="no_items">No items created\nTap the plus button to create one</string>
+    <string name="none">None</string>
     <string name="paste_here">Paste the JSON style text here to import data</string>
+    <string name="photo_import_error">Error importing photo:</string>
+    <string name="photo_save_error">Encountered an error while saving the photo</string>
+    <string name="pick_image">Pick an image</string>
+    <string name="picture_gallery">Picture gallery</string>
     <string name="radio_grad_title">Gradient direction</string>
     <string name="recommended">Recommended</string>
+    <string name="removes_code">This option removes the code</string>
     <string name="right_left">Right to left</string>
     <string name="save">Save</string>
     <string name="save_as_file">Save as file</string>
@@ -88,6 +96,7 @@
     <string name="show">Show:</string>
     <string name="show_tutorial">Show first-use tutorial on next startup:</string>
     <string name="sort_by">Sort by:</string>
+    <string name="take_photo">Take a photo</string>
     <string name="text_copied">Text was copied</string>
     <string name="text_size">Text size:</string>
     <string name="topleft_bottomright">Top left to bottom right</string>

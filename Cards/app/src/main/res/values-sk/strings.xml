@@ -14,6 +14,7 @@
     <string name="by_type">Typu</string>
     <string name="by_use_count">Počtu použití</string>
     <string name="camera_fail">Povolte prístup ku kamere v nastaveniach pre pokračovanie</string>
+    <string name="camera_failed">Kamera zlyhala:</string>
     <string name="camera_perm">Prístup ku kamere je potrebný na skenovanie</string>
     <string name="camera_scanner">Naskenovať z kamery</string>
     <string name="cancel">Zrušiť</string>
@@ -26,6 +27,7 @@
     <string name="close">Zavrieť</string>
     <string name="code_fail">Generovanie kódu zlyhalo:</string>
     <string name="color_fail">Nepodarilo sa načítať farby:</string>
+    <string name="color_theme">Farebný motív</string>
     <string name="copy_as_text">Skopírovať ako text</string>
     <string name="data_settings">Nastavenia dát</string>
     <string name="del_card">Odstrániť kartu</string>
@@ -70,9 +72,15 @@
     <string name="left_right">Zľava doprava</string>
     <string name="no">Nie</string>
     <string name="no_items">Nemáte vytvorené položky\nKliknite na tlačidlo plus pre ich vytvorenie</string>
+    <string name="none">Žiadny</string>
     <string name="paste_here">Sem prilepte text formátu JSON na importovanie dát</string>
+    <string name="photo_import_error">Chyba pri importovaní fotky:</string>
+    <string name="photo_save_error">Nastala chyba pri ukladaní fotky</string>
+    <string name="pick_image">Vybrať obrázok</string>
+    <string name="picture_gallery">Galéria obrázkov</string>
     <string name="radio_grad_title">Smer farebného prechodu</string>
     <string name="recommended">Odporúčané</string>
+    <string name="removes_code">Táto možnosť odstráni kód</string>
     <string name="right_left">Zprava doľava</string>
     <string name="save">Uložiť</string>
     <string name="save_as_file">Uložiť ako súbor</string>
@@ -88,6 +96,7 @@
     <string name="show">Zobraziť:</string>
     <string name="show_tutorial">Spustiť prvotný tutoriál pri ďalšom spustení</string>
     <string name="sort_by">Usporiadať podľa:</string>
+    <string name="take_photo">Odfotiť</string>
     <string name="text_copied">Text bol skopírovaný</string>
     <string name="text_size">Veľkosť textu:</string>
     <string name="topleft_bottomright">Zľava hore doprava dole</string>

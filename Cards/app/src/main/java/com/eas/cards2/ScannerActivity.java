@@ -33,6 +33,7 @@ import java.io.*;
 import java.text.*;
 import java.util.*;
 import java.util.regex.*;
+import jp.wasabeef.picasso.transformations.*;
 import org.json.*;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
