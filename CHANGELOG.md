@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.14.2-alpha
+- Fixes around creating image-only items (better handling/validation during creation)
+- Added safety nets to prevent saving empty items
+- Bug fix: UI no longer allows adding pictures to folder items
+
+---
+
 ## v0.14.1-alpha
 - Ability to add or remove codes for picture items (convert image-only items to card+image and back)
 - Display "None" next to Code type when no code is present for better clarity
