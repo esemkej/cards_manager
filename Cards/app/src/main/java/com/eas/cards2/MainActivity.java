@@ -4272,9 +4272,7 @@ public class MainActivity extends AppCompatActivity {
 				if (!folder) {
 					cardSaveCode = code_edit.getText().toString();
 				}
-				if (cardSaveName.isEmpty() || (cardSaveType.equals(getString(R.string.none)) || (((cardSaveType.isEmpty() || cardSaveCode.isEmpty()) && pendingImages.isEmpty()) && (!folder && !debug)))) {
-					SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.empty_err));
-				} else {
+				if (_isValidItem()) {
 					ArrayList<Integer> picked = new ArrayList<>();
 					for (HashMap<String, Object> m : colors_list) {
 						Object v = m.get("color");
@@ -4284,7 +4282,7 @@ public class MainActivity extends AppCompatActivity {
 					cards = new HashMap<>();
 					cards.put("name", cardSaveName);
 					if (!folder) {
-						if (!(cardSaveType.equals(getString(R.string.none)) && cardSaveCode.isEmpty())) {
+						if (!cardSaveType.equals(getString(R.string.none))) {
 							cards.put("type", cardSaveType);
 							cards.put("code", cardSaveCode);
 						}
@@ -4344,6 +4342,8 @@ public class MainActivity extends AppCompatActivity {
 					loadFilterId()
 					);
 					bottomShii.dismiss();
+				} else {
+					SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.empty_err));
 				}
 			}
 		});
@@ -4369,10 +4369,16 @@ public class MainActivity extends AppCompatActivity {
 						ObjectAnimator anim2 = ObjectAnimator.ofFloat(code_edit, "alpha", 0f, 1f);
 						ObjectAnimator anim3 = ObjectAnimator.ofFloat(type_txt, "alpha", 0f, 1f);
 						ObjectAnimator anim4 = ObjectAnimator.ofFloat(dropdown_btn, "alpha", 0f, 1f);
+						ObjectAnimator anim5 = ObjectAnimator.ofFloat(picture_gallery_txt, "alpha", 0f, 1f);
+						ObjectAnimator anim6 = ObjectAnimator.ofFloat(pictures_rec, "alpha", 0f, 1f);
+						ObjectAnimator anim7 = ObjectAnimator.ofFloat(color_theme_txt, "alpha", 0f, 1f);
 						code_txt.setVisibility(View.VISIBLE);
 						code_edit.setVisibility(View.VISIBLE);
 						type_txt.setVisibility(View.VISIBLE);
 						dropdown_btn.setVisibility(View.VISIBLE);
+						picture_gallery_txt.setVisibility(View.VISIBLE);
+						pictures_rec.setVisibility(View.VISIBLE);
+						color_theme_txt.setVisibility(View.VISIBLE);
 						AnimatorSet animSet = new AnimatorSet();
 						animSet.playTogether(anim1, anim2, anim3, anim4);
 						animSet.setDuration(250);
@@ -4423,6 +4429,9 @@ public class MainActivity extends AppCompatActivity {
 						ObjectAnimator anim2 = ObjectAnimator.ofFloat(code_edit, "alpha", 1f, 0f);
 						ObjectAnimator anim3 = ObjectAnimator.ofFloat(type_txt, "alpha", 1f, 0f);
 						ObjectAnimator anim4 = ObjectAnimator.ofFloat(dropdown_btn, "alpha", 1f, 0f);
+						ObjectAnimator anim5 = ObjectAnimator.ofFloat(picture_gallery_txt, "alpha", 1f, 0f);
+						ObjectAnimator anim6 = ObjectAnimator.ofFloat(pictures_rec, "alpha", 1f, 0f);
+						ObjectAnimator anim7 = ObjectAnimator.ofFloat(color_theme_txt, "alpha", 1f, 0f);
 						AnimatorSet animSet = new AnimatorSet();
 						animSet.playTogether(anim1, anim2, anim3, anim4);
 						animSet.setDuration(250);
@@ -4434,6 +4443,9 @@ public class MainActivity extends AppCompatActivity {
 								code_edit.setVisibility(View.GONE);
 								type_txt.setVisibility(View.GONE);
 								dropdown_btn.setVisibility(View.GONE);
+								picture_gallery_txt.setVisibility(View.GONE);
+								pictures_rec.setVisibility(View.GONE);
+								color_theme_txt.setVisibility(View.GONE);
 							}
 						});
 						animSet.start();
@@ -4881,6 +4893,24 @@ public class MainActivity extends AppCompatActivity {
 		d.show();
 	}
 	
+	
+	public boolean _isValidItem() {
+		if (cardSaveName.isEmpty()) {
+			return (false);
+		}
+		if (!folder && !debug) {
+			if (!cardSaveCode.isEmpty() && cardSaveType.equals(getString(R.string.none))) {
+				// Can't have a code without code type
+				return (false);
+			}
+			if (cardSaveCode.isEmpty() && pendingImages.isEmpty()) {
+				// Can't have no code and no images if not a folder
+				return (false);
+			}
+		}
+		return (true);
+	}
+	
 	public class Cards_recAdapter extends RecyclerView.Adapter<Cards_recAdapter.ViewHolder> {
 		
 		ArrayList<HashMap<String, Object>> _data;
@@ -4967,6 +4997,24 @@ public class MainActivity extends AppCompatActivity {
 				@Override
 				public void run() {
 					int w = parent.getWidth();
+					card_name.setPadding((int) TypedValue.applyDimension(
+					TypedValue.COMPLEX_UNIT_DIP,
+					(int) Math.round(w * 0.1),
+					getResources().getDisplayMetrics()
+					), (int) TypedValue.applyDimension(
+					TypedValue.COMPLEX_UNIT_DIP,
+					8,
+					getResources().getDisplayMetrics()
+					), (int) TypedValue.applyDimension(
+					TypedValue.COMPLEX_UNIT_DIP,
+					(int) Math.round(w * 0.1),
+					getResources().getDisplayMetrics()
+					), (int) TypedValue.applyDimension(
+					TypedValue.COMPLEX_UNIT_DIP,
+					8,
+					getResources().getDisplayMetrics()
+					));
+					
 					ViewGroup.LayoutParams parent_layoutParams = parent.getLayoutParams();
 					
 					parent_layoutParams.height = (int) Math.round(w / 1.25);
