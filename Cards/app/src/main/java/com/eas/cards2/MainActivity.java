@@ -58,7 +58,6 @@ import com.google.zxing.*;
 import java.io.*;
 import java.io.InputStream;
 import java.text.*;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -486,6 +485,7 @@ public class MainActivity extends AppCompatActivity {
 				)) {{
 						getPaint().setColor(0xFF212121);
 					}});
+				float import_btn_density = getResources().getDisplayMetrics().density;
 				import_btn.setClickable(true);
 				import_btn.setBackground(new RippleDrawable(
 				new ColorStateList(
@@ -499,10 +499,11 @@ public class MainActivity extends AppCompatActivity {
 						this.setColor(d);
 						return this;
 					}
-				}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+				}.getIns((int) (12 * import_btn_density), (int) (2 * import_btn_density), 0xFF212121, 0xFFFFFFFF), 
 				null
 				));
 				
+				float export_btn_density = getResources().getDisplayMetrics().density;
 				export_btn.setClickable(true);
 				export_btn.setBackground(new RippleDrawable(
 				new ColorStateList(
@@ -516,7 +517,7 @@ public class MainActivity extends AppCompatActivity {
 						this.setColor(d);
 						return this;
 					}
-				}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+				}.getIns((int) (12 * export_btn_density), (int) (2 * export_btn_density), 0xFF212121, 0xFFFFFFFF), 
 				null
 				));
 				
@@ -666,6 +667,7 @@ public class MainActivity extends AppCompatActivity {
 						final ImageView scan_img = (ImageView) p_pv.findViewById(R.id.scan_img);
 						applyTextScale(camera_scanner_txt, textScaleFromLevel((int) textLevel));
 						applyTextScale(scan_from_image_txt, textScaleFromLevel((int) textLevel));
+						float camera_lay_density = getResources().getDisplayMetrics().density;
 						camera_lay.setClickable(true);
 						camera_lay.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -679,10 +681,11 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+						}.getIns((int) (12 * camera_lay_density), (int) (2 * camera_lay_density), 0xFF212121, 0xFFFFFFFF), 
 						null
 						));
 						
+						float image_lay_density = getResources().getDisplayMetrics().density;
 						image_lay.setClickable(true);
 						image_lay.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -696,7 +699,7 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+						}.getIns((int) (12 * image_lay_density), (int) (2 * image_lay_density), 0xFF212121, 0xFFFFFFFF), 
 						null
 						));
 						
@@ -793,6 +796,7 @@ public class MainActivity extends AppCompatActivity {
 								for (TextView tv : views) {
 									if (tv != null) applyTextScale(tv, scale);
 								}
+								float positive_txt_density = getResources().getDisplayMetrics().density;
 								positive_txt.setClickable(true);
 								positive_txt.setBackground(new RippleDrawable(
 								new ColorStateList(
@@ -806,10 +810,11 @@ public class MainActivity extends AppCompatActivity {
 										this.setColor(d);
 										return this;
 									}
-								}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFD2B6DC), 
+								}.getIns((int) (12 * positive_txt_density), (int) (0 * positive_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
 								null
 								));
 								
+								float negative_txt_density = getResources().getDisplayMetrics().density;
 								negative_txt.setClickable(true);
 								negative_txt.setBackground(new RippleDrawable(
 								new ColorStateList(
@@ -823,7 +828,7 @@ public class MainActivity extends AppCompatActivity {
 										this.setColor(d);
 										return this;
 									}
-								}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFD2B6DC), 
+								}.getIns((int) (12 * negative_txt_density), (int) (0 * negative_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
 								null
 								));
 								
@@ -1015,6 +1020,7 @@ public class MainActivity extends AppCompatActivity {
 						final ImageView scan_img = (ImageView) p_pv.findViewById(R.id.scan_img);
 						applyTextScale(camera_scanner_txt, textScaleFromLevel((int) textLevel));
 						applyTextScale(scan_from_image_txt, textScaleFromLevel((int) textLevel));
+						float camera_lay_density = getResources().getDisplayMetrics().density;
 						camera_lay.setClickable(true);
 						camera_lay.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -1028,10 +1034,11 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+						}.getIns((int) (12 * camera_lay_density), (int) (2 * camera_lay_density), 0xFF212121, 0xFFFFFFFF), 
 						null
 						));
 						
+						float image_lay_density = getResources().getDisplayMetrics().density;
 						image_lay.setClickable(true);
 						image_lay.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -1045,7 +1052,7 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+						}.getIns((int) (12 * image_lay_density), (int) (2 * image_lay_density), 0xFF212121, 0xFFFFFFFF), 
 						null
 						));
 						
@@ -1527,6 +1534,7 @@ public class MainActivity extends AppCompatActivity {
 				
 			}
 		});
+		float filter_bar_density = getResources().getDisplayMetrics().density;
 		filter_bar.setClickable(true);
 		filter_bar.setBackground(new RippleDrawable(
 		new ColorStateList(
@@ -1540,10 +1548,11 @@ public class MainActivity extends AppCompatActivity {
 				this.setColor(d);
 				return this;
 			}
-		}.getIns((int)12, (int)2, 0xFF424242, 0xFFFFFFFF), 
+		}.getIns((int) (12 * filter_bar_density), (int) (2 * filter_bar_density), 0xFF424242, 0xFFFFFFFF), 
 		null
 		));
 		
+		float settings_bar_density = getResources().getDisplayMetrics().density;
 		settings_bar.setClickable(true);
 		settings_bar.setBackground(new RippleDrawable(
 		new ColorStateList(
@@ -1557,10 +1566,11 @@ public class MainActivity extends AppCompatActivity {
 				this.setColor(d);
 				return this;
 			}
-		}.getIns((int)12, (int)2, 0xFF424242, 0xFFFFFFFF), 
+		}.getIns((int) (12 * settings_bar_density), (int) (2 * settings_bar_density), 0xFF424242, 0xFFFFFFFF), 
 		null
 		));
 		
+		float search_bar_density = getResources().getDisplayMetrics().density;
 		search_bar.setClickable(true);
 		search_bar.setBackground(new RippleDrawable(
 		new ColorStateList(
@@ -1574,7 +1584,7 @@ public class MainActivity extends AppCompatActivity {
 				this.setColor(d);
 				return this;
 			}
-		}.getIns((int)12, (int)2, 0xFF424242, 0xFFFFFFFF), 
+		}.getIns((int) (12 * search_bar_density), (int) (2 * search_bar_density), 0xFF424242, 0xFFFFFFFF), 
 		null
 		));
 		
@@ -2797,6 +2807,7 @@ public class MainActivity extends AppCompatActivity {
 			final LinearLayout parent = _view.findViewById(R.id.parent);
 			final ImageView plus_img = _view.findViewById(R.id.plus_img);
 			if (_data.get((int)(_position)).get("color").toString().equals("plus")) {
+				float parent_density = getResources().getDisplayMetrics().density;
 				parent.setClickable(true);
 				parent.setBackground(new RippleDrawable(
 				new ColorStateList(
@@ -2810,15 +2821,20 @@ public class MainActivity extends AppCompatActivity {
 						this.setColor(d);
 						return this;
 					}
-				}.getIns((int)360, (int)2, 0xFF424242, 0xFFFFFFFF), 
+				}.getIns((int) (360 * parent_density), (int) (2 * parent_density), 0xFF424242, 0xFFFFFFFF), 
 				null
 				));
 				
 				plus_lay.setVisibility(View.VISIBLE);
 				color.setVisibility(View.GONE);
 				plus_img.setImageResource(R.drawable.ic_add_grey);
+				ViewGroup.LayoutParams plus_img_layoutParams = plus_img.getLayoutParams();
+				plus_img_layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+				plus_img_layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
+				plus_img.setLayoutParams(plus_img_layoutParams);
 			} else {
 				if (_data.get((int)(_position)).get("color").toString().equals("settings")) {
+					float parent_density = getResources().getDisplayMetrics().density;
 					parent.setClickable(true);
 					parent.setBackground(new RippleDrawable(
 					new ColorStateList(
@@ -2832,14 +2848,24 @@ public class MainActivity extends AppCompatActivity {
 							this.setColor(d);
 							return this;
 						}
-					}.getIns((int)360, (int)2, 0xFF424242, 0xFFFFFFFF), 
+					}.getIns((int) (360 * parent_density), (int) (2 * parent_density), 0xFF424242, 0xFFFFFFFF), 
 					null
 					));
 					
 					plus_lay.setVisibility(View.VISIBLE);
 					color.setVisibility(View.GONE);
 					plus_img.setImageResource(R.drawable.ic_settings);
+					plus_img.post(new Runnable() {
+						@Override
+						public void run() {
+							ViewGroup.LayoutParams plus_img_layoutParams = plus_img.getLayoutParams();
+							plus_img_layoutParams.width = (int) (plus_img.getWidth() * 0.6);
+							plus_img_layoutParams.height = (int) (plus_img.getHeight() * 0.6);
+							plus_img.setLayoutParams(plus_img_layoutParams);
+						}
+					});
 				} else {
+					float parent_density = getResources().getDisplayMetrics().density;
 					parent.setClickable(true);
 					parent.setBackground(new RippleDrawable(
 					new ColorStateList(
@@ -2853,7 +2879,7 @@ public class MainActivity extends AppCompatActivity {
 							this.setColor(d);
 							return this;
 						}
-					}.getIns((int)360, (int)2, 0xFF424242, (int)(_data.get((int)(_position)).get("color"))), 
+					}.getIns((int) (360 * parent_density), (int) (2 * parent_density), 0xFF424242, (int)(_data.get((int)(_position)).get("color"))), 
 					null
 					));
 					color.setVisibility(View.VISIBLE);
@@ -2908,6 +2934,7 @@ public class MainActivity extends AppCompatActivity {
 						for (RadioButton rb : buttons) {
 							if (rb != null) applyTextScale(rb, scale);
 						}
+						float save_txt_density = getResources().getDisplayMetrics().density;
 						save_txt.setClickable(true);
 						save_txt.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -2921,10 +2948,11 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFD2B6DC), 
+						}.getIns((int) (12 * save_txt_density), (int) (0 * save_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
 						null
 						));
 						
+						float close_txt_density = getResources().getDisplayMetrics().density;
 						close_txt.setClickable(true);
 						close_txt.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -2938,7 +2966,7 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFD2B6DC), 
+						}.getIns((int) (12 * close_txt_density), (int) (0 * close_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
 						null
 						));
 						
@@ -3067,6 +3095,7 @@ public class MainActivity extends AppCompatActivity {
 						if (!isNew) {
 							add_txt.setText(getString(R.string.change));
 						}
+						float add_txt_density = getResources().getDisplayMetrics().density;
 						add_txt.setClickable(true);
 						add_txt.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -3080,10 +3109,11 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFD2B6DC), 
+						}.getIns((int) (12 * add_txt_density), (int) (0 * add_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
 						null
 						));
 						
+						float close_txt_density = getResources().getDisplayMetrics().density;
 						close_txt.setClickable(true);
 						close_txt.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -3097,7 +3127,7 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFD2B6DC), 
+						}.getIns((int) (12 * close_txt_density), (int) (0 * close_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
 						null
 						));
 						
@@ -3229,6 +3259,7 @@ public class MainActivity extends AppCompatActivity {
 			final TextView item_txt = _view.findViewById(R.id.item_txt);
 			final TextView label_txt = _view.findViewById(R.id.label_txt);
 			item_txt.setText(_data.get((int)(_position)).get("type").toString());
+			float item_density = getResources().getDisplayMetrics().density;
 			item.setClickable(true);
 			item.setBackground(new RippleDrawable(
 			new ColorStateList(
@@ -3242,7 +3273,7 @@ public class MainActivity extends AppCompatActivity {
 					this.setColor(d);
 					return this;
 				}
-			}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFFFFFFF), 
+			}.getIns((int) (12 * item_density), (int) (0 * item_density), Color.TRANSPARENT, 0xFFFFFFFF), 
 			null
 			));
 			
@@ -3310,28 +3341,38 @@ public class MainActivity extends AppCompatActivity {
 			View _view = _holder.itemView;
 			final LinearLayout parent = _view.findViewById(R.id.parent);
 			final ImageView picture = _view.findViewById(R.id.picture);
-			parent.setClickable(true);
-			parent.setBackground(new RippleDrawable(
-			new ColorStateList(
-			new int[][]{new int[]{}},
-			new int[]{0xFF212121}
-			),
-			new GradientDrawable() {
-				public GradientDrawable getIns(int a, int b, int c, int d) {
-					this.setCornerRadius(a);
-					this.setStroke(b, c);
-					this.setColor(d);
-					return this;
-				}
-			}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFFFFFFF), 
-			null
-			));
-			
-			parent.setClipToOutline(true);
 			String v = String.valueOf(_data.get(_position).get("image"));
 			if (v.equals("plus")) {
-				picture.setImageResource(R.drawable.ic_add_grey);
+				picture.setScaleType(ImageView.ScaleType.FIT_CENTER);
+				picture.setImageResource(R.drawable.ic_add_photo);
+				float parent_density = getResources().getDisplayMetrics().density;
+				parent.setClickable(true);
+				parent.setBackground(new RippleDrawable(
+				new ColorStateList(
+				new int[][]{new int[]{}},
+				new int[]{Color.TRANSPARENT}
+				),
+				new GradientDrawable() {
+					public GradientDrawable getIns(int a, int b, int c, int d) {
+						this.setCornerRadius(a);
+						this.setStroke(b, c, 8 * parent_density, 4 * parent_density);
+						this.setColor(d);
+						return this;
+					}
+				}.getIns((int) (12 * parent_density), (int) (3 * parent_density), 0xFFC6CACF, 0xFFF2EAF5), 
+				null
+				));
+				picture.post(new Runnable() {
+					@Override
+					public void run() {
+						ViewGroup.LayoutParams picture_layoutParams = picture.getLayoutParams();
+						picture_layoutParams.width = (int) (picture.getWidth() * 0.35);
+						picture_layoutParams.height = (int) (picture.getHeight() * 0.35);
+						picture.setLayoutParams(picture_layoutParams);
+					}
+				});
 			} else {
+				picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
 				File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
 				
 				if (f.exists() && f.length() > 0) {
@@ -3343,7 +3384,30 @@ public class MainActivity extends AppCompatActivity {
 				} else {
 					picture.setImageResource(R.drawable.ic_broken_image);
 				}
+				float parent_density = getResources().getDisplayMetrics().density;
+				parent.setClickable(true);
+				parent.setBackground(new RippleDrawable(
+				new ColorStateList(
+				new int[][]{new int[]{}},
+				new int[]{Color.TRANSPARENT}
+				),
+				new GradientDrawable() {
+					public GradientDrawable getIns(int a, int b, int c, int d) {
+						this.setCornerRadius(a);
+						this.setStroke(b, c);
+						this.setColor(d);
+						return this;
+					}
+				}.getIns((int) (12 * parent_density), (int) (0 * parent_density), Color.TRANSPARENT, 0xFFFFFFFF), 
+				null
+				));
+				
+				ViewGroup.LayoutParams picture_layoutParams = picture.getLayoutParams();
+				picture_layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+				picture_layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
+				picture.setLayoutParams(picture_layoutParams);
 			}
+			parent.setClipToOutline(true);
 			parent.setOnClickListener(new View.OnClickListener() {
 				@Override
 				public void onClick(View _view) {
@@ -3377,6 +3441,7 @@ public class MainActivity extends AppCompatActivity {
 						camera_img.setImageResource(R.drawable.ic_camera);
 						applyTextScale(camera_scanner_txt, textScaleFromLevel((int) textLevel));
 						applyTextScale(scan_from_image_txt, textScaleFromLevel((int) textLevel));
+						float camera_lay_density = getResources().getDisplayMetrics().density;
 						camera_lay.setClickable(true);
 						camera_lay.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -3390,10 +3455,11 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+						}.getIns((int) (12 * camera_lay_density), (int) (2 * camera_lay_density), 0xFF212121, 0xFFFFFFFF), 
 						null
 						));
 						
+						float image_lay_density = getResources().getDisplayMetrics().density;
 						image_lay.setClickable(true);
 						image_lay.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -3407,7 +3473,7 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+						}.getIns((int) (12 * image_lay_density), (int) (2 * image_lay_density), 0xFF212121, 0xFFFFFFFF), 
 						null
 						));
 						
@@ -3707,6 +3773,7 @@ public class MainActivity extends AppCompatActivity {
 				del_btn.setText(getString(R.string.del_card));
 				pictures_rec.setVisibility(View.VISIBLE);
 			}
+			float del_btn_density = getResources().getDisplayMetrics().density;
 			del_btn.setClickable(true);
 			del_btn.setBackground(new RippleDrawable(
 			new ColorStateList(
@@ -3720,7 +3787,7 @@ public class MainActivity extends AppCompatActivity {
 					this.setColor(d);
 					return this;
 				}
-			}.getIns((int)12, (int)2, 0xFF212121, 0xFFFF0000), 
+			}.getIns((int) (12 * del_btn_density), (int) (2 * del_btn_density), 0xFF212121, 0xFFFF0000), 
 			null
 			));
 			
@@ -3745,6 +3812,7 @@ public class MainActivity extends AppCompatActivity {
 		} else {
 			folder_txt.setVisibility(View.GONE);
 		}
+		float save_btn_density = getResources().getDisplayMetrics().density;
 		save_btn.setClickable(true);
 		save_btn.setBackground(new RippleDrawable(
 		new ColorStateList(
@@ -3758,7 +3826,7 @@ public class MainActivity extends AppCompatActivity {
 				this.setColor(d);
 				return this;
 			}
-		}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+		}.getIns((int) (12 * save_btn_density), (int) (2 * save_btn_density), 0xFF212121, 0xFFFFFFFF), 
 		null
 		));
 		
@@ -3851,6 +3919,7 @@ public class MainActivity extends AppCompatActivity {
 			pictures_list.add(pictures);
 			picturesAdapter = new Pictures_recAdapter(pictures_list);
 			pictures_rec.setAdapter(picturesAdapter);
+			float dropdown_btn_density = getResources().getDisplayMetrics().density;
 			dropdown_btn.setClickable(true);
 			dropdown_btn.setBackground(new RippleDrawable(
 			new ColorStateList(
@@ -3864,10 +3933,11 @@ public class MainActivity extends AppCompatActivity {
 					this.setColor(d);
 					return this;
 				}
-			}.getIns((int)360, (int)0, Color.TRANSPARENT, 0xFFF2EAF5), 
+			}.getIns((int) (360 * dropdown_btn_density), (int) (0 * dropdown_btn_density), Color.TRANSPARENT, 0xFFF2EAF5), 
 			null
 			));
 			
+			float scan_btn_density = getResources().getDisplayMetrics().density;
 			scan_btn.setClickable(true);
 			scan_btn.setBackground(new RippleDrawable(
 			new ColorStateList(
@@ -3881,7 +3951,7 @@ public class MainActivity extends AppCompatActivity {
 					this.setColor(d);
 					return this;
 				}
-			}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+			}.getIns((int) (12 * scan_btn_density), (int) (2 * scan_btn_density), 0xFF212121, 0xFFFFFFFF), 
 			null
 			));
 			
@@ -3989,6 +4059,7 @@ public class MainActivity extends AppCompatActivity {
 							return false;
 						}
 					});
+					float camera_lay_density = getResources().getDisplayMetrics().density;
 					camera_lay.setClickable(true);
 					camera_lay.setBackground(new RippleDrawable(
 					new ColorStateList(
@@ -4002,10 +4073,11 @@ public class MainActivity extends AppCompatActivity {
 							this.setColor(d);
 							return this;
 						}
-					}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+					}.getIns((int) (12 * camera_lay_density), (int) (2 * camera_lay_density), 0xFF212121, 0xFFFFFFFF), 
 					null
 					));
 					
+					float image_lay_density = getResources().getDisplayMetrics().density;
 					image_lay.setClickable(true);
 					image_lay.setBackground(new RippleDrawable(
 					new ColorStateList(
@@ -4019,7 +4091,7 @@ public class MainActivity extends AppCompatActivity {
 							this.setColor(d);
 							return this;
 						}
-					}.getIns((int)12, (int)2, 0xFF212121, 0xFFFFFFFF), 
+					}.getIns((int) (12 * image_lay_density), (int) (2 * image_lay_density), 0xFF212121, 0xFFFFFFFF), 
 					null
 					));
 					
@@ -4384,6 +4456,7 @@ public class MainActivity extends AppCompatActivity {
 						animSet.setDuration(250);
 						animSet.setInterpolator(new LinearInterpolator());
 						animSet.start();
+						float scan_btn_density = getResources().getDisplayMetrics().density;
 						scan_btn.setClickable(true);
 						scan_btn.setBackground(new RippleDrawable(
 						new ColorStateList(
@@ -4397,7 +4470,7 @@ public class MainActivity extends AppCompatActivity {
 								this.setColor(d);
 								return this;
 							}
-						}.getIns((int)12, (int)2, 0xFF424242, 0xFFFFFFFF), 
+						}.getIns((int) (12 * scan_btn_density), (int) (2 * scan_btn_density), 0xFF424242, 0xFFFFFFFF), 
 						null
 						));
 						
@@ -4492,6 +4565,7 @@ public class MainActivity extends AppCompatActivity {
 					for (TextView tv : views) {
 						if (tv != null) applyTextScale(tv, scale);
 					}
+					float positive_txt_density = getResources().getDisplayMetrics().density;
 					positive_txt.setClickable(true);
 					positive_txt.setBackground(new RippleDrawable(
 					new ColorStateList(
@@ -4505,10 +4579,11 @@ public class MainActivity extends AppCompatActivity {
 							this.setColor(d);
 							return this;
 						}
-					}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFFF0000), 
+					}.getIns((int) (12 * positive_txt_density), (int) (0 * positive_txt_density), Color.TRANSPARENT, 0xFFFF0000), 
 					null
 					));
 					
+					float negative_txt_density = getResources().getDisplayMetrics().density;
 					negative_txt.setClickable(true);
 					negative_txt.setBackground(new RippleDrawable(
 					new ColorStateList(
@@ -4522,7 +4597,7 @@ public class MainActivity extends AppCompatActivity {
 							this.setColor(d);
 							return this;
 						}
-					}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFFF0000), 
+					}.getIns((int) (12 * negative_txt_density), (int) (0 * negative_txt_density), Color.TRANSPARENT, 0xFFFF0000), 
 					null
 					));
 					
@@ -4777,6 +4852,7 @@ public class MainActivity extends AppCompatActivity {
 		)) {{
 				getPaint().setColor(0xFFD2B6DC);
 			}});
+		float positive_txt_density = getResources().getDisplayMetrics().density;
 		positive_txt.setClickable(true);
 		positive_txt.setBackground(new RippleDrawable(
 		new ColorStateList(
@@ -4790,7 +4866,7 @@ public class MainActivity extends AppCompatActivity {
 				this.setColor(d);
 				return this;
 			}
-		}.getIns((int)12, (int)0, Color.TRANSPARENT, 0xFFD2B6DC), 
+		}.getIns((int) (12 * positive_txt_density), (int) (0 * positive_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
 		null
 		));
 		
@@ -4999,7 +5075,7 @@ public class MainActivity extends AppCompatActivity {
 					int w = parent.getWidth();
 					card_name.setPadding((int) TypedValue.applyDimension(
 					TypedValue.COMPLEX_UNIT_DIP,
-					(int) Math.round(w * 0.1),
+					(int) Math.round(w * 0.07),
 					getResources().getDisplayMetrics()
 					), (int) TypedValue.applyDimension(
 					TypedValue.COMPLEX_UNIT_DIP,
@@ -5007,7 +5083,7 @@ public class MainActivity extends AppCompatActivity {
 					getResources().getDisplayMetrics()
 					), (int) TypedValue.applyDimension(
 					TypedValue.COMPLEX_UNIT_DIP,
-					(int) Math.round(w * 0.1),
+					(int) Math.round(w * 0.07),
 					getResources().getDisplayMetrics()
 					), (int) TypedValue.applyDimension(
 					TypedValue.COMPLEX_UNIT_DIP,
@@ -5072,11 +5148,7 @@ public class MainActivity extends AppCompatActivity {
 						);
 						return;
 					} else {
-						if (debug) {
-							SketchwareUtil.showMessage(getApplicationContext(), "width: ".concat(String.valueOf(parent.getWidth()).concat("\n".concat("height: ".concat(String.valueOf(parent.getHeight()))))));
-						} else {
-							_displayInfo(_data, _position, false);
-						}
+						_displayInfo(_data, _position, false);
 					}
 				}
 			});

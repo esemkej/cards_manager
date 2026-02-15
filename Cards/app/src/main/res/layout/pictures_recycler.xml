@@ -7,11 +7,11 @@
 	android:orientation="vertical">
 	<LinearLayout
 		android:id="@+id/parent"
-		android:layout_width="100dp"
+		android:layout_width="125dp"
 		android:layout_height="100dp"
 		android:layout_margin="4dp"
-		android:orientation="vertical"
-		android:elevation="2dp">
+		android:gravity="center_horizontal|center_vertical"
+		android:orientation="vertical">
 		<ImageView
 			android:id="@+id/picture"
 			android:focusable="false"
