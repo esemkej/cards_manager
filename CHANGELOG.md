@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.14.4-alpha
+- Various UI tweaks and visual polish
+- Performance and stability improvements
+- Minor bug fixes across the app
+- General quality-of-life improvements
+
+---
+
 ## v0.14.3-alpha
 - Fixed card name TextView side spacing to properly account for folder icon outline
 - Improved save validation safety checks to better prevent invalid item states
