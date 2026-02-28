@@ -18,7 +18,7 @@
 ####################################
 
 # Keep all your app code and member names so reflection/JSON won't break.
--keep class com.eas.cards.** { *; }
+-keep class com.eas.cards2.** { *; }
 
 
 ####################################

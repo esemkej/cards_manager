@@ -5,265 +5,270 @@
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
 	android:orientation="vertical">
-	<ScrollView
-		android:id="@+id/vscroll"
+	<FrameLayout
+		android:id="@+id/frame_parent"
 		android:layout_width="match_parent"
-		android:layout_height="match_parent">
-		<LinearLayout
-			android:id="@+id/parent"
+		android:layout_height="match_parent"
+		android:clipChildren="false"
+		android:clipToPadding="false">
+		<ScrollView
+			android:id="@+id/vscroll"
 			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:gravity="center_horizontal"
-			android:orientation="vertical"
-			android:background="@drawable/rounded_background">
+			android:layout_height="match_parent">
 			<LinearLayout
-				android:id="@+id/name_bar"
+				android:id="@+id/parent"
 				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:paddingLeft="8dp"
-				android:paddingTop="8dp"
-				android:paddingRight="8dp"
-				android:gravity="center_vertical"
-				android:orientation="horizontal">
-				<com.google.android.material.textfield.TextInputLayout
-					android:id="@+id/text_input_lay"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_weight="1"
-					app:boxBackgroundMode="outline"
-					app:boxCornerRadiusTopStart="12dp"
-					app:boxCornerRadiusTopEnd="12dp"
-					app:boxCornerRadiusBottomStart="12dp"
-					app:boxCornerRadiusBottomEnd="12dp"
-					app:hintTextColor="#757575"
-					android:hint="@string/card_name">
-					<com.google.android.material.textfield.TextInputEditText
-						android:id="@+id/card_name_txt"
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:padding="8dp"
-						android:textSize="16sp"
-						android:textColor="#212121"
-						android:textColorHint="#757575"
-						android:singleLine="true" />
-				</com.google.android.material.textfield.TextInputLayout>
-				<ImageView
-                    android:id="@+id/folder_btn"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginTop="4dp"
-                    android:src="@drawable/folder_selector"
-                    android:background="@null"
-                    android:tint="@null"
-                    android:scaleType="fitCenter"/>
-				<ImageView
-                    android:id="@+id/fav_btn"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:paddingTop="8dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="8dp"
-                    android:src="@drawable/favorite_selector"
-                    android:background="@null"
-                    android:tint="@null"
-                    android:scaleType="fitXY"/>
-			</LinearLayout>
-			<LinearLayout
-				android:id="@+id/img_parent"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_marginTop="8dp"
-				android:layout_marginBottom="8dp"
-				android:padding="2dp"
+				android:layout_height="match_parent"
 				android:gravity="center_horizontal"
-				android:orientation="horizontal">
-				<ImageView
-					android:id="@+id/code_img"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:src="@drawable/default_image"
-					android:scaleType="fitXY"
-					android:focusable="false"
-					android:adjustViewBounds="true" />
-			</LinearLayout>
-			<LinearLayout
-				android:id="@+id/bottom_lay"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:orientation="vertical">
-				<TextView
-					android:id="@+id/picture_gallery_txt"
-					android:focusable="false"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:paddingLeft="12dp"
-					android:paddingTop="8dp"
-					android:paddingRight="8dp"
-					android:paddingBottom="8dp"
-					android:text="@string/picture_gallery"
-					android:textSize="16sp"
-					android:textStyle="bold"
-					android:textColor="#212121" />
-				<androidx.recyclerview.widget.RecyclerView
-					android:id="@+id/pictures_rec"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:paddingLeft="8dp"
-					android:paddingRight="8dp"
-					tools:listitem="@layout/pictures_recycler" />
-				<TextView
-					android:id="@+id/color_theme_txt"
-					android:focusable="false"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:paddingLeft="12dp"
-					android:paddingTop="8dp"
-					android:paddingRight="8dp"
-					android:paddingBottom="8dp"
-					android:text="@string/color_theme"
-					android:textSize="16sp"
-					android:textStyle="bold"
-					android:textColor="#212121" />
-				<androidx.recyclerview.widget.RecyclerView
-					android:id="@+id/colors_rec"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:paddingLeft="8dp"
-					android:paddingRight="8dp"
-					tools:listitem="@layout/colors_recycler" />
-				<TextView
-					android:id="@+id/folder_txt"
-					android:focusable="false"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_marginLeft="8dp"
-					android:padding="8dp"
-					android:text="@string/folder"
-					android:textSize="14sp"
-					android:textColor="#212121" />
+				android:orientation="vertical"
+				android:background="@drawable/rounded_background">
 				<LinearLayout
-					android:id="@+id/code_menu_lay"
+					android:id="@+id/name_bar"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingLeft="8dp"
+					android:paddingRight="8dp"
+					android:gravity="center_vertical"
+					android:orientation="horizontal">
+					<com.google.android.material.textfield.TextInputLayout
+						android:id="@+id/text_input_lay"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_weight="1"
+						app:boxBackgroundMode="outline"
+						app:boxCornerRadiusTopStart="12dp"
+						app:boxCornerRadiusTopEnd="12dp"
+						app:boxCornerRadiusBottomStart="12dp"
+						app:boxCornerRadiusBottomEnd="12dp"
+						app:hintTextColor="#757575"
+						android:hint="@string/card_name">
+						<com.google.android.material.textfield.TextInputEditText
+						    android:id="@+id/card_name_txt"
+						    android:layout_width="match_parent"
+						    android:layout_height="wrap_content"
+						    android:padding="8dp"
+						    android:textSize="16sp"
+						    android:textColor="#212121"
+						    android:textColorHint="#757575"
+						    android:singleLine="true" />
+					</com.google.android.material.textfield.TextInputLayout>
+					<ImageView
+                        android:id="@+id/folder_btn"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="8dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="4dp"
+                        android:src="@drawable/folder_selector"
+                        android:background="@null"
+                        android:tint="@null"
+                        android:scaleType="fitCenter"/>
+					<ImageView
+                        android:id="@+id/fav_btn"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="8dp"
+                        android:src="@drawable/favorite_selector"
+                        android:background="@null"
+                        android:tint="@null"
+                        android:scaleType="fitXY"/>
+				</LinearLayout>
+				<LinearLayout
+					android:id="@+id/bottom_lay"
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content"
 					android:orientation="vertical">
-					<LinearLayout
-						android:id="@+id/code_lay"
+					<TextView
+						android:id="@+id/picture_gallery_txt"
+						android:focusable="false"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:paddingLeft="12dp"
+						android:paddingTop="8dp"
+						android:paddingRight="8dp"
+						android:paddingBottom="8dp"
+						android:text="@string/picture_gallery"
+						android:textSize="16sp"
+						android:textStyle="bold"
+						android:textColor="#212121" />
+					<androidx.recyclerview.widget.RecyclerView
+						android:id="@+id/pictures_rec"
 						android:layout_width="match_parent"
 						android:layout_height="wrap_content"
 						android:paddingLeft="8dp"
-						android:gravity="center_vertical"
-						android:orientation="horizontal">
-						<TextView
-							android:id="@+id/code_txt"
-							android:focusable="false"
-							android:layout_width="wrap_content"
+						android:paddingRight="8dp"
+						tools:listitem="@layout/pictures_recycler" />
+					<TextView
+						android:id="@+id/color_theme_txt"
+						android:focusable="false"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:paddingLeft="12dp"
+						android:paddingTop="8dp"
+						android:paddingRight="8dp"
+						android:paddingBottom="8dp"
+						android:text="@string/color_theme"
+						android:textSize="16sp"
+						android:textStyle="bold"
+						android:textColor="#212121" />
+					<androidx.recyclerview.widget.RecyclerView
+						android:id="@+id/colors_rec"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:paddingLeft="8dp"
+						android:paddingRight="8dp"
+						tools:listitem="@layout/colors_recycler" />
+					<TextView
+						android:id="@+id/folder_txt"
+						android:focusable="false"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_marginLeft="8dp"
+						android:padding="8dp"
+						android:text="@string/folder"
+						android:textSize="14sp"
+						android:textColor="#212121" />
+					<LinearLayout
+						android:id="@+id/code_menu_lay"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:orientation="vertical">
+						<LinearLayout
+							android:id="@+id/code_lay"
+							android:layout_width="match_parent"
 							android:layout_height="wrap_content"
 							android:paddingLeft="8dp"
-							android:paddingTop="8dp"
-							android:paddingBottom="8dp"
-							android:text="@string/card_code"
-							android:textSize="14sp"
-							android:textColor="#212121" />
-						<EditText
-							android:id="@+id/code_edit"
-							android:layout_width="wrap_content"
+							android:gravity="center_vertical"
+							android:orientation="horizontal">
+							<TextView
+								android:id="@+id/code_txt"
+								android:focusable="false"
+								android:layout_width="wrap_content"
+								android:layout_height="wrap_content"
+								android:paddingLeft="8dp"
+								android:paddingTop="8dp"
+								android:paddingBottom="8dp"
+								android:text="@string/card_code"
+								android:textSize="14sp"
+								android:textColor="#212121" />
+							<EditText
+							    android:id="@+id/code_edit"
+							    android:layout_width="wrap_content"
+							    android:layout_height="wrap_content"
+							    android:paddingLeft="4dp"
+							    android:paddingTop="8dp"
+							    android:paddingRight="8dp"
+							    android:paddingBottom="8dp"
+							    android:textSize="14sp"
+							    android:hint="@string/enter_code"
+							    android:background="@null" />
+						</LinearLayout>
+						<LinearLayout
+							android:id="@+id/type_lay"
+							android:layout_width="match_parent"
 							android:layout_height="wrap_content"
-							android:paddingLeft="4dp"
-							android:paddingTop="8dp"
-							android:paddingRight="8dp"
-							android:paddingBottom="8dp"
-							android:textSize="14sp"
-							android:hint="@string/enter_code"
-							android:background="@null" />
+							android:paddingLeft="8dp"
+							android:gravity="center_vertical"
+							android:orientation="horizontal">
+							<TextView
+								android:id="@+id/type_txt"
+								android:focusable="false"
+								android:layout_width="wrap_content"
+								android:layout_height="wrap_content"
+								android:paddingLeft="8dp"
+								android:paddingTop="8dp"
+								android:paddingBottom="8dp"
+								android:text="@string/card_type"
+								android:textSize="14sp"
+								android:textColor="#212121" />
+							<ImageView
+								android:id="@+id/dropdown_btn"
+								android:focusable="false"
+								android:layout_width="30dp"
+								android:layout_height="match_parent"
+								android:padding="8dp"
+								android:src="@drawable/ic_arrow_down"
+								android:scaleType="fitCenter" />
+						</LinearLayout>
 					</LinearLayout>
 					<LinearLayout
-						android:id="@+id/type_lay"
+						android:id="@+id/button_bar"
 						android:layout_width="match_parent"
 						android:layout_height="wrap_content"
-						android:paddingLeft="8dp"
-						android:gravity="center_vertical"
-						android:orientation="horizontal">
+						android:paddingTop="4dp"
+						android:paddingBottom="4dp"
+						android:orientation="horizontal"
+						android:weightSum="100">
 						<TextView
-							android:id="@+id/type_txt"
+							android:id="@+id/scan_btn"
 							android:focusable="false"
-							android:layout_width="wrap_content"
+							android:layout_width="0dp"
 							android:layout_height="wrap_content"
-							android:paddingLeft="8dp"
-							android:paddingTop="8dp"
-							android:paddingBottom="8dp"
-							android:text="@string/card_type"
-							android:textSize="14sp"
-							android:textColor="#212121" />
-						<ImageView
-							android:id="@+id/dropdown_btn"
-							android:focusable="false"
-							android:layout_width="30dp"
-							android:layout_height="match_parent"
+							android:layout_margin="4dp"
 							android:padding="8dp"
-							android:src="@drawable/ic_arrow_down"
-							android:scaleType="fitCenter" />
+							android:gravity="center_horizontal"
+							android:text="@string/scan_code"
+							android:textSize="14sp"
+							android:textColor="#212121"
+							android:singleLine="true"
+							android:layout_weight="50"
+							android:elevation="1dp" />
+						<TextView
+							android:id="@+id/save_btn"
+							android:focusable="false"
+							android:layout_width="0dp"
+							android:layout_height="wrap_content"
+							android:layout_margin="4dp"
+							android:padding="8dp"
+							android:gravity="center_horizontal"
+							android:text="@string/save"
+							android:textSize="14sp"
+							android:textColor="#000000"
+							android:layout_weight="50"
+							android:elevation="1dp" />
 					</LinearLayout>
 				</LinearLayout>
-				<LinearLayout
-					android:id="@+id/button_bar"
+				<TextView
+					android:id="@+id/del_btn"
+					android:focusable="false"
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content"
+					android:layout_marginLeft="4dp"
+					android:layout_marginRight="4dp"
+					android:layout_marginBottom="8dp"
+					android:paddingLeft="8dp"
 					android:paddingTop="4dp"
-					android:paddingBottom="4dp"
-					android:orientation="horizontal"
-					android:weightSum="100">
-					<TextView
-						android:id="@+id/scan_btn"
-						android:focusable="false"
-						android:layout_width="0dp"
-						android:layout_height="wrap_content"
-						android:layout_margin="4dp"
-						android:padding="8dp"
-						android:gravity="center_horizontal"
-						android:text="@string/scan_code"
-						android:textSize="14sp"
-						android:textColor="#212121"
-						android:singleLine="true"
-						android:layout_weight="50"
-						android:elevation="1dp" />
-					<TextView
-						android:id="@+id/save_btn"
-						android:focusable="false"
-						android:layout_width="0dp"
-						android:layout_height="wrap_content"
-						android:layout_margin="4dp"
-						android:padding="8dp"
-						android:gravity="center_horizontal"
-						android:text="@string/save"
-						android:textSize="14sp"
-						android:textColor="#000000"
-						android:layout_weight="50"
-						android:elevation="1dp" />
-				</LinearLayout>
+					android:paddingRight="8dp"
+					android:paddingBottom="8dp"
+					android:gravity="center_horizontal"
+					android:text="@string/del_card"
+					android:textSize="14sp"
+					android:textColor="#FFFFFF"
+					android:elevation="2dp" />
 			</LinearLayout>
-			<TextView
-				android:id="@+id/del_btn"
-				android:focusable="false"
-				android:layout_width="match_parent"
+		</ScrollView>
+		<LinearLayout
+			android:id="@+id/img_parent"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:padding="2dp"
+			android:gravity="center_horizontal"
+			android:orientation="horizontal"
+			android:layout_gravity="center_horizontal|top">
+			<ImageView
+				android:id="@+id/code_img"
+				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:layout_marginLeft="4dp"
-				android:layout_marginRight="4dp"
-				android:layout_marginBottom="8dp"
-				android:paddingLeft="8dp"
-				android:paddingTop="4dp"
-				android:paddingRight="8dp"
-				android:paddingBottom="8dp"
-				android:gravity="center_horizontal"
-				android:text="@string/del_card"
-				android:textSize="14sp"
-				android:textColor="#FFFFFF"
-				android:elevation="2dp" />
+				android:src="@drawable/default_image"
+				android:scaleType="fitXY"
+				android:focusable="false"
+				android:adjustViewBounds="true" />
 		</LinearLayout>
-	</ScrollView>
+	</FrameLayout>
 </LinearLayout>

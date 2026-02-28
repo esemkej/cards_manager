@@ -18,6 +18,7 @@
     <string name="camera_perm">Prístup ku kamere je potrebný na skenovanie</string>
     <string name="camera_scanner">Naskenovať z kamery</string>
     <string name="cancel">Zrušiť</string>
+    <string name="cards">Karty</string>
     <string name="card_code">Kód karty:</string>
     <string name="card_del_ask">Naozaj chcete odstrániť túto kartu?</string>
     <string name="card_del_msg">Karta bola odstránená</string>
@@ -52,10 +53,12 @@
     <string name="filter_title">Filtrovanie položiek</string>
     <string name="filters">Filtre</string>
     <string name="folder">Priečinok:</string>
+    <string name="folders">Priečinky</string>
     <string name="folder_del_ask">Naozaj chcete odstrániť tento priečinok?</string>
     <string name="folder_del_msg">Priečinok bol odstránený</string>
     <string name="from_file">Zo súboru</string>
     <string name="from_text">Z textu</string>
+    <string name="get_started">Začnite pridaním svojej prvej karty.</string>
     <string name="grads_desc">Kliknite na položku so symbolom nastavení pre výber štýlu sklonu</string>
     <string name="grads_title">Rôzne štýly sklonu</string>
     <string name="grid_amount">Počet kariet v jednom riadku</string>
@@ -71,7 +74,7 @@
     <string name="invalid_edit">Meno karty nemôže ostať prázdne</string>
     <string name="left_right">Zľava doprava</string>
     <string name="no">Nie</string>
-    <string name="no_items">Nemáte vytvorené položky\nKliknite na tlačidlo plus pre ich vytvorenie</string>
+    <string name="no_cards_added">Nemáte žiadne pridané karty</string>
     <string name="none">Žiadny</string>
     <string name="paste_here">Sem prilepte text formátu JSON na importovanie dát</string>
     <string name="photo_import_error">Chyba pri importovaní fotky:</string>
@@ -106,4 +109,10 @@
     <string name="ux">Užívateľský zážitok</string>
     <string name="visual_settings">Vizuálne nastavenia</string>
     <string name="yes">Áno</string>
+    <plurals name="cards_count">
+		<item quantity="one">%d karta</item>
+		<item quantity="few">%d karty</item>
+		<item quantity="many">%d kariet</item>
+		<item quantity="other">%d kariet</item>
+	</plurals>
 </resources>

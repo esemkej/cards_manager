@@ -9,33 +9,47 @@
 		android:id="@+id/parent"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:layout_marginTop="4dp"
-		android:layout_marginBottom="4dp"
-		android:elevation="2dp">
-		<View
-			android:id="@+id/gradient"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent" />
-		<ImageView
-			android:id="@+id/folder_outline"
-			android:focusable="false"
-			android:layout_width="match_parent"
+		android:layout_margin="8dp"
+		android:background="#212121"
+		android:elevation="3dp">
+		<LinearLayout
+			android:id="@+id/vertical_layout"
+			android:layout_width="wrap_content"
 			android:layout_height="match_parent"
-			android:src="@drawable/ic_empty_folder"
-			android:scaleType="fitXY"
-			android:layout_gravity="center_horizontal|center_vertical" />
-		<TextView
-			android:id="@+id/card_name"
+			android:gravity="center_horizontal|center_vertical"
+			android:orientation="vertical"
+			android:layout_gravity="center_horizontal|center_vertical">
+			<TextView
+				android:id="@+id/card_name"
+				android:focusable="false"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/card_name"
+				android:textSize="20sp"
+				android:textStyle="bold"
+				android:textColor="#FFFFFF"
+				android:maxLines="3"
+				android:ellipsize="end" />
+			<TextView
+				android:id="@+id/card_label"
+				android:focusable="false"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="TextView"
+				android:textSize="14sp"
+				android:textColor="#FFFFFF"
+				android:singleLine="true"
+				android:alpha="0.8"
+				android:ellipsize="end" />
+		</LinearLayout>
+		<ImageView
+			android:id="@+id/type_img"
 			android:focusable="false"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:padding="8dp"
-			android:text="@string/card_name"
-			android:textSize="18sp"
-			android:textStyle="bold"
-			android:textColor="#FFFFFF"
-			android:layout_gravity="center_horizontal|center_vertical"
-			android:maxLines="3"
-			android:ellipsize="end" />
+			android:src="@drawable/default_image"
+			android:scaleType="fitCenter"
+			android:alpha="0.9"
+			android:layout_gravity="right|bottom" />
 	</FrameLayout>
 </LinearLayout>

@@ -18,6 +18,7 @@
     <string name="camera_perm">Camera permission required for scanning</string>
     <string name="camera_scanner">Camera scanner</string>
     <string name="cancel">Cancel</string>
+    <string name="cards">Cards</string>
     <string name="card_code">Card code:</string>
     <string name="card_del_ask">Do you really want to remove this card?</string>
     <string name="card_del_msg">Card was removed</string>
@@ -52,10 +53,12 @@
     <string name="filter_title">Filtering the items</string>
     <string name="filters">Filters</string>
     <string name="folder">Folder:</string>
+    <string name="folders">Folders</string>
     <string name="folder_del_ask">Do you really want to remove this folder?</string>
     <string name="folder_del_msg">Folder was removed</string>
     <string name="from_file">From file</string>
     <string name="from_text">From text</string>
+    <string name="get_started">Get started by adding your first loyalty card.</string>
     <string name="grads_desc">Tap the settings icon to pick your desired gradient style</string>
     <string name="grads_title">Different gradient styles</string>
     <string name="grid_amount">Amount of cards in one row:</string>
@@ -71,7 +74,7 @@
     <string name="invalid_edit">Card name can\'t be empty</string>
     <string name="left_right">Left to right</string>
     <string name="no">No</string>
-    <string name="no_items">No items created\nTap the plus button to create one</string>
+    <string name="no_cards_added">No cards added yet</string>
     <string name="none">None</string>
     <string name="paste_here">Paste the JSON style text here to import data</string>
     <string name="photo_import_error">Error importing photo:</string>
@@ -106,4 +109,8 @@
     <string name="ux">User experience</string>
     <string name="visual_settings">Visual settings</string>
     <string name="yes">Yes</string>
+    <plurals name="cards_count">
+		<item quantity="one">%d card</item>
+		<item quantity="other">%d cards</item>
+	</plurals>
 </resources>

@@ -86,7 +86,12 @@ import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.util.UUID;
+import java.util.UUID;
+import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.squareup.picasso.Picasso;
+
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+
 
 public class MainActivity extends AppCompatActivity {
 	
@@ -136,6 +141,12 @@ public class MainActivity extends AppCompatActivity {
 	private boolean scan = false;
 	private boolean newCardSaved = false;
 	private LinearLayout code_menu_lay;
+	private static final String KEY_ROW_TYPE = "_rowType";
+	private static final String ROW_HEADER = "header";
+	private static final String KEY_VIRTUAL = "_virtual";
+	private static final String VIRTUAL_FAVORITES = "favorites";
+	private static final int KEEP = Integer.MIN_VALUE;
+	private boolean noCode = false;
 	
 	private ArrayList<HashMap<String, Object>> cards_list = new ArrayList<>();
 	private ArrayList<HashMap<String, Object>> cards_list_all = new ArrayList<>();
@@ -149,11 +160,12 @@ public class MainActivity extends AppCompatActivity {
 	private LinearLayout filter_parent;
 	private SwipeRefreshLayout srefresh;
 	private LinearLayout no_items_lay;
-	private LinearLayout filter_bar;
 	private LinearLayout search_bar;
+	private LinearLayout filter_bar;
 	private LinearLayout settings_bar;
-	private ImageView filter_img;
+	private ImageView search_img;
 	private EditText search_txt;
+	private ImageView filter_img;
 	private ImageView settings_img;
 	private RecyclerView cards_rec;
     private RecyclerView colors_rec;
@@ -163,12 +175,12 @@ public class MainActivity extends AppCompatActivity {
     private Colors_recAdapter colorsAdapter;
     private Items_recAdapter itemsAdapter;
     private Pictures_recAdapter picturesAdapter;
-	private TextView no_items_txt;
+	private ImageView wallet_img;
+	private TextView no_items_top_txt;
+	private TextView no_items_bottom_txt;
 	
 	private SharedPreferences card_prefs;
-	private com.google.android.material.bottomsheet.BottomSheetDialog bottomShii;
 	private Intent i = new Intent();
-	private AlertDialog d;
 	private ObjectAnimator o = new ObjectAnimator();
 	private PopupWindow p;
 	
@@ -223,14 +235,17 @@ public class MainActivity extends AppCompatActivity {
 		filter_parent = findViewById(R.id.filter_parent);
 		srefresh = findViewById(R.id.srefresh);
 		no_items_lay = findViewById(R.id.no_items_lay);
-		filter_bar = findViewById(R.id.filter_bar);
 		search_bar = findViewById(R.id.search_bar);
+		filter_bar = findViewById(R.id.filter_bar);
 		settings_bar = findViewById(R.id.settings_bar);
-		filter_img = findViewById(R.id.filter_img);
+		search_img = findViewById(R.id.search_img);
 		search_txt = findViewById(R.id.search_txt);
+		filter_img = findViewById(R.id.filter_img);
 		settings_img = findViewById(R.id.settings_img);
 		cards_rec = findViewById(R.id.cards_rec);
-		no_items_txt = findViewById(R.id.no_items_txt);
+		wallet_img = findViewById(R.id.wallet_img);
+		no_items_top_txt = findViewById(R.id.no_items_top_txt);
+		no_items_bottom_txt = findViewById(R.id.no_items_bottom_txt);
 		card_prefs = getSharedPreferences("saveData", Activity.MODE_PRIVATE);
 		
 		srefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -248,282 +263,67 @@ public class MainActivity extends AppCompatActivity {
 		filter_bar.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View _view) {
-				bottomShii = new com.google.android.material.bottomsheet.BottomSheetDialog(MainActivity.this);
-				View bottomShiiV;
-				bottomShiiV = getLayoutInflater().inflate(R.layout.filters_dialog,null );
-				bottomShii.setContentView(bottomShiiV);
-				bottomShii.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
-				final LinearLayout div1 = (LinearLayout) bottomShiiV.findViewById(R.id.div1);
-				final LinearLayout div2 = (LinearLayout) bottomShiiV.findViewById(R.id.div2);
-				final RadioGroup sort_types = (RadioGroup) bottomShiiV.findViewById(R.id.sort_types);
-				final RadioGroup orders = (RadioGroup) bottomShiiV.findViewById(R.id.orders);
-				final RadioGroup filters = (RadioGroup) bottomShiiV.findViewById(R.id.filters);
-				final TextView sort_by_txt = (TextView) bottomShiiV.findViewById(R.id.sort_by_txt);
-				final RadioButton by_name = (RadioButton) bottomShiiV.findViewById(R.id.by_name);
-				final RadioButton by_date_created = (RadioButton) bottomShiiV.findViewById(R.id.by_date_created);
-				final RadioButton by_use_count = (RadioButton) bottomShiiV.findViewById(R.id.by_use_count);
-				final RadioButton by_type = (RadioButton) bottomShiiV.findViewById(R.id.by_type);
-				final RadioButton ascending = (RadioButton) bottomShiiV.findViewById(R.id.ascending);
-				final RadioButton descending = (RadioButton) bottomShiiV.findViewById(R.id.descending);
-				final RadioButton all = (RadioButton) bottomShiiV.findViewById(R.id.all);
-				final RadioButton favorites = (RadioButton) bottomShiiV.findViewById(R.id.favorites);
-				float scale = textScaleFromLevel((int) textLevel);
-				applyTextScale(sort_by_txt, scale);
-				RadioButton[] views = new RadioButton[] { by_name, by_date_created, by_use_count, by_type, ascending, descending, all, favorites};
-				for (RadioButton tv : views) {
-					if (tv != null) applyTextScale(tv, scale);
-				}
-				div1.setClickable(true);
-				final float div1_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 360, getResources().getDisplayMetrics());
-				final float div1_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 360, getResources().getDisplayMetrics());
-				final float div1_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 360, getResources().getDisplayMetrics());
-				final float div1_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 360, getResources().getDisplayMetrics());
-				final int div1_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 0, getResources().getDisplayMetrics());
-				final GradientDrawable div1_bg = new GradientDrawable();
-				div1_bg.setColor(0xFFBDBDBD);
-				div1_bg.setCornerRadii(new float[]{div1_rTL,div1_rTL,div1_rTR,div1_rTR,div1_rBR,div1_rBR,div1_rBL,div1_rBL});
-				div1_bg.setStroke(div1_strokePx, Color.TRANSPARENT);
-				div1.setBackground(div1_bg);
-				div2.setClickable(true);
-				final float div2_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 360, getResources().getDisplayMetrics());
-				final float div2_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 360, getResources().getDisplayMetrics());
-				final float div2_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 360, getResources().getDisplayMetrics());
-				final float div2_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 360, getResources().getDisplayMetrics());
-				final int div2_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 0, getResources().getDisplayMetrics());
-				final GradientDrawable div2_bg = new GradientDrawable();
-				div2_bg.setColor(0xFF212121);
-				div2_bg.setCornerRadii(new float[]{div2_rTL,div2_rTL,div2_rTR,div2_rTR,div2_rBR,div2_rBR,div2_rBL,div2_rBL});
-				div2_bg.setStroke(div2_strokePx, Color.TRANSPARENT);
-				div2.setBackground(div2_bg);
-				sort_types.check(loadSortTypeId());
-				orders.check(loadOrderId());
-				filters.check(loadFilterId());
-				setupSortFilterListeners(sort_types, orders, filters);
-				bottomShii.setCancelable(true);
-				bottomShii.show();
+				showBottomSheet(R.layout.filters_dialog, 0, (bs, root) -> {
+					final LinearLayout div1 = (LinearLayout) root.findViewById(R.id.div1);
+					final LinearLayout div2 = (LinearLayout) root.findViewById(R.id.div2);
+					final RadioGroup sort_types = (RadioGroup) root.findViewById(R.id.sort_types);
+					final RadioGroup orders = (RadioGroup) root.findViewById(R.id.orders);
+					final RadioGroup filters = (RadioGroup) root.findViewById(R.id.filters);
+					final TextView sort_by_txt = (TextView) root.findViewById(R.id.sort_by_txt);
+					final RadioButton by_name = (RadioButton) root.findViewById(R.id.by_name);
+					final RadioButton by_date_created = (RadioButton) root.findViewById(R.id.by_date_created);
+					final RadioButton by_use_count = (RadioButton) root.findViewById(R.id.by_use_count);
+					final RadioButton ascending = (RadioButton) root.findViewById(R.id.ascending);
+					final RadioButton descending = (RadioButton) root.findViewById(R.id.descending);
+					final RadioButton all = (RadioButton) root.findViewById(R.id.all);
+					final RadioButton favorites = (RadioButton) root.findViewById(R.id.favorites);
+					float scale = textScaleFromLevel((int) textLevel);
+					applyTextScale(sort_by_txt, scale);
+					RadioButton[] views = new RadioButton[] { by_name, by_date_created, by_use_count, ascending, descending, all, favorites};
+					for (RadioButton tv : views) {
+						if (tv != null) applyTextScale(tv, scale);
+					}
+					Bg.apply(div1, 0xFFBDBDBD, null, null, 360, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+					Bg.apply(div2, 0xFF212121, null, null, 360, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+					sort_types.check(loadSortTypeId());
+					orders.check(loadOrderId());
+					filters.check(loadFilterId());
+					setupSortFilterListeners(sort_types, orders, filters);
+				});
 			}
 		});
 		
 		settings_bar.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View _view) {
-				bottomShii = new com.google.android.material.bottomsheet.BottomSheetDialog(MainActivity.this);
-				View bottomShiiV;
-				bottomShiiV = getLayoutInflater().inflate(R.layout.settings_dialog,null );
-				bottomShii.setContentView(bottomShiiV);
-				bottomShii.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
-				final TextView visual_txt = (TextView) bottomShiiV.findViewById(R.id.visual_txt);
-				final TextView grid_amount_txt = (TextView) bottomShiiV.findViewById(R.id.grid_amount_txt);
-				final TextView text_size_txt = (TextView) bottomShiiV.findViewById(R.id.text_size_txt);
-				final TextView ux_txt = (TextView) bottomShiiV.findViewById(R.id.ux_txt);
-				final TextView default_scan_txt = (TextView) bottomShiiV.findViewById(R.id.default_scan_txt);
-				final TextView scan_tip_txt = (TextView) bottomShiiV.findViewById(R.id.scan_tip_txt);
-				final TextView mode_switch_txt = (TextView) bottomShiiV.findViewById(R.id.mode_switch_txt);
-				final TextView show_tutorial_txt = (TextView) bottomShiiV.findViewById(R.id.show_tutorial_txt);
-				final TextView data_txt = (TextView) bottomShiiV.findViewById(R.id.data_txt);
-				final TextView import_btn = (TextView) bottomShiiV.findViewById(R.id.import_btn);
-				final TextView export_btn = (TextView) bottomShiiV.findViewById(R.id.export_btn);
-				final SeekBar grid_amount_sbar = (SeekBar) bottomShiiV.findViewById(R.id.grid_amount_sbar);
-				final SeekBar text_size_sbar = (SeekBar) bottomShiiV.findViewById(R.id.text_size_sbar);
-				final Switch mode_switch = (Switch) bottomShiiV.findViewById(R.id.mode_switch);
-				final CheckBox show_tutorial = (CheckBox) bottomShiiV.findViewById(R.id.show_tutorial);
-				final LinearLayout div1 = (LinearLayout) bottomShiiV.findViewById(R.id.div1);
-				final LinearLayout div2 = (LinearLayout) bottomShiiV.findViewById(R.id.div2);
-				final LinearLayout div3 = (LinearLayout) bottomShiiV.findViewById(R.id.div3);
-				final LinearLayout div4 = (LinearLayout) bottomShiiV.findViewById(R.id.div4);
-				final LinearLayout show_tutorial_lay = (LinearLayout) bottomShiiV.findViewById(R.id.show_tutorial_lay);
-				bottomShii.setCancelable(true);
-				div1.setClickable(true);
-				
-				final float div1_rTL = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div1_rTR = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div1_rBR = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div1_rBL = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				div1.setBackground(new ShapeDrawable(new RoundRectShape(
-				new float[]{
-					div1_rTL, div1_rTL,
-					div1_rTR, div1_rTR,
-					div1_rBR, div1_rBR,
-					div1_rBL, div1_rBL
-				},
-				null,
-				null
-				)) {{
-						getPaint().setColor(0xFFBDBDBD);
-					}});
-				div2.setClickable(true);
-				
-				final float div2_rTL = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div2_rTR = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div2_rBR = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div2_rBL = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				div2.setBackground(new ShapeDrawable(new RoundRectShape(
-				new float[]{
-					div2_rTL, div2_rTL,
-					div2_rTR, div2_rTR,
-					div2_rBR, div2_rBR,
-					div2_rBL, div2_rBL
-				},
-				null,
-				null
-				)) {{
-						getPaint().setColor(0xFF212121);
-					}});
-				div3.setClickable(true);
-				
-				final float div3_rTL = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div3_rTR = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div3_rBR = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div3_rBL = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				div3.setBackground(new ShapeDrawable(new RoundRectShape(
-				new float[]{
-					div3_rTL, div3_rTL,
-					div3_rTR, div3_rTR,
-					div3_rBR, div3_rBR,
-					div3_rBL, div3_rBL
-				},
-				null,
-				null
-				)) {{
-						getPaint().setColor(0xFFBDBDBD);
-					}});
-				div4.setClickable(true);
-				
-				final float div4_rTL = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div4_rTR = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div4_rBR = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				final float div4_rBL = TypedValue.applyDimension(
-				TypedValue.COMPLEX_UNIT_DIP,
-				(float) 360,
-				getResources().getDisplayMetrics()
-				);
-				
-				div4.setBackground(new ShapeDrawable(new RoundRectShape(
-				new float[]{
-					div4_rTL, div4_rTL,
-					div4_rTR, div4_rTR,
-					div4_rBR, div4_rBR,
-					div4_rBL, div4_rBL
-				},
-				null,
-				null
-				)) {{
-						getPaint().setColor(0xFF212121);
-					}});
-				float import_btn_density = getResources().getDisplayMetrics().density;
-				import_btn.setClickable(true);
-				import_btn.setBackground(new RippleDrawable(
-				new ColorStateList(
-				new int[][]{new int[]{}},
-				new int[]{0xFFD2B6DC}
-				),
-				new GradientDrawable() {
-					public GradientDrawable getIns(int a, int b, int c, int d) {
-						this.setCornerRadius(a);
-						this.setStroke(b, c);
-						this.setColor(d);
-						return this;
-					}
-				}.getIns((int) (12 * import_btn_density), (int) (2 * import_btn_density), 0xFF212121, 0xFFFFFFFF), 
-				null
-				));
-				
-				float export_btn_density = getResources().getDisplayMetrics().density;
-				export_btn.setClickable(true);
-				export_btn.setBackground(new RippleDrawable(
-				new ColorStateList(
-				new int[][]{new int[]{}},
-				new int[]{0xFFD2B6DC}
-				),
-				new GradientDrawable() {
-					public GradientDrawable getIns(int a, int b, int c, int d) {
-						this.setCornerRadius(a);
-						this.setStroke(b, c);
-						this.setColor(d);
-						return this;
-					}
-				}.getIns((int) (12 * export_btn_density), (int) (2 * export_btn_density), 0xFF212121, 0xFFFFFFFF), 
-				null
-				));
-				
-				show_tutorial_lay.post(new Runnable() {
-					@Override
-					public void run() {
+				showBottomSheet(R.layout.settings_dialog, 0, (bs, root) -> {
+					final TextView visual_txt = (TextView) root.findViewById(R.id.visual_txt);
+					final TextView grid_amount_txt = (TextView) root.findViewById(R.id.grid_amount_txt);
+					final TextView text_size_txt = (TextView) root.findViewById(R.id.text_size_txt);
+					final TextView ux_txt = (TextView) root.findViewById(R.id.ux_txt);
+					final TextView default_scan_txt = (TextView) root.findViewById(R.id.default_scan_txt);
+					final TextView scan_tip_txt = (TextView) root.findViewById(R.id.scan_tip_txt);
+					final TextView mode_switch_txt = (TextView) root.findViewById(R.id.mode_switch_txt);
+					final TextView show_tutorial_txt = (TextView) root.findViewById(R.id.show_tutorial_txt);
+					final TextView data_txt = (TextView) root.findViewById(R.id.data_txt);
+					final TextView import_btn = (TextView) root.findViewById(R.id.import_btn);
+					final TextView export_btn = (TextView) root.findViewById(R.id.export_btn);
+					final SeekBar grid_amount_sbar = (SeekBar) root.findViewById(R.id.grid_amount_sbar);
+					final SeekBar text_size_sbar = (SeekBar) root.findViewById(R.id.text_size_sbar);
+					final SwitchMaterial mode_switch = (SwitchMaterial) root.findViewById(R.id.mode_switch);
+					final CheckBox show_tutorial = (CheckBox) root.findViewById(R.id.show_tutorial);
+					final LinearLayout div1 = (LinearLayout) root.findViewById(R.id.div1);
+					final LinearLayout div2 = (LinearLayout) root.findViewById(R.id.div2);
+					final LinearLayout div3 = (LinearLayout) root.findViewById(R.id.div3);
+					final LinearLayout div4 = (LinearLayout) root.findViewById(R.id.div4);
+					final LinearLayout show_tutorial_lay = (LinearLayout) root.findViewById(R.id.show_tutorial_lay);
+					Bg.apply(div1, 0xFFBDBDBD, null, null, 360, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+					Bg.apply(div2, 0xFF212121, null, null, 360, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+					Bg.apply(div3, 0xFFBDBDBD, null, null, 360, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+					Bg.apply(div4, 0xFF212121, null, null, 360, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+					Bg.apply(import_btn, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+					Bg.apply(export_btn, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+					show_tutorial_lay.post(() -> {
 						int available = show_tutorial_lay.getWidth();
 						
 						int textWidth = show_tutorial_txt.getMeasuredWidth();
@@ -539,783 +339,280 @@ public class MainActivity extends AppCompatActivity {
 						} else {
 							show_tutorial_lay.setOrientation(LinearLayout.HORIZONTAL);
 						}
+					});
+					try{
+						progress = (double)settings.get("grid_amount");
+						textLevel = (double)settings.get("text_level");
+						scanImage = (boolean)settings.get("scan_image");
+					}catch(Exception e){
+						progress = 2;
+						textLevel = 3;
+						scanImage = false;
 					}
-				});
-				try{
-					progress = (double)settings.get("grid_amount");
-					textLevel = (double)settings.get("text_level");
-					scanImage = (boolean)settings.get("scan_image");
-				}catch(Exception e){
-					progress = 2;
-					textLevel = 3;
-					scanImage = false;
-				}
-				float scale = textScaleFromLevel((int) textLevel);
-				View[] views = new View[] {
-					visual_txt,
-					grid_amount_txt,
-					text_size_txt,
-					ux_txt,
-					default_scan_txt,
-					scan_tip_txt,
-					mode_switch,
-					mode_switch_txt,
-					show_tutorial_txt,
-					data_txt,
-					import_btn,
-					export_btn
-				};
-				
-				for (View v : views) {
-					if (v instanceof TextView) {
-						applyTextScale((TextView) v, scale);
-					}
-				}
-				grid_amount_txt.setText(getString(R.string.grid_amount).concat(" ".concat(String.valueOf((long)(progress)))));
-				text_size_txt.setText(getString(R.string.text_size).concat(" ".concat(String.valueOf((long)(textLevel)))));
-				grid_amount_sbar.setProgress((int) progress);
-				text_size_sbar.setProgress((int) textLevel);
-				mode_switch.setChecked(scanImage);
-				grid_amount_sbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-					@Override
-					public void onProgressChanged(SeekBar _param1, int _param2, boolean _param3) {
-						final int _progressValue = _param2;
-						grid_amount_txt.setText(getString(R.string.grid_amount).concat(" ".concat(String.valueOf((long)(_progressValue)))));
-						progress = _progressValue;
-					} 
-					@Override
-					public void onStartTrackingTouch(SeekBar _param1) {
-						
-					}
+					float scale = textScaleFromLevel((int) textLevel);
+					View[] views = new View[] {
+						visual_txt,
+						grid_amount_txt,
+						text_size_txt,
+						ux_txt,
+						default_scan_txt,
+						scan_tip_txt,
+						mode_switch,
+						mode_switch_txt,
+						show_tutorial_txt,
+						data_txt,
+						import_btn,
+						export_btn
+					};
 					
-					@Override
-					public void onStopTrackingTouch(SeekBar _param2) {
-						
-					}
-				});
-				text_size_sbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-					@Override
-					public void onProgressChanged(SeekBar _param1, int _param2, boolean _param3) {
-						final int _progressValue = _param2;
-						text_size_txt.setText(getString(R.string.text_size).concat(" ".concat(String.valueOf((long)(_progressValue)))));
-						textLevel = _progressValue;
-						float scale = textScaleFromLevel((int) textLevel);
-						View[] views = new View[] {
-							visual_txt,
-							grid_amount_txt,
-							text_size_txt,
-							ux_txt,
-							default_scan_txt,
-							scan_tip_txt,
-							mode_switch,
-							mode_switch_txt,
-							show_tutorial_txt,
-							data_txt,
-							import_btn,
-							export_btn
-						};
-						
-						for (View v : views) {
-							if (v instanceof TextView) {
-								applyTextScale((TextView) v, scale);
-							}
+					for (View v : views) {
+						if (v instanceof TextView) {
+							applyTextScale((TextView) v, scale);
 						}
-					} 
-					@Override
-					public void onStartTrackingTouch(SeekBar _param1) {
-						
 					}
-					
-					@Override
-					public void onStopTrackingTouch(SeekBar _param2) {
-						
-					}
-				});
-				mode_switch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-					scanImage = isChecked;
-				});
-				show_tutorial.setOnCheckedChangeListener((buttonView, isChecked) -> {
-					settings.put("main_tutorial", isChecked);
-					settings.put("colors_tutorial", isChecked);
-					settings.put("settings_tutorial", isChecked);
-				});
-				import_btn.setOnClickListener(new View.OnClickListener() {
-					@Override
-					public void onClick(View _view) {
-						try {
-							if (p != null) p.dismiss();
-						} catch (Exception p_e) {}
-						
-						LayoutInflater p_li = getLayoutInflater();
-						View p_pv = p_li.inflate(R.layout.mode_popup, null);
-						
-						p = new PopupWindow(
-						p_pv,
-						ViewGroup.LayoutParams.WRAP_CONTENT,
-						ViewGroup.LayoutParams.WRAP_CONTENT,
-						true
-						);
-						
-						p.setOutsideTouchable(true);
-						p.setFocusable(true);
-						p.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-						final LinearLayout camera_lay = (LinearLayout) p_pv.findViewById(R.id.camera_lay);
-						final LinearLayout image_lay = (LinearLayout) p_pv.findViewById(R.id.image_lay);
-						final TextView camera_scanner_txt = (TextView) p_pv.findViewById(R.id.camera_scanner_txt);
-						final TextView scan_from_image_txt = (TextView) p_pv.findViewById(R.id.scan_from_image_txt);
-						final ImageView camera_img = (ImageView) p_pv.findViewById(R.id.camera_img);
-						final ImageView scan_img = (ImageView) p_pv.findViewById(R.id.scan_img);
-						applyTextScale(camera_scanner_txt, textScaleFromLevel((int) textLevel));
-						applyTextScale(scan_from_image_txt, textScaleFromLevel((int) textLevel));
-						float camera_lay_density = getResources().getDisplayMetrics().density;
-						camera_lay.setClickable(true);
-						camera_lay.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFD2B6DC}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int) (12 * camera_lay_density), (int) (2 * camera_lay_density), 0xFF212121, 0xFFFFFFFF), 
-						null
-						));
-						
-						float image_lay_density = getResources().getDisplayMetrics().density;
-						image_lay.setClickable(true);
-						image_lay.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFD2B6DC}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int) (12 * image_lay_density), (int) (2 * image_lay_density), 0xFF212121, 0xFFFFFFFF), 
-						null
-						));
-						
-						camera_scanner_txt.setText(getString(R.string.from_text));
-						scan_from_image_txt.setText(getString(R.string.from_file));
-						camera_img.setImageResource(R.drawable.ic_text);
-						scan_img.setImageResource(R.drawable.ic_file);
-						final Runnable p_dismissAnim = new Runnable() {
-							@Override
-							public void run() {
-								p_pv.animate()
-								.alpha(0f)
-								.scaleX(0.96f)
-								.scaleY(0.96f)
-								.setDuration(120)
-								.setInterpolator(new android.view.animation.AccelerateInterpolator())
-								.withEndAction(new Runnable() {
-									@Override
-									public void run() {
-										try { p.dismiss(); } catch (Exception p_e) {}
-									}
-								})
-								.start();
-							}
-						};
-						
-						p_pv.setOnTouchListener(new View.OnTouchListener() {
-							@Override
-							public boolean onTouch(View p_v, android.view.MotionEvent p_event) {
-								if (p_event.getAction() == android.view.MotionEvent.ACTION_OUTSIDE) {
-									p_dismissAnim.run();
-									return true;
-								}
-								return false;
-							}
-						});
-						
-						p_pv.measure(
-						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-						);
-						int p_popupW = p_pv.getMeasuredWidth();
-						int p_popupH = p_pv.getMeasuredHeight();
-						
-						int[] p_loc = new int[2];
-						import_btn.getLocationOnScreen(p_loc);
-						int p_anchorX = p_loc[0];
-						int p_anchorY = p_loc[1];
-						
-						android.util.DisplayMetrics p_dm = getResources().getDisplayMetrics();
-						int p_screenW = p_dm.widthPixels;
-						int p_screenH = p_dm.heightPixels;
-						
-						int p_x = p_anchorX + import_btn.getWidth() - p_popupW;
-						
-						int p_yBelow = p_anchorY + import_btn.getHeight();
-						int p_yAbove = p_anchorY - p_popupH;
-						
-						if (p_x < 0) p_x = 0;
-						if (p_x + p_popupW > p_screenW)
-						p_x = Math.max(0, p_screenW - p_popupW);
-						
-						int p_y;
-						if (p_yBelow + p_popupH <= p_screenH) {
-							p_y = p_yBelow;
-						} else if (p_yAbove >= 0) {
-							p_y = p_yAbove;
-						} else {
-							p_y = Math.max(0, p_screenH - p_popupH);
+					grid_amount_txt.setText(getString(R.string.grid_amount).concat(" ".concat(String.valueOf((long)(progress)))));
+					text_size_txt.setText(getString(R.string.text_size).concat(" ".concat(String.valueOf((long)(textLevel)))));
+					grid_amount_sbar.setProgress((int) progress);
+					text_size_sbar.setProgress((int) textLevel);
+					mode_switch.setChecked(scanImage);
+					grid_amount_sbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+						@Override
+						public void onProgressChanged(SeekBar _param1, int _param2, boolean _param3) {
+							final int _progressValue = _param2;
+							grid_amount_txt.setText(getString(R.string.grid_amount).concat(" ".concat(String.valueOf((long)(_progressValue)))));
+							progress = _progressValue;
+						} 
+						@Override
+						public void onStartTrackingTouch(SeekBar _param1) {
+							
 						}
-						camera_lay.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								p_dismissAnim.run();
-								d = new AlertDialog.Builder(MainActivity.this).create();
-								LayoutInflater dLI = getLayoutInflater();
-								View dCV = (View) dLI.inflate(R.layout.import_dialog, null);
-								d.setView(dCV);
-								final TextView message_txt = (TextView)
-								dCV.findViewById(R.id.message_txt);
-								final TextView positive_txt = (TextView)
-								dCV.findViewById(R.id.positive_txt);
-								final TextView negative_txt = (TextView)
-								dCV.findViewById(R.id.negative_txt);
-								final EditText import_txt = (EditText)
-								dCV.findViewById(R.id.import_txt);
-								final LinearLayout dialog_parent = (LinearLayout)
-								dCV.findViewById(R.id.parent);
-								final LinearLayout buttons_bar = (LinearLayout)
-								dCV.findViewById(R.id.buttons_bar);
-								float scale = textScaleFromLevel((int) textLevel);
-								applyTextScale(import_txt, scale);
-								TextView[] views = new TextView[] { message_txt, positive_txt, negative_txt };
-								for (TextView tv : views) {
-									if (tv != null) applyTextScale(tv, scale);
+						
+						@Override
+						public void onStopTrackingTouch(SeekBar _param2) {
+							
+						}
+					});
+					text_size_sbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+						@Override
+						public void onProgressChanged(SeekBar _param1, int _param2, boolean _param3) {
+							final int _progressValue = _param2;
+							text_size_txt.setText(getString(R.string.text_size).concat(" ".concat(String.valueOf((long)(_progressValue)))));
+							textLevel = _progressValue;
+							float scale = textScaleFromLevel((int) textLevel);
+							View[] views = new View[] {
+								visual_txt,
+								grid_amount_txt,
+								text_size_txt,
+								ux_txt,
+								default_scan_txt,
+								scan_tip_txt,
+								mode_switch,
+								mode_switch_txt,
+								show_tutorial_txt,
+								data_txt,
+								import_btn,
+								export_btn
+							};
+							
+							for (View v : views) {
+								if (v instanceof TextView) {
+									applyTextScale((TextView) v, scale);
 								}
-								float positive_txt_density = getResources().getDisplayMetrics().density;
-								positive_txt.setClickable(true);
-								positive_txt.setBackground(new RippleDrawable(
-								new ColorStateList(
-								new int[][]{new int[]{}},
-								new int[]{0xFFF2EAF5}
-								),
-								new GradientDrawable() {
-									public GradientDrawable getIns(int a, int b, int c, int d) {
-										this.setCornerRadius(a);
-										this.setStroke(b, c);
-										this.setColor(d);
-										return this;
+							}
+						} 
+						@Override
+						public void onStartTrackingTouch(SeekBar _param1) {
+							
+						}
+						
+						@Override
+						public void onStopTrackingTouch(SeekBar _param2) {
+							
+						}
+					});
+					mode_switch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+						scanImage = isChecked;
+					});
+					show_tutorial.setOnCheckedChangeListener((buttonView, isChecked) -> {
+						settings.put("main_tutorial", isChecked);
+						settings.put("colors_tutorial", isChecked);
+						settings.put("settings_tutorial", isChecked);
+					});
+					import_btn.setOnClickListener(new View.OnClickListener() {
+						@Override
+						public void onClick(View _view) {
+							showPopup(import_btn, PopupPos.TOP_RIGHT, (int) 0, (int) 0, R.string.from_text, R.string.from_file, R.drawable.ic_text, R.drawable.ic_file,
+							() -> {
+								showDialog(R.layout.import_dialog, R.id.parent, (dlg, root) -> {
+									final TextView message_txt = (TextView) root.findViewById(R.id.message_txt);
+									final TextView positive_txt = (TextView) root.findViewById(R.id.positive_txt);
+									final TextView negative_txt = (TextView) root.findViewById(R.id.negative_txt);
+									final EditText import_txt = (EditText) root.findViewById(R.id.import_txt);
+									final LinearLayout buttons_bar = (LinearLayout) root.findViewById(R.id.buttons_bar);
+									float scale = textScaleFromLevel((int) textLevel);
+									applyTextScale(import_txt, scale);
+									TextView[] views = new TextView[] { message_txt, positive_txt, negative_txt };
+									for (TextView tv : views) {
+										if (tv != null) applyTextScale(tv, scale);
 									}
-								}.getIns((int) (12 * positive_txt_density), (int) (0 * positive_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
-								null
-								));
-								
-								float negative_txt_density = getResources().getDisplayMetrics().density;
-								negative_txt.setClickable(true);
-								negative_txt.setBackground(new RippleDrawable(
-								new ColorStateList(
-								new int[][]{new int[]{}},
-								new int[]{0xFFF2EAF5}
-								),
-								new GradientDrawable() {
-									public GradientDrawable getIns(int a, int b, int c, int d) {
-										this.setCornerRadius(a);
-										this.setStroke(b, c);
-										this.setColor(d);
-										return this;
-									}
-								}.getIns((int) (12 * negative_txt_density), (int) (0 * negative_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
-								null
-								));
-								
-								dialog_parent.setClickable(true);
-								final float dialog_parent_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-								final float dialog_parent_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-								final float dialog_parent_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-								final float dialog_parent_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-								final int dialog_parent_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 2, getResources().getDisplayMetrics());
-								final GradientDrawable dialog_parent_bg = new GradientDrawable();
-								dialog_parent_bg.setColor(0xFFFFFFFF);
-								dialog_parent_bg.setCornerRadii(new float[]{dialog_parent_rTL,dialog_parent_rTL,dialog_parent_rTR,dialog_parent_rTR,dialog_parent_rBR,dialog_parent_rBR,dialog_parent_rBL,dialog_parent_rBL});
-								dialog_parent_bg.setStroke(dialog_parent_strokePx, 0xFF424242);
-								dialog_parent.setBackground(dialog_parent_bg);
-								buttons_bar.setClickable(true);
-								
-								final float buttons_bar_rTL = TypedValue.applyDimension(
-								TypedValue.COMPLEX_UNIT_DIP,
-								(float) 0,
-								getResources().getDisplayMetrics()
-								);
-								
-								final float buttons_bar_rTR = TypedValue.applyDimension(
-								TypedValue.COMPLEX_UNIT_DIP,
-								(float) 0,
-								getResources().getDisplayMetrics()
-								);
-								
-								final float buttons_bar_rBR = TypedValue.applyDimension(
-								TypedValue.COMPLEX_UNIT_DIP,
-								(float) 12,
-								getResources().getDisplayMetrics()
-								);
-								
-								final float buttons_bar_rBL = TypedValue.applyDimension(
-								TypedValue.COMPLEX_UNIT_DIP,
-								(float) 12,
-								getResources().getDisplayMetrics()
-								);
-								
-								buttons_bar.setBackground(new ShapeDrawable(new RoundRectShape(
-								new float[]{
-									buttons_bar_rTL, buttons_bar_rTL,
-									buttons_bar_rTR, buttons_bar_rTR,
-									buttons_bar_rBR, buttons_bar_rBR,
-									buttons_bar_rBL, buttons_bar_rBL
-								},
-								null,
-								null
-								)) {{
-										getPaint().setColor(0xFFD2B6DC);
-									}});
-								d.setCancelable(true);
-								d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-								message_txt.setText(getString(R.string.import_warning));
-								positive_txt.setText(getString(R.string.import_positive));
-								negative_txt.setText(getString(R.string.cancel));
-								positive_txt.setOnClickListener(new View.OnClickListener() {
-									@Override
-									public void onClick(View _view) {
-										backup = new Gson().toJson(cards_list_all);
-										try{
-											card_prefs.edit().putString("cards", import_txt.getText().toString()).commit();
-											ArrayList<HashMap<String, Object>> tmp = new ArrayList<>();
-											
-											if (card_prefs.contains("cards")) {
-												tmp = new Gson().fromJson(
-												card_prefs.getString("cards", ""),
-												new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType()
-												);
-												if (tmp == null) tmp = new ArrayList<>();
+									Bg.apply(positive_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+									Bg.apply(negative_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+									Bg.apply(buttons_bar, 0xFFD2B6DC, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+									message_txt.setText(getString(R.string.import_warning));
+									positive_txt.setText(getString(R.string.import_positive));
+									negative_txt.setText(getString(R.string.cancel));
+									positive_txt.setOnClickListener(new View.OnClickListener() {
+										@Override
+										public void onClick(View _view) {
+											backup = new Gson().toJson(cards_list_all);
+											try{
+												_saveCards(import_txt.getText().toString());
+												ArrayList<HashMap<String, Object>> tmp = new ArrayList<>();
+												
+												if (card_prefs.contains("cards")) {
+													tmp = new Gson().fromJson(
+													card_prefs.getString("cards", ""),
+													new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType()
+													);
+													if (tmp == null) tmp = new ArrayList<>();
+												}
+												
+												tmp = sanitizeTree(tmp);
+												
+												folderIdStack.clear();
+												folderNameStack.clear();
+												inFolder = false;
+												folderPath = "";
+												
+												cards_list.clear();
+												cards_list_all.clear();
+												cards_list.addAll(tmp);
+												cards_list_all.addAll(tmp);
+												SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_success));
+											}catch(Exception e){
+												_saveCards(backup);
+												ArrayList<HashMap<String, Object>> tmp = new ArrayList<>();
+												
+												if (card_prefs.contains("cards")) {
+													tmp = new Gson().fromJson(
+													card_prefs.getString("cards", ""),
+													new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType()
+													);
+													if (tmp == null) tmp = new ArrayList<>();
+												}
+												
+												tmp = sanitizeTree(tmp);
+												
+												folderIdStack.clear();
+												folderNameStack.clear();
+												inFolder = false;
+												folderPath = "";
+												
+												cards_list.clear();
+												cards_list_all.clear();
+												cards_list.addAll(tmp);
+												cards_list_all.addAll(tmp);
+												SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_fail).concat(" ".concat(e.getMessage())));
 											}
-											
-											tmp = sanitizeTree(tmp);
-											
-											folderIdStack.clear();
-											folderNameStack.clear();
-											inFolder = false;
-											folderPath = "";
-											
-											cards_list.clear();
-											cards_list_all.clear();
-											cards_list.addAll(tmp);
-											cards_list_all.addAll(tmp);
-											SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_success));
-										}catch(Exception e){
-											card_prefs.edit().putString("cards", backup).commit();
-											ArrayList<HashMap<String, Object>> tmp = new ArrayList<>();
-											
-											if (card_prefs.contains("cards")) {
-												tmp = new Gson().fromJson(
-												card_prefs.getString("cards", ""),
-												new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType()
-												);
-												if (tmp == null) tmp = new ArrayList<>();
-											}
-											
-											tmp = sanitizeTree(tmp);
-											
-											folderIdStack.clear();
-											folderNameStack.clear();
-											inFolder = false;
-											folderPath = "";
-											
-											cards_list.clear();
-											cards_list_all.clear();
-											cards_list.addAll(tmp);
-											cards_list_all.addAll(tmp);
-											SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_fail).concat(" ".concat(e.getMessage())));
+											_loadLastId();
+											applySortFilter(
+											search_txt.getText().toString(),
+											loadSortTypeId(),
+											loadOrderId(),
+											loadFilterId()
+											);
+											dlg.dismiss();
 										}
-										_loadLastId();
-										applySortFilter(
-										search_txt.getText().toString(),
-										loadSortTypeId(),
-										loadOrderId(),
-										loadFilterId()
-										);
-										d.dismiss();
-									}
+									});
+									negative_txt.setOnClickListener(new View.OnClickListener() {
+										@Override
+										public void onClick(View _view) {
+											dlg.dismiss();
+										}
+									});
 								});
-								negative_txt.setOnClickListener(new View.OnClickListener() {
-									@Override
-									public void onClick(View _view) {
-										d.dismiss();
-									}
-								});
-								d.show();
-							}
-						});
-						image_lay.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								p_dismissAnim.run();
+							},
+							() -> {
 								i.setAction(Intent.ACTION_OPEN_DOCUMENT);
 								i.addCategory(Intent.CATEGORY_OPENABLE);
 								i.setType("application/json");
 								i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "text/*", "*/*"});
 								startActivityForResult(i, REQ_IMPORT_JSON);
-							}
-						});
-						p_pv.setAlpha(0f);
-						p_pv.setScaleX(0.94f);
-						p_pv.setScaleY(0.94f);
-						
-						p.showAtLocation(
-						import_btn,
-						android.view.Gravity.TOP | android.view.Gravity.START,
-						p_x,
-						p_y
-						);
-						
-						p_pv.setPivotX(p_pv.getMeasuredWidth());
-						p_pv.setPivotY(0f);
-						
-						p_pv.animate()
-						.alpha(1f)
-						.scaleX(1f)
-						.scaleY(1f)
-						.setDuration(140)
-						.setInterpolator(new android.view.animation.DecelerateInterpolator())
-						.start();
-					}
-				});
-				export_btn.setOnClickListener(new View.OnClickListener() {
-					@Override
-					public void onClick(View _view) {
-						try {
-							if (p != null) p.dismiss();
-						} catch (Exception p_e) {}
-						
-						LayoutInflater p_li = getLayoutInflater();
-						View p_pv = p_li.inflate(R.layout.mode_popup, null);
-						
-						p = new PopupWindow(
-						p_pv,
-						ViewGroup.LayoutParams.WRAP_CONTENT,
-						ViewGroup.LayoutParams.WRAP_CONTENT,
-						true
-						);
-						
-						p.setOutsideTouchable(true);
-						p.setFocusable(true);
-						p.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-						final LinearLayout camera_lay = (LinearLayout) p_pv.findViewById(R.id.camera_lay);
-						final LinearLayout image_lay = (LinearLayout) p_pv.findViewById(R.id.image_lay);
-						final TextView camera_scanner_txt = (TextView) p_pv.findViewById(R.id.camera_scanner_txt);
-						final TextView scan_from_image_txt = (TextView) p_pv.findViewById(R.id.scan_from_image_txt);
-						final ImageView camera_img = (ImageView) p_pv.findViewById(R.id.camera_img);
-						final ImageView scan_img = (ImageView) p_pv.findViewById(R.id.scan_img);
-						applyTextScale(camera_scanner_txt, textScaleFromLevel((int) textLevel));
-						applyTextScale(scan_from_image_txt, textScaleFromLevel((int) textLevel));
-						float camera_lay_density = getResources().getDisplayMetrics().density;
-						camera_lay.setClickable(true);
-						camera_lay.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFD2B6DC}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int) (12 * camera_lay_density), (int) (2 * camera_lay_density), 0xFF212121, 0xFFFFFFFF), 
-						null
-						));
-						
-						float image_lay_density = getResources().getDisplayMetrics().density;
-						image_lay.setClickable(true);
-						image_lay.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFD2B6DC}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int) (12 * image_lay_density), (int) (2 * image_lay_density), 0xFF212121, 0xFFFFFFFF), 
-						null
-						));
-						
-						camera_scanner_txt.setText(getString(R.string.copy_as_text));
-						scan_from_image_txt.setText(getString(R.string.save_as_file));
-						camera_img.setImageResource(R.drawable.ic_copy);
-						scan_img.setImageResource(R.drawable.ic_to_file);
-						final Runnable p_dismissAnim = new Runnable() {
-							@Override
-							public void run() {
-								p_pv.animate()
-								.alpha(0f)
-								.scaleX(0.96f)
-								.scaleY(0.96f)
-								.setDuration(120)
-								.setInterpolator(new android.view.animation.AccelerateInterpolator())
-								.withEndAction(new Runnable() {
-									@Override
-									public void run() {
-										try { p.dismiss(); } catch (Exception p_e) {}
-									}
-								})
-								.start();
-							}
-						};
-						
-						p_pv.setOnTouchListener(new View.OnTouchListener() {
-							@Override
-							public boolean onTouch(View p_v, android.view.MotionEvent p_event) {
-								if (p_event.getAction() == android.view.MotionEvent.ACTION_OUTSIDE) {
-									p_dismissAnim.run();
-									return true;
-								}
-								return false;
-							}
-						});
-						
-						p_pv.measure(
-						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-						);
-						int p_popupW = p_pv.getMeasuredWidth();
-						int p_popupH = p_pv.getMeasuredHeight();
-						
-						int[] p_loc = new int[2];
-						export_btn.getLocationOnScreen(p_loc);
-						int p_anchorX = p_loc[0];
-						int p_anchorY = p_loc[1];
-						
-						android.util.DisplayMetrics p_dm = getResources().getDisplayMetrics();
-						int p_screenW = p_dm.widthPixels;
-						int p_screenH = p_dm.heightPixels;
-						
-						int p_x = p_anchorX + export_btn.getWidth() - p_popupW;
-						
-						int p_yBelow = p_anchorY + export_btn.getHeight();
-						int p_yAbove = p_anchorY - p_popupH;
-						
-						if (p_x < 0) p_x = 0;
-						if (p_x + p_popupW > p_screenW)
-						p_x = Math.max(0, p_screenW - p_popupW);
-						
-						int p_y;
-						if (p_yBelow + p_popupH <= p_screenH) {
-							p_y = p_yBelow;
-						} else if (p_yAbove >= 0) {
-							p_y = p_yAbove;
-						} else {
-							p_y = Math.max(0, p_screenH - p_popupH);
+							}, null
+							);
 						}
-						camera_lay.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
+					});
+					export_btn.setOnClickListener(new View.OnClickListener() {
+						@Override
+						public void onClick(View _view) {
+							showPopup(export_btn, PopupPos.TOP_RIGHT, (int) 0, (int) 0, R.string.copy_as_text, R.string.save_as_file, R.drawable.ic_copy, R.drawable.ic_to_file,
+							() -> {
 								((ClipboardManager) getSystemService(getApplicationContext().CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("clipboard", new Gson().toJson(cards_list_all)));
 								SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.text_copied));
-								p_dismissAnim.run();
-							}
-						});
-						image_lay.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								p_dismissAnim.run();
+							},
+							() -> {
 								String fileName = "cards_backup_" + System.currentTimeMillis() + ".json";
 								i.setAction(Intent.ACTION_CREATE_DOCUMENT);
 								i.addCategory(Intent.CATEGORY_OPENABLE);
 								i.setType("application/json");
 								i.putExtra(Intent.EXTRA_TITLE, fileName);
 								startActivityForResult(i, REQ_EXPORT_JSON);
-							}
-						});
-						p_pv.setAlpha(0f);
-						p_pv.setScaleX(0.94f);
-						p_pv.setScaleY(0.94f);
-						
-						p.showAtLocation(
-						export_btn,
-						android.view.Gravity.TOP | android.view.Gravity.START,
-						p_x,
-						p_y
-						);
-						
-						p_pv.setPivotX(p_pv.getMeasuredWidth());
-						p_pv.setPivotY(0f);
-						
-						p_pv.animate()
-						.alpha(1f)
-						.scaleX(1f)
-						.scaleY(1f)
-						.setDuration(140)
-						.setInterpolator(new android.view.animation.DecelerateInterpolator())
-						.start();
-					}
-				});
-				bottomShii.setOnDismissListener(new DialogInterface.OnDismissListener() {
-					@Override
-					public void onDismiss(DialogInterface dialog) {
-						applyTextScale(search_txt, textScaleFromLevel((int) textLevel));
-						applyTextScale(no_items_txt, textScaleFromLevel((int) textLevel));
-						search_bar.post(new Runnable() {
-							@Override
-							public void run() {
-								int searchH = search_bar.getHeight();
-								
-								int innerH = searchH
-								- search_bar.getPaddingTop()
-								- search_bar.getPaddingBottom();
-								
-								if (innerH < 0) innerH = 0;
-								
-								ViewGroup.LayoutParams flp = filter_img.getLayoutParams();
-								flp.width = innerH;
-								flp.height = innerH;
-								filter_img.setLayoutParams(flp);
-								
-								ViewGroup.LayoutParams slp = settings_img.getLayoutParams();
-								slp.width = innerH;
-								slp.height = innerH;
-								settings_img.setLayoutParams(slp);
-								
-								ViewGroup.LayoutParams fblp = filter_bar.getLayoutParams();
-								fblp.height = searchH;
-								ViewGroup.LayoutParams sblp = settings_bar.getLayoutParams();
-								sblp.height = searchH;
-								filter_bar.setLayoutParams(fblp);
-								settings_bar.setLayoutParams(sblp);
-								
-							}
-						});
-						cardsAdapter.notifyDataSetChanged();
-						settings.put("grid_amount", (double)(progress));
-						settings.put("text_level", (double)(textLevel));
-						settings.put("scan_image", scanImage);
-						card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
-						final androidx.recyclerview.widget.GridLayoutManager cards_rec_layoutManager =
-						new androidx.recyclerview.widget.GridLayoutManager(
-						cards_rec.getContext(),
-						(int) progress,
-						androidx.recyclerview.widget.RecyclerView.VERTICAL,
-						false
-						);
-						cards_rec.setLayoutManager(cards_rec_layoutManager);
-						
-						final android.content.Context cards_rec_ctx = cards_rec.getContext();
-						
-						final int cards_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
-						android.util.TypedValue.COMPLEX_UNIT_DIP,
-						(float) 8,
-						cards_rec_ctx.getResources().getDisplayMetrics()
-						));
-						
-						final int cards_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
-						android.util.TypedValue.COMPLEX_UNIT_DIP,
-						(float) 2,
-						cards_rec_ctx.getResources().getDisplayMetrics()
-						));
-						
-						if (cards_rec.getItemDecorationCount() > 0) {
-							cards_rec.removeItemDecorationAt(0);
-						}
-						
-						cards_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
-							@Override
-							public void getItemOffsets(android.graphics.Rect outRect,
-							android.view.View view,
-							androidx.recyclerview.widget.RecyclerView parent,
-							androidx.recyclerview.widget.RecyclerView.State state) {
-								
-								int cards_rec_pos = parent.getChildAdapterPosition(view);
-								if (cards_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
-								
-								androidx.recyclerview.widget.RecyclerView.LayoutManager cards_rec_lm =
-								parent.getLayoutManager();
-								if (!(cards_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
-								
-								androidx.recyclerview.widget.GridLayoutManager cards_rec_glm =
-								(androidx.recyclerview.widget.GridLayoutManager) cards_rec_lm;
-								
-								int cards_rec_spanCount = cards_rec_glm.getSpanCount();
-								
-								androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup cards_rec_ssl =
-								cards_rec_glm.getSpanSizeLookup();
-								
-								int cards_rec_spanSize = cards_rec_ssl.getSpanSize(cards_rec_pos);
-								int cards_rec_spanIndex = cards_rec_ssl.getSpanIndex(cards_rec_pos, cards_rec_spanCount);
-								
-								outRect.left =
-								(cards_rec_spanIndex * cards_rec_hSpacingPx) / cards_rec_spanCount;
-								
-								outRect.right =
-								cards_rec_hSpacingPx
-								- ((cards_rec_spanIndex + cards_rec_spanSize) * cards_rec_hSpacingPx)
-								/ cards_rec_spanCount;
-								
-								if (cards_rec_pos >= cards_rec_spanCount) {
-									outRect.top = cards_rec_vSpacingPx;
-								}
-							}
-						});
-					}
-				});
-				bottomShii.show();
-				if ((boolean)settings.get("settings_tutorial") && !debug) {
-					View import_btn_targetView = bottomShii.findViewById(R.id.import_btn);
-					
-					TapTarget import_btn_tapTarget = TapTarget.forView(import_btn_targetView, getString(R.string.import_title), getString(R.string.import_desc))
-					.outerCircleColorInt(0xFFD2B6DC)
-					.targetCircleColorInt(0xFFC3A2CF)
-					.titleTextColorInt(0xFFFFFFFF)
-					.descriptionTextColorInt(0xFFFFFFFF)
-					.descriptionTextAlpha(1f)
-					.cancelable(true)
-					.transparentTarget(true)
-					.drawShadow(true)
-					.id(1);
-					
-					TapTargetView.showFor(bottomShii, import_btn_tapTarget, new TapTargetView.Listener() {
-						@Override
-						public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
-							super.onTargetDismissed(view, userInitiated);
-							View export_btn_targetView = bottomShii.findViewById(R.id.export_btn);
-							
-							TapTarget export_btn_tapTarget = TapTarget.forView(export_btn_targetView, getString(R.string.export_title), getString(R.string.export_desc))
-							.outerCircleColorInt(0xFFD2B6DC)
-							.targetCircleColorInt(0xFFC3A2CF)
-							.titleTextColorInt(0xFFFFFFFF)
-							.descriptionTextColorInt(0xFFFFFFFF)
-							.descriptionTextAlpha(1f)
-							.cancelable(true)
-							.transparentTarget(true)
-							.drawShadow(true)
-							.id(1);
-							
-							TapTargetView.showFor(bottomShii, export_btn_tapTarget, new TapTargetView.Listener() {
-								@Override
-								public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
-									super.onTargetDismissed(view, userInitiated);
-									settings.put("settings_tutorial", false);
-									card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
-								}
-							});
+							}, null
+							);
 						}
 					});
-				}
+					if ((boolean)settings.get("settings_tutorial") && !debug) {
+						java.util.ArrayList<TTStep> steps = new java.util.ArrayList<>();
+						steps.add(new TTStep(import_btn, getString(R.string.import_title), getString(R.string.import_desc)));
+						steps.add(new TTStep(export_btn, getString(R.string.export_title), getString(R.string.export_desc)));
+						
+						runTTSequence(bs, steps, 0, () -> {
+							settings.put("settings_tutorial", false);
+							_saveSettings();
+						});
+					}
+				}, dialog -> {
+					applyTextScale(search_txt, textScaleFromLevel((int) textLevel));
+					ViewGroup.LayoutParams sbarLP = search_bar.getLayoutParams();
+					sbarLP.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+					search_bar.setLayoutParams(sbarLP);
+					search_txt.post(() -> {
+						float density = getResources().getDisplayMetrics().density;
+						int searchH = search_txt.getHeight();
+						int sbarH = (int) Math.round(searchH + (4 * density));
+						int simgH = (int) Math.round(searchH - (10 * density));
+						int fsbarS = (int) Math.round(searchH * 0.7f);
+						sbarLP.height = sbarH;
+						search_bar.setLayoutParams(sbarLP);
+						setSize(filter_bar, fsbarS, fsbarS);
+						setSize(settings_bar, fsbarS, fsbarS);
+						setSize(search_img, simgH, simgH);
+					});
+					applySortFilter(
+					search_txt.getText().toString(),
+					loadSortTypeId(),
+					loadOrderId(),
+					loadFilterId()
+					);
+					settings.put("grid_amount", (double)(progress));
+					settings.put("text_level", (double)(textLevel));
+					settings.put("scan_image", scanImage);
+					_saveSettings();
+					final GridLayoutManager cards_rec_layoutManager =
+					new GridLayoutManager(cards_rec.getContext(), ((Double) progress).intValue(), RecyclerView.VERTICAL, false);
+					
+					cards_rec_layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+						@Override
+						public int getSpanSize(int position) {
+							RecyclerView.Adapter a = cards_rec.getAdapter();
+							if (a == null) return cards_rec_layoutManager.getSpanCount();
+							int t = a.getItemViewType(position);
+							return (t == Cards_recAdapter.TYPE_HEADER) ? cards_rec_layoutManager.getSpanCount() : 1;
+						}
+					});
+					
+					cards_rec.setLayoutManager(cards_rec_layoutManager);
+				});
 			}
 		});
 		
@@ -1347,80 +644,33 @@ public class MainActivity extends AppCompatActivity {
 		_fab.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View _view) {
-				_displayInfo(cards_list, 0, true);
+				_displayInfo(new HashMap<String, Object>(), true);
 			}
 		});
 	}
 	
 	private void initializeLogic() {
 		debug = false;
+		search_img.setColorFilter(getResources().getColor(R.color.app_text_hint), PorterDuff.Mode.MULTIPLY);
+		filter_img.setColorFilter(getResources().getColor(R.color.app_icon_primary), PorterDuff.Mode.MULTIPLY);
+		settings_img.setColorFilter(getResources().getColor(R.color.app_icon_primary), PorterDuff.Mode.MULTIPLY);
+		wallet_img.setColorFilter(getResources().getColor(R.color.app_icon_primary), PorterDuff.Mode.MULTIPLY);
 		if (card_prefs.contains("settings")) {
 			settings = new Gson().fromJson(card_prefs.getString("settings", ""), new TypeToken<HashMap<String, Object>>(){}.getType());
-			final androidx.recyclerview.widget.GridLayoutManager cards_rec_layoutManager =
-			new androidx.recyclerview.widget.GridLayoutManager(
-			cards_rec.getContext(),
-			(int) (double)settings.get("grid_amount"),
-			androidx.recyclerview.widget.RecyclerView.VERTICAL,
-			false
-			);
-			cards_rec.setLayoutManager(cards_rec_layoutManager);
+			final GridLayoutManager cards_rec_layoutManager =
+			new GridLayoutManager(cards_rec.getContext(), ((Double) settings.get("grid_amount")).intValue(), RecyclerView.VERTICAL, false);
 			
-			final android.content.Context cards_rec_ctx = cards_rec.getContext();
-			
-			final int cards_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
-			android.util.TypedValue.COMPLEX_UNIT_DIP,
-			(float) 8,
-			cards_rec_ctx.getResources().getDisplayMetrics()
-			));
-			
-			final int cards_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
-			android.util.TypedValue.COMPLEX_UNIT_DIP,
-			(float) 2,
-			cards_rec_ctx.getResources().getDisplayMetrics()
-			));
-			
-			if (cards_rec.getItemDecorationCount() > 0) {
-				cards_rec.removeItemDecorationAt(0);
-			}
-			
-			cards_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
+			cards_rec_layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
 				@Override
-				public void getItemOffsets(android.graphics.Rect outRect,
-				android.view.View view,
-				androidx.recyclerview.widget.RecyclerView parent,
-				androidx.recyclerview.widget.RecyclerView.State state) {
-					
-					int cards_rec_pos = parent.getChildAdapterPosition(view);
-					if (cards_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
-					
-					androidx.recyclerview.widget.RecyclerView.LayoutManager cards_rec_lm =
-					parent.getLayoutManager();
-					if (!(cards_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
-					
-					androidx.recyclerview.widget.GridLayoutManager cards_rec_glm =
-					(androidx.recyclerview.widget.GridLayoutManager) cards_rec_lm;
-					
-					int cards_rec_spanCount = cards_rec_glm.getSpanCount();
-					
-					androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup cards_rec_ssl =
-					cards_rec_glm.getSpanSizeLookup();
-					
-					int cards_rec_spanSize = cards_rec_ssl.getSpanSize(cards_rec_pos);
-					int cards_rec_spanIndex = cards_rec_ssl.getSpanIndex(cards_rec_pos, cards_rec_spanCount);
-					
-					outRect.left =
-					(cards_rec_spanIndex * cards_rec_hSpacingPx) / cards_rec_spanCount;
-					
-					outRect.right =
-					cards_rec_hSpacingPx
-					- ((cards_rec_spanIndex + cards_rec_spanSize) * cards_rec_hSpacingPx)
-					/ cards_rec_spanCount;
-					
-					if (cards_rec_pos >= cards_rec_spanCount) {
-						outRect.top = cards_rec_vSpacingPx;
-					}
+				public int getSpanSize(int position) {
+					RecyclerView.Adapter a = cards_rec.getAdapter();
+					if (a == null) return cards_rec_layoutManager.getSpanCount();
+					int t = a.getItemViewType(position);
+					return (t == Cards_recAdapter.TYPE_HEADER) ? cards_rec_layoutManager.getSpanCount() : 1;
 				}
 			});
+			
+			cards_rec.setLayoutManager(cards_rec_layoutManager);
 		} else {
 			settings = new HashMap<>();
 			settings.put("grid_amount", (double)(2));
@@ -1429,72 +679,21 @@ public class MainActivity extends AppCompatActivity {
 			settings.put("main_tutorial", true);
 			settings.put("colors_tutorial", true);
 			settings.put("settings_tutorial", true);
-			card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
-			final androidx.recyclerview.widget.GridLayoutManager cards_rec_layoutManager =
-			new androidx.recyclerview.widget.GridLayoutManager(
-			cards_rec.getContext(),
-			(int) 2,
-			androidx.recyclerview.widget.RecyclerView.VERTICAL,
-			false
-			);
-			cards_rec.setLayoutManager(cards_rec_layoutManager);
+			_saveSettings();
+			final GridLayoutManager cards_rec_layoutManager =
+			new GridLayoutManager(cards_rec.getContext(), 2, RecyclerView.VERTICAL, false);
 			
-			final android.content.Context cards_rec_ctx = cards_rec.getContext();
-			
-			final int cards_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
-			android.util.TypedValue.COMPLEX_UNIT_DIP,
-			(float) 8,
-			cards_rec_ctx.getResources().getDisplayMetrics()
-			));
-			
-			final int cards_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
-			android.util.TypedValue.COMPLEX_UNIT_DIP,
-			(float) 2,
-			cards_rec_ctx.getResources().getDisplayMetrics()
-			));
-			
-			if (cards_rec.getItemDecorationCount() > 0) {
-				cards_rec.removeItemDecorationAt(0);
-			}
-			
-			cards_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
+			cards_rec_layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
 				@Override
-				public void getItemOffsets(android.graphics.Rect outRect,
-				android.view.View view,
-				androidx.recyclerview.widget.RecyclerView parent,
-				androidx.recyclerview.widget.RecyclerView.State state) {
-					
-					int cards_rec_pos = parent.getChildAdapterPosition(view);
-					if (cards_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
-					
-					androidx.recyclerview.widget.RecyclerView.LayoutManager cards_rec_lm =
-					parent.getLayoutManager();
-					if (!(cards_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
-					
-					androidx.recyclerview.widget.GridLayoutManager cards_rec_glm =
-					(androidx.recyclerview.widget.GridLayoutManager) cards_rec_lm;
-					
-					int cards_rec_spanCount = cards_rec_glm.getSpanCount();
-					
-					androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup cards_rec_ssl =
-					cards_rec_glm.getSpanSizeLookup();
-					
-					int cards_rec_spanSize = cards_rec_ssl.getSpanSize(cards_rec_pos);
-					int cards_rec_spanIndex = cards_rec_ssl.getSpanIndex(cards_rec_pos, cards_rec_spanCount);
-					
-					outRect.left =
-					(cards_rec_spanIndex * cards_rec_hSpacingPx) / cards_rec_spanCount;
-					
-					outRect.right =
-					cards_rec_hSpacingPx
-					- ((cards_rec_spanIndex + cards_rec_spanSize) * cards_rec_hSpacingPx)
-					/ cards_rec_spanCount;
-					
-					if (cards_rec_pos >= cards_rec_spanCount) {
-						outRect.top = cards_rec_vSpacingPx;
-					}
+				public int getSpanSize(int position) {
+					RecyclerView.Adapter a = cards_rec.getAdapter();
+					if (a == null) return cards_rec_layoutManager.getSpanCount();
+					int t = a.getItemViewType(position);
+					return (t == Cards_recAdapter.TYPE_HEADER) ? cards_rec_layoutManager.getSpanCount() : 1;
 				}
 			});
+			
+			cards_rec.setLayoutManager(cards_rec_layoutManager);
 		}
 		try{
 			textLevel = (double)settings.get("text_level");
@@ -1504,90 +703,18 @@ public class MainActivity extends AppCompatActivity {
 			scanImage = false;
 		}
 		applyTextScale(search_txt, textScaleFromLevel((int) textLevel));
-		search_bar.post(new Runnable() {
-			@Override
-			public void run() {
-				int searchH = search_bar.getHeight();
-				
-				int innerH = searchH
-				- search_bar.getPaddingTop()
-				- search_bar.getPaddingBottom();
-				
-				if (innerH < 0) innerH = 0;
-				
-				ViewGroup.LayoutParams flp = filter_img.getLayoutParams();
-				flp.width = innerH;
-				flp.height = innerH;
-				filter_img.setLayoutParams(flp);
-				
-				ViewGroup.LayoutParams slp = settings_img.getLayoutParams();
-				slp.width = innerH;
-				slp.height = innerH;
-				settings_img.setLayoutParams(slp);
-				
-				ViewGroup.LayoutParams fblp = filter_bar.getLayoutParams();
-				fblp.height = searchH;
-				ViewGroup.LayoutParams sblp = settings_bar.getLayoutParams();
-				sblp.height = searchH;
-				filter_bar.setLayoutParams(fblp);
-				settings_bar.setLayoutParams(sblp);
-				
-			}
+		Bg.apply(search_bar, getResources().getColor(R.color.app_surface_var), null, null, 16, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+		search_txt.post(() -> {
+			float density = getResources().getDisplayMetrics().density;
+			int searchH = search_txt.getHeight();
+			int sbarH = (int) Math.round(searchH + (4 * density));
+			int simgH = (int) Math.round(searchH - (10 * density));
+			int fsbarS = (int) Math.round(searchH * 0.7f);
+			setSize(search_bar, KEEP, sbarH);
+			setSize(filter_bar, fsbarS, fsbarS);
+			setSize(settings_bar, fsbarS, fsbarS);
+			setSize(search_img, simgH, simgH);
 		});
-		float filter_bar_density = getResources().getDisplayMetrics().density;
-		filter_bar.setClickable(true);
-		filter_bar.setBackground(new RippleDrawable(
-		new ColorStateList(
-		new int[][]{new int[]{}},
-		new int[]{0xFFD2B6DC}
-		),
-		new GradientDrawable() {
-			public GradientDrawable getIns(int a, int b, int c, int d) {
-				this.setCornerRadius(a);
-				this.setStroke(b, c);
-				this.setColor(d);
-				return this;
-			}
-		}.getIns((int) (12 * filter_bar_density), (int) (2 * filter_bar_density), 0xFF424242, 0xFFFFFFFF), 
-		null
-		));
-		
-		float settings_bar_density = getResources().getDisplayMetrics().density;
-		settings_bar.setClickable(true);
-		settings_bar.setBackground(new RippleDrawable(
-		new ColorStateList(
-		new int[][]{new int[]{}},
-		new int[]{0xFFD2B6DC}
-		),
-		new GradientDrawable() {
-			public GradientDrawable getIns(int a, int b, int c, int d) {
-				this.setCornerRadius(a);
-				this.setStroke(b, c);
-				this.setColor(d);
-				return this;
-			}
-		}.getIns((int) (12 * settings_bar_density), (int) (2 * settings_bar_density), 0xFF424242, 0xFFFFFFFF), 
-		null
-		));
-		
-		float search_bar_density = getResources().getDisplayMetrics().density;
-		search_bar.setClickable(true);
-		search_bar.setBackground(new RippleDrawable(
-		new ColorStateList(
-		new int[][]{new int[]{}},
-		new int[]{0xFFD2B6DC}
-		),
-		new GradientDrawable() {
-			public GradientDrawable getIns(int a, int b, int c, int d) {
-				this.setCornerRadius(a);
-				this.setStroke(b, c);
-				this.setColor(d);
-				return this;
-			}
-		}.getIns((int) (12 * search_bar_density), (int) (2 * search_bar_density), 0xFF424242, 0xFFFFFFFF), 
-		null
-		));
-		
 		_refreshList();
 		applySortFilter(
 		search_txt.getText().toString(),
@@ -1597,79 +724,15 @@ public class MainActivity extends AppCompatActivity {
 		);
 		initImagePicker();
 		if ((boolean)settings.get("main_tutorial") && !debug) {
-			View _fab_targetView = findViewById(R.id._fab);
+			ArrayList<TTStep> steps = new ArrayList<>();
+			steps.add(new TTStep(findViewById(R.id._fab), getString(R.string.add_title), getString(R.string.add_desc)));
+			steps.add(new TTStep(findViewById(R.id.filter_bar), getString(R.string.filter_title), getString(R.string.filter_desc)));
+			steps.add(new TTStep(findViewById(R.id.search_bar), getString(R.string.search_title), getString(R.string.search_desc)));
+			steps.add(new TTStep(findViewById(R.id.settings_bar), getString(R.string.settings_title), getString(R.string.settings_desc)));
 			
-			TapTarget _fab_tapTarget = TapTarget.forView(_fab_targetView, getString(R.string.fab_title), getString(R.string.fab_desc))
-			.outerCircleColorInt(0xFFD2B6DC)
-			.targetCircleColorInt(0xFFC3A2CF)
-			.titleTextColorInt(0xFFFFFFFF)
-			.descriptionTextColorInt(0xFFFFFFFF)
-			.descriptionTextAlpha(1f)
-			.cancelable(true)
-			.transparentTarget(true)
-			.drawShadow(true)
-			.id(1);
-			TapTargetView.showFor(MainActivity.this, _fab_tapTarget, new TapTargetView.Listener() {
-				@Override
-				public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
-					super.onTargetDismissed(view, userInitiated);
-					View filter_bar_targetView = findViewById(R.id.filter_bar);
-					
-					TapTarget filter_bar_tapTarget = TapTarget.forView(filter_bar_targetView, getString(R.string.filter_title), getString(R.string.filter_desc))
-					.outerCircleColorInt(0xFFD2B6DC)
-					.targetCircleColorInt(0xFFC3A2CF)
-					.titleTextColorInt(0xFFFFFFFF)
-					.descriptionTextColorInt(0xFFFFFFFF)
-					.descriptionTextAlpha(1f)
-					.cancelable(true)
-					.transparentTarget(true)
-					.drawShadow(true)
-					.id(1);
-					TapTargetView.showFor(MainActivity.this, filter_bar_tapTarget, new TapTargetView.Listener() {
-						@Override
-						public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
-							super.onTargetDismissed(view, userInitiated);
-							View search_bar_targetView = findViewById(R.id.search_bar);
-							
-							TapTarget search_bar_tapTarget = TapTarget.forView(search_bar_targetView, getString(R.string.search_title), getString(R.string.search_desc))
-							.outerCircleColorInt(0xFFD2B6DC)
-							.targetCircleColorInt(0xFFC3A2CF)
-							.titleTextColorInt(0xFFFFFFFF)
-							.descriptionTextColorInt(0xFFFFFFFF)
-							.descriptionTextAlpha(1f)
-							.cancelable(true)
-							.transparentTarget(true)
-							.drawShadow(true)
-							.id(1);
-							TapTargetView.showFor(MainActivity.this, search_bar_tapTarget, new TapTargetView.Listener() {
-								@Override
-								public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
-									super.onTargetDismissed(view, userInitiated);
-									View settings_bar_targetView = findViewById(R.id.settings_bar);
-									
-									TapTarget settings_bar_tapTarget = TapTarget.forView(settings_bar_targetView, getString(R.string.settings_title), getString(R.string.settings_desc))
-									.outerCircleColorInt(0xFFD2B6DC)
-									.targetCircleColorInt(0xFFC3A2CF)
-									.titleTextColorInt(0xFFFFFFFF)
-									.descriptionTextColorInt(0xFFFFFFFF)
-									.descriptionTextAlpha(1f)
-									.cancelable(true)
-									.transparentTarget(true)
-									.drawShadow(true)
-									.id(1);
-									TapTargetView.showFor(MainActivity.this, settings_bar_tapTarget, new TapTargetView.Listener() {
-										@Override
-										public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
-											super.onTargetDismissed(view, userInitiated);
-											settings.put("main_tutorial", false);
-											card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
-										}
-									});
-								}
-							});
-						}
-					});
-				}
+			runTTSequence(MainActivity.this, steps, 0, () -> {
+				settings.put("main_tutorial", false);
+				_saveSettings();
 			});
 		}
 	}
@@ -1763,7 +826,7 @@ public class MainActivity extends AppCompatActivity {
 	public void onResume() {
 		super.onResume();
 		if (card_prefs.contains("code") && card_prefs.contains("type")) {
-			if (bottomShii != null && bottomShii.isShowing() && code_edit != null) {
+			if (code_edit != null) {
 				code_menu_lay.setVisibility(View.VISIBLE);
 				code_edit.setText(card_prefs.getString("code", ""));
 				type_txt.setText(getString(R.string.card_type).concat(" ".concat(card_prefs.getString("type", ""))));
@@ -1781,17 +844,6 @@ public class MainActivity extends AppCompatActivity {
 	
 	@Override
 	public void onBackPressed() {
-		
-		if (bottomShii != null && bottomShii.isShowing()) {
-			bottomShii.dismiss();
-			return;
-		}
-		
-		if (d != null && d.isShowing()) {
-			d.dismiss();
-			return;
-		}
-		
 		if (inFolder && !folderIdStack.isEmpty()) {
 			
 			folderIdStack.remove(folderIdStack.size() - 1);
@@ -1843,6 +895,52 @@ public class MainActivity extends AppCompatActivity {
 		} else {
 			cardsAdapter.notifyDataSetChanged();
 		}
+	}
+	private HashMap<String, Object> makeHeaderRow(String title) {
+		HashMap<String, Object> h = new HashMap<>();
+		h.put(KEY_ROW_TYPE, ROW_HEADER);
+		h.put("title", title);
+		return h;
+	}
+	private boolean isHeaderRow(HashMap<String, Object> m) {
+		Object t = m.get(KEY_ROW_TYPE);
+		return t != null && ROW_HEADER.equals(String.valueOf(t));
+	}
+	private ArrayList<HashMap<String, Object>> buildSectionedList(ArrayList<HashMap<String, Object>> sortedItems) {
+		ArrayList<HashMap<String, Object>> folders = new ArrayList<>();
+		ArrayList<HashMap<String, Object>> cards = new ArrayList<>();
+		
+		for (int i = 0; i < sortedItems.size(); i++) {
+			HashMap<String, Object> m = sortedItems.get(i);
+			if (getBool(m, "folder", false)) folders.add(m);
+			else cards.add(m);
+		}
+		
+		HashMap<String, Object> fav = null;
+		for (int i = 0; i < folders.size(); i++) {
+			if (isVirtualFavorites(folders.get(i))) {
+				fav = folders.remove(i);
+				break;
+			}
+		}
+		if (fav != null) folders.add(fav);
+		
+		ArrayList<HashMap<String, Object>> out = new ArrayList<>();
+		
+		if (!folders.isEmpty()) {
+			out.add(makeHeaderRow(getString(R.string.folders)));
+			out.addAll(folders);
+		}
+		
+		if (!cards.isEmpty()) {
+			out.add(makeHeaderRow(getString(R.string.cards)));
+			out.addAll(cards);
+		}
+		
+		return out;
+	}
+	private String cardsCountText(int count) {
+		return getResources().getQuantityString(R.plurals.cards_count, count, count);
 	}
 	private void openSystemCameraForCard(String cardId) {
 		try {
@@ -2042,12 +1140,9 @@ public class MainActivity extends AppCompatActivity {
 			
 			String importedJson = bos.toString("UTF-8");
 			
-			card_prefs.edit().putString("cards", importedJson).commit();
+			_saveCards(importedJson);
 			
-			ArrayList<HashMap<String, Object>> tmp = new Gson().fromJson(
-			importedJson,
-			new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType()
-			);
+			ArrayList<HashMap<String, Object>> tmp = new Gson().fromJson(importedJson, new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType());
 			if (tmp == null) tmp = new ArrayList<>();
 			
 			tmp = sanitizeTree(tmp);
@@ -2073,14 +1168,11 @@ public class MainActivity extends AppCompatActivity {
 			SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_success));
 		} catch (Exception e) {
 			try {
-				card_prefs.edit().putString("cards", prev).commit();
+				_saveCards(prev);
 			} catch (Exception ignored) {}
 			
 			try {
-				ArrayList<HashMap<String, Object>> tmp = new Gson().fromJson(
-				prev,
-				new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType()
-				);
+				ArrayList<HashMap<String, Object>> tmp = new Gson().fromJson(prev, new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType());
 				if (tmp == null) tmp = new ArrayList<>();
 				
 				tmp = sanitizeTree(tmp);
@@ -2134,11 +1226,7 @@ public class MainActivity extends AppCompatActivity {
 			try { if (os != null) os.close(); } catch (Exception ignored) {}
 		}
 	}
-	private void showColorsTutorialStep(
-	final com.google.android.material.bottomsheet.BottomSheetDialog bottomShii,
-	final RecyclerView colors_rec,
-	final int pos
-	) {
+	private void showColorsTutorialStep(final com.google.android.material.bottomsheet.BottomSheetDialog bottomShii, final RecyclerView colors_rec, final int pos) {
 		RecyclerView.ViewHolder vh = colors_rec.findViewHolderForAdapterPosition(pos);
 		
 		if (vh == null) {
@@ -2157,31 +1245,16 @@ public class MainActivity extends AppCompatActivity {
 		int titleRes = getColorsTutTitleRes(pos);
 		int descRes  = getColorsTutDescRes(pos);
 		
-		TapTarget tt = TapTarget.forView(target, getString(titleRes), getString(descRes))
-		.outerCircleColorInt(0xFFD2B6DC)
-		.targetCircleColorInt(0xFFC3A2CF)
-		.titleTextColorInt(0xFFFFFFFF)
-		.descriptionTextColorInt(0xFFFFFFFF)
-		.descriptionTextAlpha(1f)
-		.cancelable(true)
-		.transparentTarget(true)
-		.drawShadow(true)
+		TapTarget tt = makeTT(target, getString(titleRes), getString(descRes))
 		.id(200 + pos);
 		
-		TapTargetView.showFor(bottomShii, tt, new TapTargetView.Listener() {
-			@Override
-			public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
-				super.onTargetDismissed(view, userInitiated);
-				
-				int next = pos + 1;
-				if (next <= 2) {
-					showColorsTutorialStep(bottomShii, colors_rec, next);
-				} else {
-					settings.put("colors_tutorial", false);
-					card_prefs.edit()
-					.putString("settings", new Gson().toJson(settings))
-					.commit();
-				}
+		showTT(bottomShii, tt, () -> {
+			int next = pos + 1;
+			if (next <= 2) {
+				showColorsTutorialStep(bottomShii, colors_rec, next);
+			} else {
+				settings.put("colors_tutorial", false);
+				_saveSettings();
 			}
 		});
 	}
@@ -2455,10 +1528,15 @@ public class MainActivity extends AppCompatActivity {
 		}
 		return null;
 	}
-	private ArrayList<HashMap<String, Object>> resolveContainerList(
-	ArrayList<HashMap<String, Object>> root,
-	ArrayList<String> folderIdStack
-	) {
+	private ArrayList<HashMap<String, Object>> resolveContainerList(ArrayList<HashMap<String, Object>> root, ArrayList<String> folderIdStack) {
+		
+		if (folderIdStack != null && !folderIdStack.isEmpty()) {
+			String top = String.valueOf(folderIdStack.get(folderIdStack.size() - 1));
+			if (top.equals("__favorites__")) {
+				return collectFavoriteItemsRecursive(cards_list_all);
+			}
+		}
+		
 		ArrayList<HashMap<String, Object>> curList = root;
 		
 		for (int i = 0; i < folderIdStack.size(); i++) {
@@ -2466,7 +1544,6 @@ public class MainActivity extends AppCompatActivity {
 			
 			HashMap<String, Object> folderMap = findFolderById(curList, targetFolderId);
 			if (folderMap == null) {
-				// stack doesn't match data -> safest fallback
 				return root;
 			}
 			
@@ -2535,10 +1612,7 @@ public class MainActivity extends AppCompatActivity {
 		.putInt(PREF_SORT_FILTER, filterId)
 		.apply();
 	}
-	private void applySortFilter(String searchQuery,
-	int sortTypeCheckedId,
-	int orderCheckedId,
-	int filterCheckedId) {
+	private void applySortFilter(String searchQuery, int sortTypeCheckedId, int orderCheckedId, int filterCheckedId) {
 		
 		String q = (searchQuery == null) ? "" : searchQuery.toLowerCase().trim();
 		
@@ -2553,7 +1627,13 @@ public class MainActivity extends AppCompatActivity {
 			source = cards_list_all;
 		}
 		
-		cards_list.clear();
+		boolean atRoot = !(inFolder && !folderIdStack.isEmpty());
+		
+		ArrayList<HashMap<String, Object>> filtered = new ArrayList<>();
+		
+		if (atRoot) {
+			injectVirtualFavoritesIntoFiltered(filtered);
+		}
 		
 		for (int i = 0; i < source.size(); i++) {
 			HashMap<String, Object> card = source.get(i);
@@ -2571,12 +1651,19 @@ public class MainActivity extends AppCompatActivity {
 				if (!name.contains(q)) continue;
 			}
 			
-			cards_list.add(card);
+			filtered.add(card);
 		}
 		
-		java.util.Collections.sort(cards_list, new java.util.Comparator<HashMap<String, Object>>() {
+		java.util.Collections.sort(filtered, new java.util.Comparator<HashMap<String, Object>>() {
 			@Override
 			public int compare(HashMap<String, Object> a, HashMap<String, Object> b) {
+				
+				boolean av = isVirtualFavorites(a);
+				boolean bv = isVirtualFavorites(b);
+				
+				if (av != bv) {
+					return av ? -1 : 1;
+				}
 				
 				int res = 0;
 				
@@ -2597,16 +1684,7 @@ public class MainActivity extends AppCompatActivity {
 					int au = getInt(a, "used", 0);
 					int bu = getInt(b, "used", 0);
 					res = (au < bu) ? -1 : (au > bu ? 1 : 0);
-				} else if (sortTypeCheckedId == R.id.by_type) {
 					
-					boolean af = getBool(a, "folder", false);
-					boolean bf = getBool(b, "folder", false);
-					
-					if (af == bf) {
-						res = 0;
-					} else {
-						res = af ? -1 : 1;
-					}
 				}
 				
 				if (res == 0) {
@@ -2628,17 +1706,40 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 		
+		ArrayList<HashMap<String, Object>> sectioned = buildSectionedList(filtered);
+		
+		cards_list.clear();
+		cards_list.addAll(sectioned);
+		
 		cardsAdapter.notifyDataSetChanged();
 		srefresh.setRefreshing(false);
-		applyTextScale(no_items_txt, textScaleFromLevel((int) textLevel));
+		float scale = textScaleFromLevel((int) textLevel);
+		applyTextScale(no_items_top_txt, scale);
+		applyTextScale(no_items_bottom_txt, scale);
 		
-		if (cards_list_all.size() == 0) {
-			srefresh.setVisibility(View.GONE);
-			no_items_lay.setVisibility(View.VISIBLE);
-		} else {
-			srefresh.setVisibility(View.VISIBLE);
-			no_items_lay.setVisibility(View.GONE);
-		}
+		float dens = getResources().getDisplayMetrics().density;
+		parent.post(() -> {
+            int w = parent.getWidth();
+			CoordinatorLayout.LayoutParams flp = (CoordinatorLayout.LayoutParams) _fab.getLayoutParams();
+
+            if (cards_list_all.isEmpty()) {
+                srefresh.setVisibility(View.GONE);
+                no_items_lay.setVisibility(View.VISIBLE);
+
+                flp.bottomMargin = Math.round(125 * dens);
+                _fab.setMaxImageSize(Math.round(64 * dens));
+                _fab.setCustomSize((int) Math.round(w * 0.25));
+            } else {
+                srefresh.setVisibility(View.VISIBLE);
+                no_items_lay.setVisibility(View.GONE);
+
+                flp.bottomMargin = Math.round(16 * dens);
+                flp.rightMargin = Math.round(16 * dens);
+                _fab.setMaxImageSize(Math.round(50 * dens));
+                _fab.setCustomSize((int) Math.round(w * 0.18));
+            }
+			_fab.setLayoutParams(flp);
+		});
 	}
 	private String getStr(HashMap<String, Object> m, String k) {
 		Object v = m.get(k);
@@ -2733,12 +1834,12 @@ public class MainActivity extends AppCompatActivity {
 			}
 		}
 	}
-	private void toggleFavorite(View heartView, boolean isNew, ArrayList<HashMap<String, Object>> _data, int pos) {
+	private void toggleFavorite(View heartView, boolean isNew, HashMap<String, Object> _data) {
 		boolean currentlyFavorite = false;
 		if (isNew) {
 			currentlyFavorite = heartView.isSelected();
 		} else {
-			currentlyFavorite = (boolean) _data.get(pos).get("favorite");
+			currentlyFavorite = (boolean) _data.get("favorite");
 		}
 		boolean newFavorite = !currentlyFavorite;
 		heartView.setSelected(newFavorite);
@@ -2767,7 +1868,17 @@ public class MainActivity extends AppCompatActivity {
 			.start();
 		}
 		if (!isNew) {
-			_data.get(pos).put("favorite", newFavorite);
+			_data.put("favorite", newFavorite);
+			if (inFolder) {
+				ArrayList<HashMap<String, Object>> masterContainer = resolveContainerList(cards_list_all, folderIdStack);
+				int index = indexOfCardById(masterContainer, id);
+				masterContainer.get(index).put("favorite", newFavorite);
+			} else {
+				int index = indexOfCardById(cards_list_all, id);
+				cards_list_all.get(index).put("favorite", newFavorite);
+			}
+			card_prefs.edit().putString("cards", new Gson().toJson(cards_list_all)).commit();
+			applySortFilter(search_txt.getText().toString(),loadSortTypeId(),loadOrderId(), loadFilterId());
 		}
 	}    
 	private GradientDrawable.Orientation _gradOrientationFromStyle(String style) {
@@ -2807,24 +1918,7 @@ public class MainActivity extends AppCompatActivity {
 			final LinearLayout parent = _view.findViewById(R.id.parent);
 			final ImageView plus_img = _view.findViewById(R.id.plus_img);
 			if (_data.get((int)(_position)).get("color").toString().equals("plus")) {
-				float parent_density = getResources().getDisplayMetrics().density;
-				parent.setClickable(true);
-				parent.setBackground(new RippleDrawable(
-				new ColorStateList(
-				new int[][]{new int[]{}},
-				new int[]{0xFFD2B6DC}
-				),
-				new GradientDrawable() {
-					public GradientDrawable getIns(int a, int b, int c, int d) {
-						this.setCornerRadius(a);
-						this.setStroke(b, c);
-						this.setColor(d);
-						return this;
-					}
-				}.getIns((int) (360 * parent_density), (int) (2 * parent_density), 0xFF424242, 0xFFFFFFFF), 
-				null
-				));
-				
+				Bg.apply(parent, 0xFFFFFFFF, null, null, 360, null, 2, 0xFF212121, 0xFFD2B6DC);
 				plus_lay.setVisibility(View.VISIBLE);
 				color.setVisibility(View.GONE);
 				plus_img.setImageResource(R.drawable.ic_add_grey);
@@ -2834,54 +1928,19 @@ public class MainActivity extends AppCompatActivity {
 				plus_img.setLayoutParams(plus_img_layoutParams);
 			} else {
 				if (_data.get((int)(_position)).get("color").toString().equals("settings")) {
-					float parent_density = getResources().getDisplayMetrics().density;
-					parent.setClickable(true);
-					parent.setBackground(new RippleDrawable(
-					new ColorStateList(
-					new int[][]{new int[]{}},
-					new int[]{0xFFD2B6DC}
-					),
-					new GradientDrawable() {
-						public GradientDrawable getIns(int a, int b, int c, int d) {
-							this.setCornerRadius(a);
-							this.setStroke(b, c);
-							this.setColor(d);
-							return this;
-						}
-					}.getIns((int) (360 * parent_density), (int) (2 * parent_density), 0xFF424242, 0xFFFFFFFF), 
-					null
-					));
-					
+					Bg.apply(parent, 0xFFFFFFFF, null, null, 360, null, 2, 0xFF212121, 0xFFD2B6DC);
 					plus_lay.setVisibility(View.VISIBLE);
 					color.setVisibility(View.GONE);
 					plus_img.setImageResource(R.drawable.ic_settings);
-					plus_img.post(new Runnable() {
-						@Override
-						public void run() {
-							ViewGroup.LayoutParams plus_img_layoutParams = plus_img.getLayoutParams();
-							plus_img_layoutParams.width = (int) (plus_img.getWidth() * 0.6);
-							plus_img_layoutParams.height = (int) (plus_img.getHeight() * 0.6);
-							plus_img.setLayoutParams(plus_img_layoutParams);
-						}
+					plus_img.post(() -> {
+						ViewGroup.LayoutParams plus_img_layoutParams = plus_img.getLayoutParams();
+						plus_img_layoutParams.width = (int) (plus_img.getWidth() * 0.6);
+						plus_img_layoutParams.height = (int) (plus_img.getHeight() * 0.6);
+						plus_img.setLayoutParams(plus_img_layoutParams);
 					});
 				} else {
-					float parent_density = getResources().getDisplayMetrics().density;
-					parent.setClickable(true);
-					parent.setBackground(new RippleDrawable(
-					new ColorStateList(
-					new int[][]{new int[]{}},
-					new int[]{0xFFD2B6DC}
-					),
-					new GradientDrawable() {
-						public GradientDrawable getIns(int a, int b, int c, int d) {
-							this.setCornerRadius(a);
-							this.setStroke(b, c);
-							this.setColor(d);
-							return this;
-						}
-					}.getIns((int) (360 * parent_density), (int) (2 * parent_density), 0xFF424242, (int)(_data.get((int)(_position)).get("color"))), 
-					null
-					));
+					int bgColor = (int) (_data.get((int)(_position)).get("color"));
+					Bg.apply(parent, bgColor, null, null, 360f, null, 2f, 0xFF212121, 0xFFD2B6DC);
 					color.setVisibility(View.VISIBLE);
 					plus_lay.setVisibility(View.GONE);
 				}
@@ -2893,320 +1952,125 @@ public class MainActivity extends AppCompatActivity {
 					if (pos == RecyclerView.NO_POSITION) return;
 					boolean isNew = "plus".equals(_data.get(pos).get("color").toString());
 					if (_data.get((int)(pos)).get("color").toString().equals("settings")) {
-						d = new AlertDialog.Builder(MainActivity.this).create();
-						LayoutInflater dLI = getLayoutInflater();
-						View dCV = (View) dLI.inflate(R.layout.radio_dialog, null);
-						d.setView(dCV);
-						final RadioGroup grad_styles = (RadioGroup)
-						dCV.findViewById(R.id.grad_styles);
-						final TextView title_txt = (TextView)
-						dCV.findViewById(R.id.title_txt);
-						final TextView save_txt = (TextView)
-						dCV.findViewById(R.id.save_txt);
-						final TextView close_txt = (TextView)
-						dCV.findViewById(R.id.close_txt);
-						final LinearLayout dialog_parent = (LinearLayout)
-						dCV.findViewById(R.id.parent);
-						final LinearLayout button_bar = (LinearLayout)
-						dCV.findViewById(R.id.button_bar);
-						final RadioButton leftright = (RadioButton)
-						dCV.findViewById(R.id.leftright);
-						final RadioButton rightleft = (RadioButton)
-						dCV.findViewById(R.id.rightleft);
-						final RadioButton topbottom = (RadioButton)
-						dCV.findViewById(R.id.topbottom);
-						final RadioButton bottomtop = (RadioButton)
-						dCV.findViewById(R.id.bottomtop);
-						final RadioButton tl_br = (RadioButton)
-						dCV.findViewById(R.id.tl_br);
-						final RadioButton tr_bl = (RadioButton)
-						dCV.findViewById(R.id.tr_bl);
-						final RadioButton bl_tr = (RadioButton)
-						dCV.findViewById(R.id.bl_tr);
-						final RadioButton br_tl = (RadioButton)
-						dCV.findViewById(R.id.br_tl);
-						float scale = textScaleFromLevel((int) textLevel);
-						TextView[] views = new TextView[] { title_txt, save_txt, close_txt };
-						for (TextView tv : views) {
-							if (tv != null) applyTextScale(tv, scale);
-						}
-						RadioButton[] buttons = new RadioButton[] { leftright, rightleft, topbottom, bottomtop, tl_br, tr_bl, bl_tr, br_tl };
-						for (RadioButton rb : buttons) {
-							if (rb != null) applyTextScale(rb, scale);
-						}
-						float save_txt_density = getResources().getDisplayMetrics().density;
-						save_txt.setClickable(true);
-						save_txt.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFF2EAF5}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
+						showDialog(R.layout.radio_dialog, R.id.parent, (dlg, root) -> {
+							final RadioGroup grad_styles = (RadioGroup) root.findViewById(R.id.grad_styles);
+							final TextView title_txt = (TextView) root.findViewById(R.id.title_txt);
+							final TextView save_txt = (TextView) root.findViewById(R.id.save_txt);
+							final TextView close_txt = (TextView) root.findViewById(R.id.close_txt);
+							final LinearLayout button_bar = (LinearLayout) root.findViewById(R.id.button_bar);
+							final RadioButton leftright = (RadioButton) root.findViewById(R.id.leftright);
+							final RadioButton rightleft = (RadioButton) root.findViewById(R.id.rightleft);
+							final RadioButton topbottom = (RadioButton) root.findViewById(R.id.topbottom);
+							final RadioButton bottomtop = (RadioButton) root.findViewById(R.id.bottomtop);
+							final RadioButton tl_br = (RadioButton) root.findViewById(R.id.tl_br);
+							final RadioButton tr_bl = (RadioButton) root.findViewById(R.id.tr_bl);
+							final RadioButton bl_tr = (RadioButton) root.findViewById(R.id.bl_tr);
+							final RadioButton br_tl = (RadioButton) root.findViewById(R.id.br_tl);
+							float scale = textScaleFromLevel((int) textLevel);
+							TextView[] views = new TextView[] { title_txt, save_txt, close_txt };
+							for (TextView tv : views) {
+								if (tv != null) applyTextScale(tv, scale);
 							}
-						}.getIns((int) (12 * save_txt_density), (int) (0 * save_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
-						null
-						));
-						
-						float close_txt_density = getResources().getDisplayMetrics().density;
-						close_txt.setClickable(true);
-						close_txt.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFF2EAF5}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
+							RadioButton[] buttons = new RadioButton[] { leftright, rightleft, topbottom, bottomtop, tl_br, tr_bl, bl_tr, br_tl };
+							for (RadioButton rb : buttons) {
+								if (rb != null) applyTextScale(rb, scale);
 							}
-						}.getIns((int) (12 * close_txt_density), (int) (0 * close_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
-						null
-						));
-						
-						dialog_parent.setClickable(true);
-						final float dialog_parent_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float dialog_parent_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float dialog_parent_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float dialog_parent_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final int dialog_parent_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 2, getResources().getDisplayMetrics());
-						final GradientDrawable dialog_parent_bg = new GradientDrawable();
-						dialog_parent_bg.setColor(0xFFFFFFFF);
-						dialog_parent_bg.setCornerRadii(new float[]{dialog_parent_rTL,dialog_parent_rTL,dialog_parent_rTR,dialog_parent_rTR,dialog_parent_rBR,dialog_parent_rBR,dialog_parent_rBL,dialog_parent_rBL});
-						dialog_parent_bg.setStroke(dialog_parent_strokePx, 0xFF424242);
-						dialog_parent.setBackground(dialog_parent_bg);
-						button_bar.setClickable(true);
-						
-						final float button_bar_rTL = TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
-						(float) 0,
-						getResources().getDisplayMetrics()
-						);
-						
-						final float button_bar_rTR = TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
-						(float) 0,
-						getResources().getDisplayMetrics()
-						);
-						
-						final float button_bar_rBR = TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
-						(float) 12,
-						getResources().getDisplayMetrics()
-						);
-						
-						final float button_bar_rBL = TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
-						(float) 12,
-						getResources().getDisplayMetrics()
-						);
-						
-						button_bar.setBackground(new ShapeDrawable(new RoundRectShape(
-						new float[]{
-							button_bar_rTL, button_bar_rTL,
-							button_bar_rTR, button_bar_rTR,
-							button_bar_rBR, button_bar_rBR,
-							button_bar_rBL, button_bar_rBL
-						},
-						null,
-						null
-						)) {{
-								getPaint().setColor(0xFFD2B6DC);
-							}});
-						d.setCancelable(true);
-						d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-						grad_styles.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-							@Override
-							public void onCheckedChanged(RadioGroup group, int id) {
-								if (id == R.id.leftright) {
-									selectedGradStyle = "lr";
-								} else if (id == R.id.rightleft) {
-									selectedGradStyle = "rl";
-								} else if (id == R.id.topbottom) {
-									selectedGradStyle = "tb";
-								} else if (id == R.id.bottomtop) {
-									selectedGradStyle = "bt";
-								} else if (id == R.id.tl_br) {
-									selectedGradStyle = "tl_br";
-								} else if (id == R.id.tr_bl) {
-									selectedGradStyle = "tr_bl";
-								} else if (id == R.id.bl_tr) {
-									selectedGradStyle = "bl_tr";
-								} else if (id == R.id.br_tl) {
-									selectedGradStyle = "br_tl";
-								} else {
-									selectedGradStyle = "lr";
+							Bg.apply(save_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+							Bg.apply(close_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+							Bg.apply(button_bar, 0xFFD2B6DC, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+							grad_styles.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+								@Override
+								public void onCheckedChanged(RadioGroup group, int id) {
+									if (id == R.id.leftright) {
+										selectedGradStyle = "lr";
+									} else if (id == R.id.rightleft) {
+										selectedGradStyle = "rl";
+									} else if (id == R.id.topbottom) {
+										selectedGradStyle = "tb";
+									} else if (id == R.id.bottomtop) {
+										selectedGradStyle = "bt";
+									} else if (id == R.id.tl_br) {
+										selectedGradStyle = "tl_br";
+									} else if (id == R.id.tr_bl) {
+										selectedGradStyle = "tr_bl";
+									} else if (id == R.id.bl_tr) {
+										selectedGradStyle = "bl_tr";
+									} else if (id == R.id.br_tl) {
+										selectedGradStyle = "br_tl";
+									} else {
+										selectedGradStyle = "lr";
+									}
 								}
+							});
+							if ("lr".equals(selectedGradStyle)) {
+								grad_styles.check(R.id.leftright);
+							} else if ("rl".equals(selectedGradStyle)) {
+								grad_styles.check(R.id.rightleft);
+							} else if ("tb".equals(selectedGradStyle)) {
+								grad_styles.check(R.id.topbottom);
+							} else if ("bt".equals(selectedGradStyle)) {
+								grad_styles.check(R.id.bottomtop);
+							} else if ("tl_br".equals(selectedGradStyle)) {
+								grad_styles.check(R.id.tl_br);
+							} else if ("tr_bl".equals(selectedGradStyle)) {
+								grad_styles.check(R.id.tr_bl);
+							} else if ("bl_tr".equals(selectedGradStyle)) {
+								grad_styles.check(R.id.bl_tr);
+							} else {
+								grad_styles.check(R.id.leftright);
 							}
+							save_txt.setOnClickListener(new View.OnClickListener() {
+								@Override
+								public void onClick(View _view) {
+									dlg.dismiss();
+								}
+							});
+							close_txt.setOnClickListener(new View.OnClickListener() {
+								@Override
+								public void onClick(View _view) {
+									dlg.dismiss();
+								}
+							});
 						});
-						if ("lr".equals(selectedGradStyle)) {
-							grad_styles.check(R.id.leftright);
-						} else if ("rl".equals(selectedGradStyle)) {
-							grad_styles.check(R.id.rightleft);
-						} else if ("tb".equals(selectedGradStyle)) {
-							grad_styles.check(R.id.topbottom);
-						} else if ("bt".equals(selectedGradStyle)) {
-							grad_styles.check(R.id.bottomtop);
-						} else if ("tl_br".equals(selectedGradStyle)) {
-							grad_styles.check(R.id.tl_br);
-						} else if ("tr_bl".equals(selectedGradStyle)) {
-							grad_styles.check(R.id.tr_bl);
-						} else if ("bl_tr".equals(selectedGradStyle)) {
-							grad_styles.check(R.id.bl_tr);
-						} else {
-							grad_styles.check(R.id.leftright);
-						}
-						save_txt.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								d.dismiss();
-							}
-						});
-						close_txt.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								d.dismiss();
-							}
-						});
-						d.show();
 					} else {
-						d = new AlertDialog.Builder(MainActivity.this).create();
-						LayoutInflater dLI = getLayoutInflater();
-						View dCV = (View) dLI.inflate(R.layout.color_picker_dialog, null);
-						d.setView(dCV);
-						final HsvColorPickerView color_picker = (HsvColorPickerView)
-						dCV.findViewById(R.id.color_picker);
-						final LinearLayout dialog_parent = (LinearLayout)
-						dCV.findViewById(R.id.parent);
-						final LinearLayout button_bar = (LinearLayout)
-						dCV.findViewById(R.id.button_bar);
-						final TextView add_txt = (TextView)
-						dCV.findViewById(R.id.add_txt);
-						final TextView close_txt = (TextView)
-						dCV.findViewById(R.id.close_txt);
-						applyTextScale(add_txt, textScaleFromLevel((int) textLevel));
-						applyTextScale(close_txt, textScaleFromLevel((int) textLevel));
-						if (!isNew) {
-							add_txt.setText(getString(R.string.change));
-						}
-						float add_txt_density = getResources().getDisplayMetrics().density;
-						add_txt.setClickable(true);
-						add_txt.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFF2EAF5}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
+						showDialog(R.layout.color_picker_dialog, R.id.parent, (dlg, root) -> {
+							final HsvColorPickerView color_picker = (HsvColorPickerView) root.findViewById(R.id.color_picker);
+							final LinearLayout button_bar = (LinearLayout) root.findViewById(R.id.button_bar);
+							final TextView add_txt = (TextView) root.findViewById(R.id.add_txt);
+							final TextView close_txt = (TextView) root.findViewById(R.id.close_txt);
+							applyTextScale(add_txt, textScaleFromLevel((int) textLevel));
+							applyTextScale(close_txt, textScaleFromLevel((int) textLevel));
+							if (!isNew) {
+								add_txt.setText(getString(R.string.change));
 							}
-						}.getIns((int) (12 * add_txt_density), (int) (0 * add_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
-						null
-						));
-						
-						float close_txt_density = getResources().getDisplayMetrics().density;
-						close_txt.setClickable(true);
-						close_txt.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFF2EAF5}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int) (12 * close_txt_density), (int) (0 * close_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
-						null
-						));
-						
-						dialog_parent.setClickable(true);
-						final float dialog_parent_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float dialog_parent_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float dialog_parent_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float dialog_parent_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final int dialog_parent_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 2, getResources().getDisplayMetrics());
-						final GradientDrawable dialog_parent_bg = new GradientDrawable();
-						dialog_parent_bg.setColor(0xFFFFFFFF);
-						dialog_parent_bg.setCornerRadii(new float[]{dialog_parent_rTL,dialog_parent_rTL,dialog_parent_rTR,dialog_parent_rTR,dialog_parent_rBR,dialog_parent_rBR,dialog_parent_rBL,dialog_parent_rBL});
-						dialog_parent_bg.setStroke(dialog_parent_strokePx, 0xFF424242);
-						dialog_parent.setBackground(dialog_parent_bg);
-						button_bar.setClickable(true);
-						
-						final float button_bar_rTL = TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
-						(float) 0,
-						getResources().getDisplayMetrics()
-						);
-						
-						final float button_bar_rTR = TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
-						(float) 0,
-						getResources().getDisplayMetrics()
-						);
-						
-						final float button_bar_rBR = TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
-						(float) 12,
-						getResources().getDisplayMetrics()
-						);
-						
-						final float button_bar_rBL = TypedValue.applyDimension(
-						TypedValue.COMPLEX_UNIT_DIP,
-						(float) 12,
-						getResources().getDisplayMetrics()
-						);
-						
-						button_bar.setBackground(new ShapeDrawable(new RoundRectShape(
-						new float[]{
-							button_bar_rTL, button_bar_rTL,
-							button_bar_rTR, button_bar_rTR,
-							button_bar_rBR, button_bar_rBR,
-							button_bar_rBL, button_bar_rBL
-						},
-						null,
-						null
-						)) {{
-								getPaint().setColor(0xFFD2B6DC);
-							}});
-						d.setCancelable(true);
-						d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-						add_txt.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								if (isNew) {
-									colors = new HashMap<>();
-									colors.put("color", (int)(color_picker.getColor()));
-									int insertPos = Math.max(0, _data.size() - 2);
-									_data.add(insertPos, colors);
-									colorsAdapter.notifyItemInserted(insertPos);
-								} else {
-									if (pos < 0 || pos >= _data.size()) return;
-									
-									_data.get(pos).put("color", (int) color_picker.getColor());
-									colorsAdapter.notifyItemChanged(pos);
+							Bg.apply(add_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+							Bg.apply(close_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+							Bg.apply(button_bar, 0xFFD2B6DC, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+							add_txt.setOnClickListener(new View.OnClickListener() {
+								@Override
+								public void onClick(View _view) {
+									if (isNew) {
+										colors = new HashMap<>();
+										colors.put("color", (int)(color_picker.getColor()));
+										int insertPos = Math.max(0, _data.size() - 2);
+										_data.add(insertPos, colors);
+										colorsAdapter.notifyItemInserted(insertPos);
+									} else {
+										if (pos < 0 || pos >= _data.size()) return;
+										
+										_data.get(pos).put("color", (int) color_picker.getColor());
+										colorsAdapter.notifyItemChanged(pos);
+									}
+									dlg.dismiss();
 								}
-								d.dismiss();
-							}
+							});
+							close_txt.setOnClickListener(new View.OnClickListener() {
+								@Override
+								public void onClick(View _view) {
+									dlg.dismiss();
+								}
+							});
 						});
-						close_txt.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								d.dismiss();
-							}
-						});
-						d.show();
 					}
 				}
 			});
@@ -3259,24 +2123,7 @@ public class MainActivity extends AppCompatActivity {
 			final TextView item_txt = _view.findViewById(R.id.item_txt);
 			final TextView label_txt = _view.findViewById(R.id.label_txt);
 			item_txt.setText(_data.get((int)(_position)).get("type").toString());
-			float item_density = getResources().getDisplayMetrics().density;
-			item.setClickable(true);
-			item.setBackground(new RippleDrawable(
-			new ColorStateList(
-			new int[][]{new int[]{}},
-			new int[]{0xFFD2B6DC}
-			),
-			new GradientDrawable() {
-				public GradientDrawable getIns(int a, int b, int c, int d) {
-					this.setCornerRadius(a);
-					this.setStroke(b, c);
-					this.setColor(d);
-					return this;
-				}
-			}.getIns((int) (12 * item_density), (int) (0 * item_density), Color.TRANSPARENT, 0xFFFFFFFF), 
-			null
-			));
-			
+			Bg.apply(item, 0xFFFFFFFF, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFD2B6DC);
 			applyTextScale(item_txt, textScaleFromLevel((int) textLevel));
 			if (_data.get((int)(_position)).containsKey("label")) {
 				label_txt.setVisibility(View.VISIBLE);
@@ -3362,21 +2209,18 @@ public class MainActivity extends AppCompatActivity {
 				}.getIns((int) (12 * parent_density), (int) (3 * parent_density), 0xFFC6CACF, 0xFFF2EAF5), 
 				null
 				));
-				picture.post(new Runnable() {
-					@Override
-					public void run() {
-						ViewGroup.LayoutParams picture_layoutParams = picture.getLayoutParams();
-						picture_layoutParams.width = (int) (picture.getWidth() * 0.35);
-						picture_layoutParams.height = (int) (picture.getHeight() * 0.35);
-						picture.setLayoutParams(picture_layoutParams);
-					}
+				picture.post(() -> {
+					ViewGroup.LayoutParams picture_layoutParams = picture.getLayoutParams();
+					picture_layoutParams.width = (int) (picture.getWidth() * 0.35);
+					picture_layoutParams.height = (int) (picture.getHeight() * 0.35);
+					picture.setLayoutParams(picture_layoutParams);
 				});
 			} else {
 				picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
 				File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
 				
 				if (f.exists() && f.length() > 0) {
-					Picasso.with(getApplicationContext())
+					Picasso.get()
 					.load(f)
 					.fit()
 					.centerCrop()
@@ -3384,24 +2228,7 @@ public class MainActivity extends AppCompatActivity {
 				} else {
 					picture.setImageResource(R.drawable.ic_broken_image);
 				}
-				float parent_density = getResources().getDisplayMetrics().density;
-				parent.setClickable(true);
-				parent.setBackground(new RippleDrawable(
-				new ColorStateList(
-				new int[][]{new int[]{}},
-				new int[]{Color.TRANSPARENT}
-				),
-				new GradientDrawable() {
-					public GradientDrawable getIns(int a, int b, int c, int d) {
-						this.setCornerRadius(a);
-						this.setStroke(b, c);
-						this.setColor(d);
-						return this;
-					}
-				}.getIns((int) (12 * parent_density), (int) (0 * parent_density), Color.TRANSPARENT, 0xFFFFFFFF), 
-				null
-				));
-				
+				Bg.apply(parent, 0xFFFFFFFF, null, null, 12, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
 				ViewGroup.LayoutParams picture_layoutParams = picture.getLayoutParams();
 				picture_layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
 				picture_layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -3412,170 +2239,15 @@ public class MainActivity extends AppCompatActivity {
 				@Override
 				public void onClick(View _view) {
 					if (v.equals("plus")) {
-						try {
-							if (p != null) p.dismiss();
-						} catch (Exception p_e) {}
-						
-						LayoutInflater p_li = getLayoutInflater();
-						View p_pv = p_li.inflate(R.layout.mode_popup, null);
-						
-						p = new PopupWindow(
-						p_pv,
-						ViewGroup.LayoutParams.WRAP_CONTENT,
-						ViewGroup.LayoutParams.WRAP_CONTENT,
-						true
+						showPopup(parent, PopupPos.RIGHT_TOP, (int) 0, (int) 0, R.string.take_photo, R.string.pick_image, R.drawable.ic_camera, R.drawable.ic_image,
+						() -> {
+							scan = false;
+							openScannerOrRequestPermission();
+						},
+						() -> {
+							pickImageForCard();
+						}, null
 						);
-						
-						p.setOutsideTouchable(true);
-						p.setFocusable(true);
-						p.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-						final LinearLayout camera_lay = (LinearLayout) p_pv.findViewById(R.id.camera_lay);
-						final LinearLayout image_lay = (LinearLayout) p_pv.findViewById(R.id.image_lay);
-						final TextView camera_scanner_txt = (TextView) p_pv.findViewById(R.id.camera_scanner_txt);
-						final TextView scan_from_image_txt = (TextView) p_pv.findViewById(R.id.scan_from_image_txt);
-						final ImageView camera_img = (ImageView) p_pv.findViewById(R.id.camera_img);
-						final ImageView scan_img = (ImageView) p_pv.findViewById(R.id.scan_img);
-						pictures_rec = (RecyclerView) p_pv.findViewById(R.id.pictures_rec);
-						camera_scanner_txt.setText(getString(R.string.take_photo));
-						scan_from_image_txt.setText(getString(R.string.pick_image));
-						camera_img.setImageResource(R.drawable.ic_camera);
-						applyTextScale(camera_scanner_txt, textScaleFromLevel((int) textLevel));
-						applyTextScale(scan_from_image_txt, textScaleFromLevel((int) textLevel));
-						float camera_lay_density = getResources().getDisplayMetrics().density;
-						camera_lay.setClickable(true);
-						camera_lay.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFD2B6DC}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int) (12 * camera_lay_density), (int) (2 * camera_lay_density), 0xFF212121, 0xFFFFFFFF), 
-						null
-						));
-						
-						float image_lay_density = getResources().getDisplayMetrics().density;
-						image_lay.setClickable(true);
-						image_lay.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFD2B6DC}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int) (12 * image_lay_density), (int) (2 * image_lay_density), 0xFF212121, 0xFFFFFFFF), 
-						null
-						));
-						
-						final Runnable p_dismissAnim = new Runnable() {
-							@Override
-							public void run() {
-								p_pv.animate()
-								.alpha(0f)
-								.scaleX(0.96f)
-								.scaleY(0.96f)
-								.setDuration(120)
-								.setInterpolator(new android.view.animation.AccelerateInterpolator())
-								.withEndAction(new Runnable() {
-									@Override
-									public void run() {
-										try { p.dismiss(); } catch (Exception p_e) {}
-									}
-								})
-								.start();
-							}
-						};
-						
-						p_pv.setOnTouchListener(new View.OnTouchListener() {
-							@Override
-							public boolean onTouch(View p_v, android.view.MotionEvent p_event) {
-								if (p_event.getAction() == android.view.MotionEvent.ACTION_OUTSIDE) {
-									p_dismissAnim.run();
-									return true;
-								}
-								return false;
-							}
-						});
-						
-						p_pv.measure(
-						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-						);
-						int p_popupW = p_pv.getMeasuredWidth();
-						int p_popupH = p_pv.getMeasuredHeight();
-						
-						int[] p_loc = new int[2];
-						parent.getLocationOnScreen(p_loc);
-						int p_anchorX = p_loc[0];
-						int p_anchorY = p_loc[1];
-						
-						android.util.DisplayMetrics p_dm = getResources().getDisplayMetrics();
-						int p_screenW = p_dm.widthPixels;
-						int p_screenH = p_dm.heightPixels;
-						
-						int p_x = p_anchorX + parent.getWidth() - p_popupW;
-						
-						int p_yBelow = p_anchorY + parent.getHeight();
-						int p_yAbove = p_anchorY - p_popupH;
-						
-						if (p_x < 0) p_x = 0;
-						if (p_x + p_popupW > p_screenW)
-						p_x = Math.max(0, p_screenW - p_popupW);
-						
-						int p_y;
-						if (p_yBelow + p_popupH <= p_screenH) {
-							p_y = p_yBelow;
-						} else if (p_yAbove >= 0) {
-							p_y = p_yAbove;
-						} else {
-							p_y = Math.max(0, p_screenH - p_popupH);
-						}
-						camera_lay.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								p_dismissAnim.run();
-								scan = false;
-								openScannerOrRequestPermission();
-							}
-						});
-						image_lay.setOnClickListener(new View.OnClickListener() {
-							@Override
-							public void onClick(View _view) {
-								p_dismissAnim.run();
-								pickImageForCard();
-							}
-						});
-						p_pv.setAlpha(0f);
-						p_pv.setScaleX(0.94f);
-						p_pv.setScaleY(0.94f);
-						
-						p.showAtLocation(
-						parent,
-						android.view.Gravity.TOP | android.view.Gravity.START,
-						p_x,
-						p_y
-						);
-						
-						p_pv.setPivotX(p_pv.getMeasuredWidth());
-						p_pv.setPivotY(0f);
-						
-						p_pv.animate()
-						.alpha(1f)
-						.scaleX(1f)
-						.scaleY(1f)
-						.setDuration(140)
-						.setInterpolator(new android.view.animation.DecelerateInterpolator())
-						.start();
 					} else {
 						_displayImage(v);
 					}
@@ -3610,10 +2282,549 @@ public class MainActivity extends AppCompatActivity {
 	}
 	
 	
-	public void _displayInfo(final ArrayList<HashMap<String, Object>> _data, final double _position, final boolean _newItem) {
+	public void _loadLastId() {
+		long new_id = card_prefs.getLong("lastId", -1) + 1;
+		java.util.ArrayDeque<HashMap<String, Object>> stack = new java.util.ArrayDeque<>();
+		for (HashMap<String, Object> m : cards_list_all) {
+			stack.push(m);
+		}
+		while(!stack.isEmpty()) {
+			HashMap<String, Object> map = stack.pop();
+			String id_string = map.get("id").toString();
+			long id_long = Long.valueOf(id_string);
+			if (new_id < id_long) {
+				new_id = id_long;
+			}
+			Boolean isFolder = (Boolean) map.get("folder");
+			if (isFolder) {
+				ArrayList<HashMap<String, Object>> folder_data = (ArrayList<HashMap<String, Object>>) map.get("data");
+				for (HashMap<String, Object> child : folder_data) {
+					stack.push(child);
+				}    
+			}
+		}
+		card_prefs.edit().putLong("lastId", new_id).commit();
+	}
+	
+	
+	public void _showEanWarning() {
+		showDialog(R.layout.dialog, R.id.parent, (dlg, root) -> {
+			final LinearLayout parent = (LinearLayout) root.findViewById(R.id.parent);
+			final LinearLayout buttons_bar = (LinearLayout) root.findViewById(R.id.buttons_bar);
+			final TextView message_txt = (TextView) root.findViewById(R.id.message_txt);
+			final TextView positive_txt = (TextView) root.findViewById(R.id.positive_txt);
+			final TextView negative_txt = (TextView) root.findViewById(R.id.negative_txt);
+			dlg.setCancelable(false);
+			dlg.setCanceledOnTouchOutside(false);
+			Bg.apply(buttons_bar, 0xFFD2B6DC, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+			Bg.apply(positive_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+			negative_txt.setVisibility(View.GONE);
+			message_txt.setText(getString(R.string.invalid_checksum_desc));
+			positive_txt.setText(getString(R.string.close));
+			float scale = textScaleFromLevel((int) textLevel);
+			applyTextScale(message_txt, scale);
+			applyTextScale(positive_txt, scale);
+			positive_txt.setOnClickListener(new View.OnClickListener() {
+				@Override
+				public void onClick(View _view) {
+					dlg.dismiss();
+				}
+			});
+		});
+	}
+	
+	
+	public void _displayImage(final String _image) {
+		showDialog(R.layout.image_display_dialog, R.id.parent, (dlg, root) -> {
+			final FrameLayout parent = (FrameLayout) root.findViewById(R.id.parent);
+			final ImageView display_img = (ImageView) root.findViewById(R.id.display_img);
+			final ImageView close_img = (ImageView) root.findViewById(R.id.close_img);
+			Bg.apply(parent, 0xFF000000, null, null, 12, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+			int w = (int) (SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.8);
+			parent.setClipToOutline(true);
+			File f = new File(getFilesDir(), "card_images/" + id + "/" + _image);
+			
+			if (f.exists() && f.length() > 0) {
+				Picasso.get()
+				.load(f)
+				.into(display_img);
+			} else {
+				display_img.setImageResource(R.drawable.ic_broken_image);
+				ViewGroup.LayoutParams display_img_layoutParams = display_img.getLayoutParams();
+				setSize(display_img, w, w);
+			}
+			close_img.setOnClickListener(new View.OnClickListener() {
+				@Override
+				public void onClick(View _view) {
+					dlg.dismiss();
+				}
+			});
+		});
+	}
+	
+	
+	public boolean _isValidItem() {
+		if (cardSaveName.isEmpty()) {
+			return (false);
+		}
+		if (!folder && !debug) {
+			if (!cardSaveCode.isEmpty() && cardSaveType.equals(getString(R.string.none))) {
+				// Can't have a code without code type
+				return (false);
+			}
+			if (cardSaveCode.isEmpty() && pendingImages.isEmpty()) {
+				// Can't have no code and no images if not a folder
+				return (false);
+			}
+		}
+		return true;
+	}
+	private enum PopupPos {
+		TOP_LEFT, TOP, TOP_RIGHT,
+		RIGHT_TOP, RIGHT, RIGHT_BOTTOM,
+		BOTTOM_LEFT, BOTTOM, BOTTOM_RIGHT,
+		LEFT_TOP, LEFT, LEFT_BOTTOM
+	}
+	private void showPopup(View anchor, PopupPos pos, int xDp, int yDp, int topTextRes, int bottomTextRes, int topIconRes, int bottomIconRes, Runnable onTop, Runnable onBottom, Runnable onDismiss) {
+		if (anchor == null) return;
+		anchor.post(() -> {
+			LayoutInflater li = getLayoutInflater();
+			View overlay = li.inflate(R.layout.mode_popup, null);
+			
+			PopupWindow pw = new PopupWindow(overlay, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, true);
+			pw.setOutsideTouchable(true);
+			pw.setFocusable(true);
+			pw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+			
+			View parent = overlay.findViewById(R.id.parent);
+			View top_lay = overlay.findViewById(R.id.camera_lay);
+			View bottom_lay = overlay.findViewById(R.id.image_lay);
+			TextView top_txt = (TextView) overlay.findViewById(R.id.camera_scanner_txt);
+			TextView bottom_txt = (TextView) overlay.findViewById(R.id.scan_from_image_txt);
+			ImageView top_img = (ImageView) overlay.findViewById(R.id.camera_img);
+			ImageView bottom_img = (ImageView) overlay.findViewById(R.id.scan_img);
+			
+			float scale = textScaleFromLevel((int) textLevel);
+			if (top_txt != null) {
+				top_txt.setText(getString(topTextRes));
+				applyTextScale(top_txt, scale);
+			}
+			if (bottom_txt != null) {
+				bottom_txt.setText(getString(bottomTextRes));
+				applyTextScale(bottom_txt, scale);
+			}
+			if (top_img != null) top_img.setImageResource(topIconRes);
+			if (bottom_img != null) bottom_img.setImageResource(bottomIconRes);
+			
+			if (top_lay != null) Bg.apply(top_lay, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+			if (bottom_lay != null) Bg.apply(bottom_lay, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+			
+			if (parent != null) {
+				parent.setClickable(true);
+				parent.setOnClickListener(v -> { });
+			}
+			
+			final Runnable dismissAnim = () -> {
+				if (parent == null) {
+					try { pw.dismiss(); } catch (Exception e) { }
+					if (onDismiss != null) onDismiss.run();
+					return;
+				}
+				parent.animate()
+				.alpha(0f)
+				.scaleX(0.96f)
+				.scaleY(0.96f)
+				.setDuration(120)
+				.setInterpolator(new android.view.animation.AccelerateInterpolator())
+				.withEndAction(() -> {
+					try { pw.dismiss(); } catch (Exception e) { }
+					if (onDismiss != null) onDismiss.run();
+				})
+				.start();
+			};
+			
+			overlay.setClickable(true);
+			overlay.setOnClickListener(v -> dismissAnim.run());
+			
+			if (top_lay != null) top_lay.setOnClickListener(v -> {
+				dismissAnim.run();
+				if (onTop != null) onTop.run();
+			});
+			
+			if (bottom_lay != null) bottom_lay.setOnClickListener(v -> {
+				dismissAnim.run();
+				if (onBottom != null) onBottom.run();
+			});
+			
+			if (parent != null) {
+				parent.setAlpha(0f);
+				parent.setScaleX(0.94f);
+				parent.setScaleY(0.94f);
+			}
+			
+			View decor = anchor.getRootView();
+			pw.showAtLocation(decor, android.view.Gravity.TOP | android.view.Gravity.START, 0, 0);
+			
+			overlay.post(() -> {
+				if (parent == null) return;
+				
+				parent.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+				int popupW = parent.getMeasuredWidth();
+				int popupH = parent.getMeasuredHeight();
+				
+				int[] loc = new int[2];
+				anchor.getLocationInWindow(loc);
+				int aX = loc[0];
+				int aY = loc[1];
+				int aW = anchor.getWidth();
+				int aH = anchor.getHeight();
+				
+				int winW = decor.getWidth();
+				int winH = decor.getHeight();
+				
+				float density = getResources().getDisplayMetrics().density;
+				int dx = (int) Math.round(xDp * density);
+				int dy = (int) Math.round(yDp * density);
+				
+				int x = 0;
+				int y = 0;
+				
+				switch (pos) {
+					case TOP_LEFT: {
+						x = aX;
+						y = aY - popupH;
+						break;
+					}
+					case TOP: {
+						x = aX + (aW / 2) - (popupW / 2);
+						y = aY - popupH;
+						break;
+					}
+					case TOP_RIGHT: {
+						x = aX + aW - popupW;
+						y = aY - popupH;
+						break;
+					}
+					case RIGHT_TOP: {
+						x = aX + aW;
+						y = aY;
+						break;
+					}
+					case RIGHT: {
+						x = aX + aW;
+						y = aY + (aH / 2) - (popupH / 2);
+						break;
+					}
+					case RIGHT_BOTTOM: {
+						x = aX + aW;
+						y = aY + aH - popupH;
+						break;
+					}
+					case BOTTOM_LEFT: {
+						x = aX;
+						y = aY + aH;
+						break;
+					}
+					case BOTTOM: {
+						x = aX + (aW / 2) - (popupW / 2);
+						y = aY + aH;
+						break;
+					}
+					case BOTTOM_RIGHT: {
+						x = aX + aW - popupW;
+						y = aY + aH;
+						break;
+					}
+					case LEFT_TOP: {
+						x = aX - popupW;
+						y = aY;
+						break;
+					}
+					case LEFT: {
+						x = aX - popupW;
+						y = aY + (aH / 2) - (popupH / 2);
+						break;
+					}
+					case LEFT_BOTTOM: {
+						x = aX - popupW;
+						y = aY + aH - popupH;
+						break;
+					}
+				}
+				
+				x += dx;
+				y += dy;
+				
+				if (x < 0) x = 0;
+				if (y < 0) y = 0;
+				if (x + popupW > winW) x = Math.max(0, winW - popupW);
+				if (y + popupH > winH) y = Math.max(0, winH - popupH);
+				
+				parent.setTranslationX(x);
+				parent.setTranslationY(y);
+				
+				parent.setPivotX(popupW);
+				parent.setPivotY(0f);
+				
+				parent.animate()
+				.alpha(1f)
+				.scaleX(1f)
+				.scaleY(1f)
+				.setDuration(140)
+				.setInterpolator(new android.view.animation.DecelerateInterpolator())
+				.start();
+			});
+			
+			pw.setOnDismissListener(() -> {
+				if (onDismiss != null) onDismiss.run();
+			});
+		});
+	}
+	private static final class DialogShell<T> {
+		final T dialog;
+		final View content;
+		DialogShell(T dialog, View content) {
+			this.dialog = dialog;
+			this.content = content;
+		}
+	}
+	private static void setupWindowTransparent(Dialog d) {
+		if (d == null) return;
+		d.setCancelable(true);
+		d.setCanceledOnTouchOutside(true);
+		if (d.getWindow() != null) {
+			d.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+		}
+	}
+	private interface Binder<V> {
+		void bind(V dialog, View content);
+	}
+	private DialogShell<Dialog> showDialog(int layoutResId, Binder<Dialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
+		Dialog d = new Dialog(MainActivity.this);
+		View content = getLayoutInflater().inflate(layoutResId, null);
+		d.setContentView(content);
+		setupWindowTransparent(d);
+		
+		if (onDismiss != null) d.setOnDismissListener(onDismiss);
+		if (onBind != null) onBind.bind(d, content);
+		
+		d.show();
+		return new DialogShell<>(d, content);
+	}
+	private DialogShell<com.google.android.material.bottomsheet.BottomSheetDialog>
+	showBottomSheet(int layoutResId, Binder<com.google.android.material.bottomsheet.BottomSheetDialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
+		com.google.android.material.bottomsheet.BottomSheetDialog bs = new com.google.android.material.bottomsheet.BottomSheetDialog(MainActivity.this);
+		
+		View content = getLayoutInflater().inflate(layoutResId, null);
+		bs.setContentView(content);
+		setupWindowTransparent(bs);
+		
+		View sheet = bs.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+		if (sheet != null) sheet.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+		
+		if (onDismiss != null) bs.setOnDismissListener(onDismiss);
+		if (onBind != null) onBind.bind(bs, content);
+		
+		bs.show();
+		return new DialogShell<>(bs, content);
+	}
+	private void autoStyleDialogRoot(View content, int rootIdOr0) {
+		if (rootIdOr0 == 0) return;
+		View root = content.findViewById(rootIdOr0);
+		if (root == null) return;
+		
+		Bg.apply(root, 0xFFFFFFFF, null, null, 12f, null, 2f, 0xFF212121, null);
+	}
+	private DialogShell<Dialog> showDialog(int layoutResId, int rootIdOr0, Binder<Dialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
+		return showDialog(layoutResId, (dlg, content) -> {
+			autoStyleDialogRoot(content, rootIdOr0);
+			if (onBind != null) onBind.bind(dlg, content);
+		}, onDismiss);
+	}
+	private DialogShell<Dialog> showDialog(int layoutResId, int rootIdOr0, Binder<Dialog> onBind) {
+		return showDialog(layoutResId, rootIdOr0, onBind, null);
+	}
+	private DialogShell<com.google.android.material.bottomsheet.BottomSheetDialog> showBottomSheet(int layoutResId, int rootIdOr0, Binder<com.google.android.material.bottomsheet.BottomSheetDialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
+		return showBottomSheet(layoutResId, (dlg, content) -> {
+			autoStyleDialogRoot(content, rootIdOr0);
+			if (onBind != null) onBind.bind(dlg, content);
+		}, onDismiss);
+	}
+	private DialogShell<com.google.android.material.bottomsheet.BottomSheetDialog> showBottomSheet(int layoutResId, int rootIdOr0, Binder<com.google.android.material.bottomsheet.BottomSheetDialog> onBind) {
+		return showBottomSheet(layoutResId, rootIdOr0, onBind, null);
+	}
+	private static TapTarget makeTT(View target, CharSequence title, CharSequence desc) {
+		return TapTarget.forView(target, title, desc)
+		.outerCircleColorInt(0xFFD2B6DC)
+		.outerCircleAlpha(0.98f)
+		.targetCircleColorInt(0xFFFFFFFF)
+		.titleTextColorInt(0xFF212121)
+		.descriptionTextColorInt(0xFF212121)
+		.drawShadow(true)
+		.cancelable(true)
+		.tintTarget(false)
+		.titleTextSize(20)
+		.descriptionTextSize(15)
+		.textColorInt(0xFF212121);
+	}
+	private static void showTT(android.app.Activity host, TapTarget tt, Runnable afterDismiss) {
+		TapTargetView.showFor(host, tt, new TapTargetView.Listener() {
+			@Override
+			public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
+				super.onTargetDismissed(view, userInitiated);
+				if (afterDismiss != null) afterDismiss.run();
+			}
+		});
+	}
+	
+	private static void showTT(android.app.Dialog host, TapTarget tt, Runnable afterDismiss) {
+		TapTargetView.showFor(host, tt, new TapTargetView.Listener() {
+			@Override
+			public void onTargetDismissed(TapTargetView view, boolean userInitiated) {
+				super.onTargetDismissed(view, userInitiated);
+				if (afterDismiss != null) afterDismiss.run();
+			}
+		});
+	}
+	private static final class TTStep {
+		final View target;
+		final CharSequence title;
+		final CharSequence desc;
+		
+		TTStep(View target, CharSequence title, CharSequence desc) {
+			this.target = target;
+			this.title = title;
+			this.desc = desc;
+		}
+	}
+	private void runTTSequence(android.app.Activity host,
+	java.util.List<TTStep> steps,
+	int index,
+	Runnable onFinish) {
+		if (index >= steps.size()) {
+			if (onFinish != null) onFinish.run();
+			return;
+		}
+		
+		TTStep s = steps.get(index);
+		
+		s.target.post(() -> showTT(host, makeTT(s.target, s.title, s.desc), () ->
+		runTTSequence(host, steps, index + 1, onFinish)
+		));
+	}
+	
+	private void runTTSequence(android.app.Dialog host,
+	java.util.List<TTStep> steps,
+	int index,
+	Runnable onFinish) {
+		if (index >= steps.size()) {
+			if (onFinish != null) onFinish.run();
+			return;
+		}
+		
+		TTStep s = steps.get(index);
+		
+		s.target.post(() -> showTT(host, makeTT(s.target, s.title, s.desc), () ->
+		runTTSequence(host, steps, index + 1, onFinish)
+		));
+	}
+	private static void setSize(View v, int width, int height) {
+		ViewGroup.LayoutParams lp = v.getLayoutParams();
+		if (lp == null) return;
+		
+		boolean changed = false;
+		
+		if (width != KEEP && lp.width != width) {
+			lp.width = width;
+			changed = true;
+		}
+		
+		if (height != KEEP && lp.height != height) {
+			lp.height = height;
+			changed = true;
+		}
+		
+		if (changed) v.setLayoutParams(lp);
+	}
+	private static void setSizeDp(View v, float widthDp, float heightDp) {
+		float d = v.getResources().getDisplayMetrics().density;
+		int w = (widthDp == KEEP ? KEEP : Math.round(widthDp * d));
+		int h = (heightDp == KEEP ? KEEP : Math.round(heightDp * d));
+		setSize(v, w, h);
+	}
+	private boolean isVirtualFavorites(HashMap<String, Object> m) {
+		Object v = m.get(KEY_VIRTUAL);
+		return v != null && VIRTUAL_FAVORITES.equals(String.valueOf(v));
+	}
+	private ArrayList<HashMap<String, Object>> collectFavoriteItemsRecursive(ArrayList<HashMap<String, Object>> container) {
+		ArrayList<HashMap<String, Object>> out = new ArrayList<>();
+		if (container == null) return out;
+		
+		for (int i = 0; i < container.size(); i++) {
+			HashMap<String, Object> item = container.get(i);
+			
+			if (getBool(item, "folder", false)) {
+				Object dataObj = item.get("data");
+				if (dataObj instanceof ArrayList) {
+					try {
+						@SuppressWarnings("unchecked")
+						ArrayList<HashMap<String, Object>> child = (ArrayList<HashMap<String, Object>>) dataObj;
+						out.addAll(collectFavoriteItemsRecursive(child));
+					} catch (Exception ignore) {}
+				}
+				
+				if (getBool(item, "favorite", false)) {
+					out.add(item);
+				}
+			} else {
+				if (getBool(item, "favorite", false)) {
+					out.add(item);
+				}
+			}
+		}
+		
+		return out;
+	}
+	private HashMap<String, Object> buildVirtualFavoritesFolder(ArrayList<HashMap<String, Object>> favoritesData) {
+		HashMap<String, Object> fav = new HashMap<>();
+		
+		fav.put(KEY_VIRTUAL, VIRTUAL_FAVORITES);
+		fav.put("folder", true);
+		fav.put("name", getString(R.string.favorites));
+		fav.put("data", favoritesData);
+		
+		fav.put("used", 0d);
+		
+		fav.put("grad_style", "tl_br");
+		
+		ArrayList<Integer> colors = new ArrayList<>();
+		colors.add(0xFF2B2B2E);
+		colors.add(0xFF1C1C1E);
+		fav.put("colors", new Gson().toJson(colors));
+		
+		fav.put("id", -999999999L);
+		
+		return fav;
+	}
+	private void injectVirtualFavoritesIntoFiltered(ArrayList<HashMap<String, Object>> filteredRootOnly) {
+		ArrayList<HashMap<String, Object>> favData = collectFavoriteItemsRecursive(cards_list_all);
+		if (favData.isEmpty()) return;
+		
+		HashMap<String, Object> favFolder = buildVirtualFavoritesFolder(favData);
+		
+		for (int i = 0; i < filteredRootOnly.size(); i++) {
+			if (isVirtualFavorites(filteredRootOnly.get(i))) return;
+		}
+		
+		filteredRootOnly.add(favFolder);
+	}
+	
+	
+	public void _displayInfo(final HashMap<String, Object> _data, final boolean _newItem) {
 		pendingImages.clear();
 		pictures_list.clear();
-		boolean noCode = false;
+		noCode = false;
+		boolean favFolder = isVirtualFavorites(_data);
 		if (_newItem) {
 			newId = card_prefs.getLong("lastId", -1) + 1;
 			cardSaveName = "";
@@ -3625,19 +2836,21 @@ public class MainActivity extends AppCompatActivity {
 			folder = false;
 			newCardSaved = false;
 		} else {
-			cardSaveName = _data.get((int)(_position)).get("name").toString();
-			selectedGradStyle = _data.get((int)(_position)).get("grad_style").toString();
-			id = _data.get((int)(_position)).get("id").toString();
-			favorite = (boolean)_data.get((int)(_position)).get("favorite");
-			folder = (boolean)_data.get((int)(_position)).get("folder");
-			if (!folder && (_data.get((int)(_position)).containsKey("type") && _data.get((int)(_position)).containsKey("code"))) {
-				cardSaveType = _data.get((int)(_position)).get("type").toString();
-				cardSaveCode = _data.get((int)(_position)).get("code").toString();
+			cardSaveName = _data.get("name").toString();
+			selectedGradStyle = _data.get("grad_style").toString();
+			id = _data.get("id").toString();
+			if (!favFolder) {
+				favorite = (boolean)_data.get("favorite");
+			}
+			folder = (boolean)_data.get("folder");
+			if (!folder && (_data.containsKey("type") && _data.containsKey("code"))) {
+				cardSaveType = _data.get("type").toString();
+				cardSaveCode = _data.get("code").toString();
 			} else {
 				noCode = true;
 			}
-			if (_data.get((int)(_position)).containsKey("images")) {
-				pendingImages.addAll((ArrayList<String>) _data.get((int) _position).get("images"));
+			if (_data.containsKey("images")) {
+				pendingImages.addAll((ArrayList<String>) _data.get("images"));
 				for (String fn : pendingImages) {
 					if (fn == null) continue;
 					HashMap<String, Object> m = new HashMap<>();
@@ -3646,470 +2859,312 @@ public class MainActivity extends AppCompatActivity {
 				}
 			}
 		}
-		bottomShii = new com.google.android.material.bottomsheet.BottomSheetDialog(MainActivity.this);
-		View bottomShiiV;
-		bottomShiiV = getLayoutInflater().inflate(R.layout.add_new_dialog,null );
-		bottomShii.setContentView(bottomShiiV);
-		bottomShii.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
-		final TextInputEditText card_name_txt = (TextInputEditText) bottomShiiV.findViewById(R.id.card_name_txt);
-		final TextView scan_btn = (TextView) bottomShiiV.findViewById(R.id.scan_btn);
-		final TextView save_btn = (TextView) bottomShiiV.findViewById(R.id.save_btn);
-		final TextView del_btn = (TextView) bottomShiiV.findViewById(R.id.del_btn);
-		final TextView folder_txt = (TextView) bottomShiiV.findViewById(R.id.folder_txt);
-		final TextView code_txt = (TextView) bottomShiiV.findViewById(R.id.code_txt);
-		final TextView picture_gallery_txt = (TextView) bottomShiiV.findViewById(R.id.picture_gallery_txt);
-		final TextView color_theme_txt = (TextView) bottomShiiV.findViewById(R.id.color_theme_txt);
-		final ImageView fav_btn = (ImageView) bottomShiiV.findViewById(R.id.fav_btn);
-		final ImageView folder_btn = (ImageView) bottomShiiV.findViewById(R.id.folder_btn);
-		final ImageView dropdown_btn = (ImageView) bottomShiiV.findViewById(R.id.dropdown_btn);
-		final ImageView code_img = (ImageView) bottomShiiV.findViewById(R.id.code_img);
-		final LinearLayout img_parent = (LinearLayout) bottomShiiV.findViewById(R.id.img_parent);
-		code_edit = bottomShiiV.findViewById(R.id.code_edit);
-		type_txt = bottomShiiV.findViewById(R.id.type_txt);
-		pictures_rec = bottomShiiV.findViewById(R.id.pictures_rec);
-		colors_rec = bottomShiiV.findViewById(R.id.colors_rec);
-		code_menu_lay = bottomShiiV.findViewById(R.id.code_menu_lay);
-		float scale = textScaleFromLevel((int) textLevel);
-		applyTextScale(card_name_txt, scale);
-		applyTextScale(scan_btn, scale);
-		applyTextScale(save_btn, scale);
-		applyTextScale(folder_txt, scale);
-		applyTextScale(del_btn, scale);
-		applyTextScale(color_theme_txt, scale);
-		if (!folder) {
-			applyTextScale(code_txt, scale);
-			applyTextScale(code_edit, scale);
-			applyTextScale(type_txt, scale);
-			applyTextScale(picture_gallery_txt, scale);
-		}    
-		bottomShii.setOnDismissListener(new DialogInterface.OnDismissListener() {
-			@Override
-			public void onDismiss(DialogInterface dialog) {
-				if (_newItem && !newCardSaved) {
-					File dir = new File(getFilesDir(), "card_images/" + id);
-					if (dir.exists()) deleteRecursive(dir);
-				}
-				if (_newItem && !pendingImages.isEmpty()) {
-					for (String v : pendingImages) {
-						File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
-						if (f.exists()) f.delete();
-					}
-					pendingImages.clear();
-				}
-			}
-		});
-		bottomShii.setCancelable(true);
-		if (_newItem) {
-			img_parent.setVisibility(View.GONE);
-			del_btn.setVisibility(View.GONE);
-			pictures_rec.setVisibility(View.VISIBLE);
-			picture_gallery_txt.setVisibility(View.VISIBLE);
-			type_txt.setText(getString(R.string.card_type).concat(" ".concat(cardSaveType)));
-		} else {
-			card_name_txt.setText(cardSaveName);
-			if (folder) {
-				del_btn.setText(getString(R.string.del_folder));
+		showBottomSheet(R.layout.add_new_dialog, 0, (bs, root) -> {
+			final TextInputEditText card_name_txt = (TextInputEditText) root.findViewById(R.id.card_name_txt);
+			final TextView scan_btn = (TextView) root.findViewById(R.id.scan_btn);
+			final TextView save_btn = (TextView) root.findViewById(R.id.save_btn);
+			final TextView del_btn = (TextView) root.findViewById(R.id.del_btn);
+			final TextView folder_txt = (TextView) root.findViewById(R.id.folder_txt);
+			final TextView code_txt = (TextView) root.findViewById(R.id.code_txt);
+			final TextView picture_gallery_txt = (TextView) root.findViewById(R.id.picture_gallery_txt);
+			final TextView color_theme_txt = (TextView) root.findViewById(R.id.color_theme_txt);
+			final ImageView fav_btn = (ImageView) root.findViewById(R.id.fav_btn);
+			final ImageView folder_btn = (ImageView) root.findViewById(R.id.folder_btn);
+			final ImageView dropdown_btn = (ImageView) root.findViewById(R.id.dropdown_btn);
+			final ImageView code_img = (ImageView) root.findViewById(R.id.code_img);
+			final LinearLayout parent = (LinearLayout) root.findViewById(R.id.parent);
+			final LinearLayout img_parent = (LinearLayout) root.findViewById(R.id.img_parent);
+			final ScrollView vscroll = (ScrollView) root.findViewById(R.id.vscroll);
+			code_edit = root.findViewById(R.id.code_edit);
+			type_txt = root.findViewById(R.id.type_txt);
+			code_menu_lay = root.findViewById(R.id.code_menu_lay);
+			pictures_rec = root.findViewById(R.id.pictures_rec);
+			colors_rec = root.findViewById(R.id.colors_rec);
+			float scale = textScaleFromLevel((int) textLevel);
+			applyTextScale(card_name_txt, scale);
+			applyTextScale(scan_btn, scale);
+			applyTextScale(save_btn, scale);
+			applyTextScale(folder_txt, scale);
+			applyTextScale(del_btn, scale);
+			applyTextScale(color_theme_txt, scale);
+			if (!folder) {
+				applyTextScale(code_txt, scale);
+				applyTextScale(code_edit, scale);
+				applyTextScale(type_txt, scale);
+				applyTextScale(picture_gallery_txt, scale);
+			}    
+			if (_newItem) {
 				img_parent.setVisibility(View.GONE);
-				code_menu_lay.setVisibility(View.GONE);
-				pictures_rec.setVisibility(View.GONE);
-				picture_gallery_txt.setVisibility(View.GONE);
-			} else {
-				if (noCode) {
-					code_menu_lay.setVisibility(View.GONE);
-					img_parent.setVisibility(View.GONE);
-					picture_gallery_txt.setVisibility(View.GONE);
-				} else {
-					code_menu_lay.setVisibility(View.VISIBLE);
-					img_parent.setVisibility(View.VISIBLE);
-					picture_gallery_txt.setVisibility(View.VISIBLE);
-					code_edit.setText(cardSaveCode);
-					type_txt.setText(getString(R.string.card_type).concat(" ".concat(cardSaveType)));
-					String code_img_data = cardSaveCode;
-					String code_img_typeStr = cardSaveType;
-					
-					int code_img_targetW = (int)(SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.95d);
-					
-					try {
-						BarcodeFormat code_img_format = BarcodeFormat.valueOf(code_img_typeStr);
-						
-						boolean code_img_is2D =
-						code_img_format == BarcodeFormat.QR_CODE ||
-						code_img_format == BarcodeFormat.DATA_MATRIX ||
-						code_img_format == BarcodeFormat.AZTEC ||
-						code_img_format == BarcodeFormat.PDF_417;
-						
-						int code_img_targetH;
-						if (code_img_is2D) {
-							code_img_targetH = code_img_targetW;
-						} else {
-							code_img_targetH = (int) (code_img_targetW * 0.35d);
-							if (code_img_targetH < 180) code_img_targetH = 180;
-						}
-						
-						ViewGroup.LayoutParams code_img_lp = code_img.getLayoutParams();
-						code_img_lp.width = code_img_targetW;
-						code_img_lp.height = code_img_targetH;
-						code_img.setLayoutParams(code_img_lp);
-						
-						Map<EncodeHintType, Object> code_img_hints = new EnumMap<>(EncodeHintType.class);
-						code_img_hints.put(EncodeHintType.MARGIN, 2);
-						
-						BitMatrix code_img_bm = new MultiFormatWriter().encode(code_img_data, code_img_format, code_img_targetW, code_img_targetH, code_img_hints);
-						
-						Bitmap code_img_bmp = Bitmap.createBitmap(code_img_targetW, code_img_targetH, Bitmap.Config.RGB_565);
-						for (int code_img_y = 0; code_img_y < code_img_targetH; code_img_y++) {
-							for (int code_img_x = 0; code_img_x < code_img_targetW; code_img_x++) {
-								code_img_bmp.setPixel(code_img_x, code_img_y, code_img_bm.get(code_img_x, code_img_y) ? 0xFF000000 : 0xFFFFFFFF);
-							}
-						}
-						
-						code_img.setImageBitmap(code_img_bmp);
-						
-						
-					} catch (Exception code_img_e) {
-						SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.code_fail).concat(" ".concat(code_img_e.getClass().getSimpleName())));
-					}
-				}
-				del_btn.setText(getString(R.string.del_card));
+				del_btn.setVisibility(View.GONE);
 				pictures_rec.setVisibility(View.VISIBLE);
-			}
-			float del_btn_density = getResources().getDisplayMetrics().density;
-			del_btn.setClickable(true);
-			del_btn.setBackground(new RippleDrawable(
-			new ColorStateList(
-			new int[][]{new int[]{}},
-			new int[]{0xFFD2B6DC}
-			),
-			new GradientDrawable() {
-				public GradientDrawable getIns(int a, int b, int c, int d) {
-					this.setCornerRadius(a);
-					this.setStroke(b, c);
-					this.setColor(d);
-					return this;
-				}
-			}.getIns((int) (12 * del_btn_density), (int) (2 * del_btn_density), 0xFF212121, 0xFFFF0000), 
-			null
-			));
-			
-			img_parent.setClickable(true);
-			final float img_parent_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 0, getResources().getDisplayMetrics());
-			final float img_parent_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 0, getResources().getDisplayMetrics());
-			final float img_parent_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 0, getResources().getDisplayMetrics());
-			final float img_parent_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 0, getResources().getDisplayMetrics());
-			final int img_parent_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 2, getResources().getDisplayMetrics());
-			final GradientDrawable img_parent_bg = new GradientDrawable();
-			img_parent_bg.setColor(Color.TRANSPARENT);
-			img_parent_bg.setCornerRadii(new float[]{img_parent_rTL,img_parent_rTL,img_parent_rTR,img_parent_rTR,img_parent_rBR,img_parent_rBR,img_parent_rBL,img_parent_rBL});
-			img_parent_bg.setStroke(img_parent_strokePx, 0xFFCAC5CC);
-			img_parent.setBackground(img_parent_bg);
-			fav_btn.setSelected(favorite);
-			folder_btn.setSelected(folder);
-			folder_btn.setClickable(false);
-			folder_btn.setFocusable(false);
-		}
-		if (inFolder) {
-			folder_txt.setText(getString(R.string.folder).concat(" ".concat(folderPath)));
-		} else {
-			folder_txt.setVisibility(View.GONE);
-		}
-		float save_btn_density = getResources().getDisplayMetrics().density;
-		save_btn.setClickable(true);
-		save_btn.setBackground(new RippleDrawable(
-		new ColorStateList(
-		new int[][]{new int[]{}},
-		new int[]{0xFFD2B6DC}
-		),
-		new GradientDrawable() {
-			public GradientDrawable getIns(int a, int b, int c, int d) {
-				this.setCornerRadius(a);
-				this.setStroke(b, c);
-				this.setColor(d);
-				return this;
-			}
-		}.getIns((int) (12 * save_btn_density), (int) (2 * save_btn_density), 0xFF212121, 0xFFFFFFFF), 
-		null
-		));
-		
-		if (folder) {
-			scan_btn.setClickable(false);
-			scan_btn.setFocusable(false);
-			scan_btn.setBackground(new RippleDrawable(
-			new ColorStateList(
-			new int[][]{new int[]{}},
-			new int[]{Color.TRANSPARENT}
-			),
-			new GradientDrawable() {
-				public GradientDrawable getIns(int a, int b, int c, int d) {
-					this.setCornerRadius(a);
-					this.setStroke(b, c);
-					this.setColor(d);
-					return this;
-				}
-			}.getIns((int)12, (int)2, 0xFF212121, 0xFF9E9E9E), 
-			null
-			));
-		} else {
-			final androidx.recyclerview.widget.GridLayoutManager pictures_rec_layoutManager =
-			new androidx.recyclerview.widget.GridLayoutManager(
-			pictures_rec.getContext(),
-			(int) 1,
-			androidx.recyclerview.widget.RecyclerView.HORIZONTAL,
-			false
-			);
-			pictures_rec.setLayoutManager(pictures_rec_layoutManager);
-			
-			final android.content.Context pictures_rec_ctx = pictures_rec.getContext();
-			
-			final int pictures_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
-			android.util.TypedValue.COMPLEX_UNIT_DIP,
-			(float) 4,
-			pictures_rec_ctx.getResources().getDisplayMetrics()
-			));
-			
-			final int pictures_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
-			android.util.TypedValue.COMPLEX_UNIT_DIP,
-			(float) 0,
-			pictures_rec_ctx.getResources().getDisplayMetrics()
-			));
-			
-			if (pictures_rec.getItemDecorationCount() > 0) {
-				pictures_rec.removeItemDecorationAt(0);
-			}
-			
-			pictures_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
-				@Override
-				public void getItemOffsets(android.graphics.Rect outRect,
-				android.view.View view,
-				androidx.recyclerview.widget.RecyclerView parent,
-				androidx.recyclerview.widget.RecyclerView.State state) {
-					
-					int pictures_rec_pos = parent.getChildAdapterPosition(view);
-					if (pictures_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
-					
-					androidx.recyclerview.widget.RecyclerView.LayoutManager pictures_rec_lm =
-					parent.getLayoutManager();
-					if (!(pictures_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
-					
-					androidx.recyclerview.widget.GridLayoutManager pictures_rec_glm =
-					(androidx.recyclerview.widget.GridLayoutManager) pictures_rec_lm;
-					
-					int pictures_rec_spanCount = pictures_rec_glm.getSpanCount();
-					
-					androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup pictures_rec_ssl =
-					pictures_rec_glm.getSpanSizeLookup();
-					
-					int pictures_rec_spanSize = pictures_rec_ssl.getSpanSize(pictures_rec_pos);
-					int pictures_rec_spanIndex = pictures_rec_ssl.getSpanIndex(pictures_rec_pos, pictures_rec_spanCount);
-					
-					outRect.left =
-					(pictures_rec_spanIndex * pictures_rec_hSpacingPx) / pictures_rec_spanCount;
-					
-					outRect.right =
-					pictures_rec_hSpacingPx
-					- ((pictures_rec_spanIndex + pictures_rec_spanSize) * pictures_rec_hSpacingPx)
-					/ pictures_rec_spanCount;
-					
-					if (pictures_rec_pos >= pictures_rec_spanCount) {
-						outRect.top = pictures_rec_vSpacingPx;
+				picture_gallery_txt.setVisibility(View.VISIBLE);
+				type_txt.setText(getString(R.string.card_type).concat(" ".concat(cardSaveType)));
+			} else {
+				card_name_txt.setText(cardSaveName);
+				if (folder) {
+					del_btn.setText(getString(R.string.del_folder));
+					img_parent.setVisibility(View.GONE);
+					code_menu_lay.setVisibility(View.GONE);
+					pictures_rec.setVisibility(View.GONE);
+					picture_gallery_txt.setVisibility(View.GONE);
+					if (favFolder) {
+						del_btn.setVisibility(View.GONE);
+						KeyListener card_name_txt_kl = card_name_txt.getKeyListener();
+						InputMethodManager card_name_txt_imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+						card_name_txt.setFocusable(false);
+						card_name_txt.setFocusableInTouchMode(false);
+						card_name_txt.setClickable(false);
+						card_name_txt.setCursorVisible(false);
+						card_name_txt.setKeyListener(null);
+						card_name_txt_imm.hideSoftInputFromWindow(card_name_txt.getWindowToken(), 0);
 					}
-				}
-			});
-			pictures = new HashMap<>();
-			pictures.put("image", "plus");
-			pictures_list.add(pictures);
-			picturesAdapter = new Pictures_recAdapter(pictures_list);
-			pictures_rec.setAdapter(picturesAdapter);
-			float dropdown_btn_density = getResources().getDisplayMetrics().density;
-			dropdown_btn.setClickable(true);
-			dropdown_btn.setBackground(new RippleDrawable(
-			new ColorStateList(
-			new int[][]{new int[]{}},
-			new int[]{0xFFD2B6DC}
-			),
-			new GradientDrawable() {
-				public GradientDrawable getIns(int a, int b, int c, int d) {
-					this.setCornerRadius(a);
-					this.setStroke(b, c);
-					this.setColor(d);
-					return this;
-				}
-			}.getIns((int) (360 * dropdown_btn_density), (int) (0 * dropdown_btn_density), Color.TRANSPARENT, 0xFFF2EAF5), 
-			null
-			));
-			
-			float scan_btn_density = getResources().getDisplayMetrics().density;
-			scan_btn.setClickable(true);
-			scan_btn.setBackground(new RippleDrawable(
-			new ColorStateList(
-			new int[][]{new int[]{}},
-			new int[]{0xFFD2B6DC}
-			),
-			new GradientDrawable() {
-				public GradientDrawable getIns(int a, int b, int c, int d) {
-					this.setCornerRadius(a);
-					this.setStroke(b, c);
-					this.setColor(d);
-					return this;
-				}
-			}.getIns((int) (12 * scan_btn_density), (int) (2 * scan_btn_density), 0xFF212121, 0xFFFFFFFF), 
-			null
-			));
-			
-			scan_btn.setOnClickListener(new View.OnClickListener(){
-				@Override
-				public void onClick(View _clickedView){
-					if (scanImage) {
-						pickImage(new OnImagePicked() {
-							@Override
-							public void onPicked(Uri uri) {
-								new Thread(new Runnable() {
-									@Override
-									public void run() {
-										try {
-											android.graphics.Bitmap bitmap = loadBitmapFromUri(uri, 2048);
-											
-											com.google.zxing.Result result = decodeWithZxing(bitmap);
-											
-											final String text = result.getText();
-											final String type = result.getBarcodeFormat().toString();
-											
-											runOnUiThread(new Runnable() {
-												@Override
-												public void run() {
-													code_menu_lay.setVisibility(View.VISIBLE);
-													code_edit.setText(text);
-													type_txt.setText(getString(R.string.card_type).concat(" ".concat(type)));
-													cardSaveCode = text;
-													cardSaveType = type;
-												}
-											});
-											
-										} catch (final Exception e) {
-											runOnUiThread(new Runnable() {
-												@Override
-												public void run() {
-													SketchwareUtil.showMessage(getApplicationContext(), e.toString());
-												}
-											});
-										}
-									}
-								}).start();
-							}
-						}, new OnCancelled() {
-							@Override
-							public void onCancelled() {
-								
-							}
-						});
+				} else {
+					if (noCode) {
+						code_menu_lay.setVisibility(View.GONE);
+						img_parent.setVisibility(View.GONE);
+						picture_gallery_txt.setVisibility(View.GONE);
 					} else {
-						scan = true;
-						openScannerOrRequestPermission();
-					}
-				}
-			});
-			scan_btn.setOnLongClickListener(new View.OnLongClickListener(){
-				@Override
-				public boolean onLongClick(View _longClickedView){
-					
-					LayoutInflater li = getLayoutInflater();
-					View pv = li.inflate(R.layout.mode_popup, null);
-					
-					final LinearLayout camera_lay = (LinearLayout) pv.findViewById(R.id.camera_lay);
-					final LinearLayout image_lay = (LinearLayout) pv.findViewById(R.id.image_lay);
-					final TextView camera_scanner_txt = (TextView) pv.findViewById(R.id.camera_scanner_txt);
-					final TextView scan_from_image_txt = (TextView) pv.findViewById(R.id.scan_from_image_txt);
-					
-					final PopupWindow pw = new PopupWindow(
-					pv,
-					ViewGroup.LayoutParams.WRAP_CONTENT,
-					ViewGroup.LayoutParams.WRAP_CONTENT,
-					true
-					);
-					
-					pw.setOutsideTouchable(true);
-					pw.setFocusable(true);
-					pw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-					
-					final Runnable dismissAnim = new Runnable() {
-						@Override
-						public void run() {
-							pv.animate()
-							.alpha(0f)
-							.scaleX(0.96f)
-							.scaleY(0.96f)
-							.setDuration(120)
-							.setInterpolator(new android.view.animation.AccelerateInterpolator())
-							.withEndAction(new Runnable() {
-								@Override
-								public void run() {
-									try { pw.dismiss(); } catch (Exception e) {}
+						code_menu_lay.setVisibility(View.VISIBLE);
+						img_parent.setVisibility(View.VISIBLE);
+						picture_gallery_txt.setVisibility(View.VISIBLE);
+						code_edit.setText(cardSaveCode);
+						type_txt.setText(getString(R.string.card_type).concat(" ".concat(cardSaveType)));
+						if (cardSaveType.equals("QR_CODE")) {
+							String code_img_data = cardSaveCode;
+							String code_img_typeStr = cardSaveType;
+							
+							int code_img_targetW = (int)(SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.25d);
+							
+							try {
+								BarcodeFormat code_img_format = BarcodeFormat.valueOf(code_img_typeStr);
+								
+								boolean code_img_is2D =
+								code_img_format == BarcodeFormat.QR_CODE ||
+								code_img_format == BarcodeFormat.DATA_MATRIX ||
+								code_img_format == BarcodeFormat.AZTEC ||
+								code_img_format == BarcodeFormat.PDF_417;
+								
+								int code_img_targetH;
+								if (code_img_is2D) {
+									code_img_targetH = code_img_targetW;
+								} else {
+									code_img_targetH = (int) (code_img_targetW * 0.35d);
+									if (code_img_targetH < 180) code_img_targetH = 180;
 								}
-							})
-							.start();
-						}
-					};
-					
-					pv.setOnTouchListener(new View.OnTouchListener() {
-						@Override
-						public boolean onTouch(View v, android.view.MotionEvent event) {
-							if (event.getAction() == android.view.MotionEvent.ACTION_OUTSIDE) {
-								dismissAnim.run();
-								return true;
+								
+								ViewGroup.LayoutParams code_img_lp = code_img.getLayoutParams();
+								code_img_lp.width = code_img_targetW;
+								code_img_lp.height = code_img_targetH;
+								code_img.setLayoutParams(code_img_lp);
+								
+								Map<EncodeHintType, Object> code_img_hints = new EnumMap<>(EncodeHintType.class);
+								code_img_hints.put(EncodeHintType.MARGIN, 2);
+								
+								BitMatrix code_img_bm = new MultiFormatWriter().encode(code_img_data, code_img_format, code_img_targetW, code_img_targetH, code_img_hints);
+								
+								Bitmap code_img_bmp = Bitmap.createBitmap(code_img_targetW, code_img_targetH, Bitmap.Config.RGB_565);
+								for (int code_img_y = 0; code_img_y < code_img_targetH; code_img_y++) {
+									for (int code_img_x = 0; code_img_x < code_img_targetW; code_img_x++) {
+										code_img_bmp.setPixel(code_img_x, code_img_y, code_img_bm.get(code_img_x, code_img_y) ? 0xFF000000 : 0xFFFFFFFF);
+									}
+								}
+								
+								code_img.setImageBitmap(code_img_bmp);
+								
+								
+							} catch (Exception code_img_e) {
+								SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.code_fail).concat(" ".concat(code_img_e.getClass().getSimpleName())));
 							}
-							return false;
+						} else {
+							String code_img_data = cardSaveCode;
+							String code_img_typeStr = cardSaveType;
+							
+							int code_img_targetW = (int)(SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.4d);
+							
+							try {
+								BarcodeFormat code_img_format = BarcodeFormat.valueOf(code_img_typeStr);
+								
+								boolean code_img_is2D =
+								code_img_format == BarcodeFormat.QR_CODE ||
+								code_img_format == BarcodeFormat.DATA_MATRIX ||
+								code_img_format == BarcodeFormat.AZTEC ||
+								code_img_format == BarcodeFormat.PDF_417;
+								
+								int code_img_targetH;
+								if (code_img_is2D) {
+									code_img_targetH = code_img_targetW;
+								} else {
+									code_img_targetH = (int) (code_img_targetW * 0.35d);
+									if (code_img_targetH < 180) code_img_targetH = 180;
+								}
+								
+								ViewGroup.LayoutParams code_img_lp = code_img.getLayoutParams();
+								code_img_lp.width = code_img_targetW;
+								code_img_lp.height = code_img_targetH;
+								code_img.setLayoutParams(code_img_lp);
+								
+								Map<EncodeHintType, Object> code_img_hints = new EnumMap<>(EncodeHintType.class);
+								code_img_hints.put(EncodeHintType.MARGIN, 2);
+								
+								BitMatrix code_img_bm = new MultiFormatWriter().encode(code_img_data, code_img_format, code_img_targetW, code_img_targetH, code_img_hints);
+								
+								Bitmap code_img_bmp = Bitmap.createBitmap(code_img_targetW, code_img_targetH, Bitmap.Config.RGB_565);
+								for (int code_img_y = 0; code_img_y < code_img_targetH; code_img_y++) {
+									for (int code_img_x = 0; code_img_x < code_img_targetW; code_img_x++) {
+										code_img_bmp.setPixel(code_img_x, code_img_y, code_img_bm.get(code_img_x, code_img_y) ? 0xFF000000 : 0xFFFFFFFF);
+									}
+								}
+								
+								code_img.setImageBitmap(code_img_bmp);
+								
+								
+							} catch (Exception code_img_e) {
+								SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.code_fail).concat(" ".concat(code_img_e.getClass().getSimpleName())));
+							}
 						}
-					});
-					float camera_lay_density = getResources().getDisplayMetrics().density;
-					camera_lay.setClickable(true);
-					camera_lay.setBackground(new RippleDrawable(
-					new ColorStateList(
-					new int[][]{new int[]{}},
-					new int[]{0xFFD2B6DC}
-					),
-					new GradientDrawable() {
-						public GradientDrawable getIns(int a, int b, int c, int d) {
-							this.setCornerRadius(a);
-							this.setStroke(b, c);
-							this.setColor(d);
-							return this;
+						code_img.post(() -> {
+							int half = (int) (img_parent.getHeight() / 2 - (cardSaveType.equals("QR_CODE") ? 15 : 10) * getResources().getDisplayMetrics().density);
+							float vscroll_density = getResources().getDisplayMetrics().density;
+							ViewGroup.MarginLayoutParams vscroll_mlp = (ViewGroup.MarginLayoutParams) vscroll.getLayoutParams();
+							vscroll_mlp.setMargins((int) (0 * vscroll_density), (int) (half * vscroll_density), (int) (0 * vscroll_density), (int) (0 * vscroll_density));
+							vscroll.setLayoutParams(vscroll_mlp);
+							parent.setPadding((int) TypedValue.applyDimension(
+							TypedValue.COMPLEX_UNIT_DIP,
+							0,
+							getResources().getDisplayMetrics()
+							), (int) TypedValue.applyDimension(
+							TypedValue.COMPLEX_UNIT_DIP,
+							half,
+							getResources().getDisplayMetrics()
+							), (int) TypedValue.applyDimension(
+							TypedValue.COMPLEX_UNIT_DIP,
+							0,
+							getResources().getDisplayMetrics()
+							), (int) TypedValue.applyDimension(
+							TypedValue.COMPLEX_UNIT_DIP,
+							0,
+							getResources().getDisplayMetrics()
+							));
+							
+						});
+					}
+					del_btn.setText(getString(R.string.del_card));
+					pictures_rec.setVisibility(View.VISIBLE);
+				}
+				Bg.apply(del_btn, 0xFFFF0000, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+				Bg.apply(img_parent, 0xFFFFFFFF, null, null, 8, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+				if (favFolder) {
+					fav_btn.setSelected(true);
+					fav_btn.setClickable(false);
+					fav_btn.setFocusable(false);
+				} else {
+					fav_btn.setSelected(favorite);
+				}    
+				folder_btn.setSelected(folder);
+				folder_btn.setClickable(false);
+				folder_btn.setFocusable(false);
+			}
+			if (inFolder) {
+				folder_txt.setText(getString(R.string.folder).concat(" ".concat(folderPath)));
+			} else {
+				folder_txt.setVisibility(View.GONE);
+			}
+			Bg.apply(save_btn, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+			if (folder) {
+				scan_btn.setClickable(false);
+				scan_btn.setFocusable(false);
+				scan_btn.setBackground(new RippleDrawable(
+				new ColorStateList(
+				new int[][]{new int[]{}},
+				new int[]{Color.TRANSPARENT}
+				),
+				new GradientDrawable() {
+					public GradientDrawable getIns(int a, int b, int c, int d) {
+						this.setCornerRadius(a);
+						this.setStroke(b, c);
+						this.setColor(d);
+						return this;
+					}
+				}.getIns((int)12, (int)2, 0xFF212121, 0xFF9E9E9E), 
+				null
+				));
+			} else {
+				final androidx.recyclerview.widget.GridLayoutManager pictures_rec_layoutManager =
+				new androidx.recyclerview.widget.GridLayoutManager(
+				pictures_rec.getContext(),
+				(int) 1,
+				androidx.recyclerview.widget.RecyclerView.HORIZONTAL,
+				false
+				);
+				pictures_rec.setLayoutManager(pictures_rec_layoutManager);
+				
+				final android.content.Context pictures_rec_ctx = pictures_rec.getContext();
+				
+				final int pictures_rec_hSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+				android.util.TypedValue.COMPLEX_UNIT_DIP,
+				(float) 4,
+				pictures_rec_ctx.getResources().getDisplayMetrics()
+				));
+				
+				final int pictures_rec_vSpacingPx = Math.round(android.util.TypedValue.applyDimension(
+				android.util.TypedValue.COMPLEX_UNIT_DIP,
+				(float) 0,
+				pictures_rec_ctx.getResources().getDisplayMetrics()
+				));
+				
+				if (pictures_rec.getItemDecorationCount() > 0) {
+					pictures_rec.removeItemDecorationAt(0);
+				}
+				
+				pictures_rec.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
+					@Override
+					public void getItemOffsets(android.graphics.Rect outRect,
+					android.view.View view,
+					androidx.recyclerview.widget.RecyclerView parent,
+					androidx.recyclerview.widget.RecyclerView.State state) {
+						
+						int pictures_rec_pos = parent.getChildAdapterPosition(view);
+						if (pictures_rec_pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return;
+						
+						androidx.recyclerview.widget.RecyclerView.LayoutManager pictures_rec_lm =
+						parent.getLayoutManager();
+						if (!(pictures_rec_lm instanceof androidx.recyclerview.widget.GridLayoutManager)) return;
+						
+						androidx.recyclerview.widget.GridLayoutManager pictures_rec_glm =
+						(androidx.recyclerview.widget.GridLayoutManager) pictures_rec_lm;
+						
+						int pictures_rec_spanCount = pictures_rec_glm.getSpanCount();
+						
+						androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup pictures_rec_ssl =
+						pictures_rec_glm.getSpanSizeLookup();
+						
+						int pictures_rec_spanSize = pictures_rec_ssl.getSpanSize(pictures_rec_pos);
+						int pictures_rec_spanIndex = pictures_rec_ssl.getSpanIndex(pictures_rec_pos, pictures_rec_spanCount);
+						
+						outRect.left =
+						(pictures_rec_spanIndex * pictures_rec_hSpacingPx) / pictures_rec_spanCount;
+						
+						outRect.right =
+						pictures_rec_hSpacingPx
+						- ((pictures_rec_spanIndex + pictures_rec_spanSize) * pictures_rec_hSpacingPx)
+						/ pictures_rec_spanCount;
+						
+						if (pictures_rec_pos >= pictures_rec_spanCount) {
+							outRect.top = pictures_rec_vSpacingPx;
 						}
-					}.getIns((int) (12 * camera_lay_density), (int) (2 * camera_lay_density), 0xFF212121, 0xFFFFFFFF), 
-					null
-					));
-					
-					float image_lay_density = getResources().getDisplayMetrics().density;
-					image_lay.setClickable(true);
-					image_lay.setBackground(new RippleDrawable(
-					new ColorStateList(
-					new int[][]{new int[]{}},
-					new int[]{0xFFD2B6DC}
-					),
-					new GradientDrawable() {
-						public GradientDrawable getIns(int a, int b, int c, int d) {
-							this.setCornerRadius(a);
-							this.setStroke(b, c);
-							this.setColor(d);
-							return this;
-						}
-					}.getIns((int) (12 * image_lay_density), (int) (2 * image_lay_density), 0xFF212121, 0xFFFFFFFF), 
-					null
-					));
-					
-					applyTextScale(camera_scanner_txt, textScaleFromLevel((int) textLevel));
-					applyTextScale(scan_from_image_txt, textScaleFromLevel((int) textLevel));
-					camera_lay.setOnClickListener(new View.OnClickListener() {
-						@Override
-						public void onClick(View _v) {
-							dismissAnim.run();
-							scan = true;
-							openScannerOrRequestPermission();
-						}
-					});
-					
-					image_lay.setOnClickListener(new View.OnClickListener() {
-						@Override
-						public void onClick(View _v) {
-							dismissAnim.run();
+					}
+				});
+				pictures = new HashMap<>();
+				pictures.put("image", "plus");
+				pictures_list.add(pictures);
+				picturesAdapter = new Pictures_recAdapter(pictures_list);
+				pictures_rec.setAdapter(picturesAdapter);
+				Bg.apply(dropdown_btn, 0xFFF2EAF5, null, null, 360, null, 0, Color.TRANSPARENT, 0xFFD2B6DC);
+				Bg.apply(scan_btn, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+				scan_btn.setOnClickListener(new View.OnClickListener(){
+					@Override
+					public void onClick(View _clickedView){
+						if (scanImage) {
 							pickImage(new OnImagePicked() {
 								@Override
 								public void onPicked(Uri uri) {
@@ -4152,877 +3207,581 @@ public class MainActivity extends AppCompatActivity {
 									
 								}
 							});
+						} else {
+							scan = true;
+							openScannerOrRequestPermission();
 						}
-					});
-					
-					pv.measure(
-					View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-					View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-					);
-					int popupW = pv.getMeasuredWidth();
-					int popupH = pv.getMeasuredHeight();
-					
-					int[] loc = new int[2];
-					scan_btn.getLocationOnScreen(loc);
-					int anchorX = loc[0];
-					int anchorY = loc[1];
-					
-					android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
-					int screenW = dm.widthPixels;
-					int screenH = dm.heightPixels;
-					
-					int x = anchorX + scan_btn.getWidth() - popupW;
-					
-					int yBelow = anchorY + scan_btn.getHeight();
-					int yAbove = anchorY - popupH;
-					
-					if (x < 0) x = 0;
-					if (x + popupW > screenW) x = Math.max(0, screenW - popupW);
-					
-					int y;
-					if (yBelow + popupH <= screenH) {
-						y = yBelow;
-					} else if (yAbove >= 0) {
-						y = yAbove;
-					} else {
-						y = Math.max(0, screenH - popupH);
 					}
-					
-					pv.setAlpha(0f);
-					pv.setScaleX(0.94f);
-					pv.setScaleY(0.94f);
-					
-					pw.showAtLocation(scan_btn, android.view.Gravity.TOP | android.view.Gravity.START, x, y);
-					
-					pv.setPivotX(pv.getMeasuredWidth());
-					pv.setPivotY(0f);
-					
-					pv.animate()
-					.alpha(1f)
-					.scaleX(1f)
-					.scaleY(1f)
-					.setDuration(140)
-					.setInterpolator(new android.view.animation.DecelerateInterpolator())
-					.start();
-					return false;
-				}
-			});
-			dropdown_btn.setOnClickListener(new View.OnClickListener(){
-				@Override
-				public void onClick(View _clickedView){
-					if (isValidCode(code_edit.getText().toString())) {
-						try {
-							if (p != null) p.dismiss();
-						} catch (Exception p_e) {}
-						
-						LayoutInflater p_li = getLayoutInflater();
-						View p_pv = p_li.inflate(R.layout.dropdown_layout, null);
-						
-						p = new PopupWindow(
-						p_pv,
-						ViewGroup.LayoutParams.WRAP_CONTENT,
-						ViewGroup.LayoutParams.WRAP_CONTENT,
-						true
-						);
-						
-						p.setOutsideTouchable(true);
-						p.setFocusable(true);
-						p.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-						final LinearLayout parent = (LinearLayout) p_pv.findViewById(R.id.parent);
-						items_rec = (RecyclerView) p_pv.findViewById(R.id.items_rec);
-						
-						items_rec.setLayoutManager(
-						new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false)
-						);
-						itemsAdapter = new Items_recAdapter(types_list);
-						items_rec.setAdapter(itemsAdapter);
-						parent.setClickable(true);
-						final float parent_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float parent_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float parent_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final float parent_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-						final int parent_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 2, getResources().getDisplayMetrics());
-						final GradientDrawable parent_bg = new GradientDrawable();
-						parent_bg.setColor(0xFFFFFFFF);
-						parent_bg.setCornerRadii(new float[]{parent_rTL,parent_rTL,parent_rTR,parent_rTR,parent_rBR,parent_rBR,parent_rBL,parent_rBL});
-						parent_bg.setStroke(parent_strokePx, 0xFF212121);
-						parent.setBackground(parent_bg);
-						final Runnable p_dismissAnim = new Runnable() {
-							@Override
-							public void run() {
-								p_pv.animate()
-								.alpha(0f)
-								.scaleX(0.96f)
-								.scaleY(0.96f)
-								.setDuration(120)
-								.setInterpolator(new android.view.animation.AccelerateInterpolator())
-								.withEndAction(new Runnable() {
-									@Override
-									public void run() {
-										try { p.dismiss(); } catch (Exception p_e) {}
-									}
-								})
-								.start();
-							}
-						};
-						
-						p_pv.setOnTouchListener(new View.OnTouchListener() {
-							@Override
-							public boolean onTouch(View p_v, android.view.MotionEvent p_event) {
-								if (p_event.getAction() == android.view.MotionEvent.ACTION_OUTSIDE) {
-									p_dismissAnim.run();
-									return true;
+				});
+				scan_btn.setOnLongClickListener(new View.OnLongClickListener(){
+					@Override
+					public boolean onLongClick(View _longClickedView){
+						showPopup(scan_btn, PopupPos.TOP_RIGHT, (int) 0, (int) 0, R.string.camera_scanner, R.string.scan_from_image, R.drawable.ic_qr, R.drawable.ic_image,
+						() -> {
+							scan = true;
+							openScannerOrRequestPermission();
+						},
+						() -> {
+							pickImage(new OnImagePicked() {
+								@Override
+								public void onPicked(Uri uri) {
+									new Thread(new Runnable() {
+										@Override
+										public void run() {
+											try {
+												android.graphics.Bitmap bitmap = loadBitmapFromUri(uri, 2048);
+												
+												com.google.zxing.Result result = decodeWithZxing(bitmap);
+												
+												final String text = result.getText();
+												final String type = result.getBarcodeFormat().toString();
+												
+												runOnUiThread(new Runnable() {
+													@Override
+													public void run() {
+														code_menu_lay.setVisibility(View.VISIBLE);
+														code_edit.setText(text);
+														type_txt.setText(getString(R.string.card_type).concat(" ".concat(type)));
+														cardSaveCode = text;
+														cardSaveType = type;
+													}
+												});
+												
+											} catch (final Exception e) {
+												runOnUiThread(new Runnable() {
+													@Override
+													public void run() {
+														SketchwareUtil.showMessage(getApplicationContext(), e.toString());
+													}
+												});
+											}
+										}
+									}).start();
 								}
-								return false;
-							}
-						});
-						
-						p_pv.measure(
-						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-						View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+							}, new OnCancelled() {
+								@Override
+								public void onCancelled() {
+									
+								}
+							});
+						}, null
 						);
-						int p_popupW = p_pv.getMeasuredWidth();
-						int p_popupH = p_pv.getMeasuredHeight();
-						
-						int[] p_loc = new int[2];
-						dropdown_btn.getLocationOnScreen(p_loc);
-						int p_anchorX = p_loc[0];
-						int p_anchorY = p_loc[1];
-						
-						android.util.DisplayMetrics p_dm = getResources().getDisplayMetrics();
-						int p_screenW = p_dm.widthPixels;
-						int p_screenH = p_dm.heightPixels;
-						
-						int p_x = p_anchorX + dropdown_btn.getWidth() - p_popupW;
-						
-						int p_yBelow = p_anchorY + dropdown_btn.getHeight();
-						int p_yAbove = p_anchorY - p_popupH;
-						
-						if (p_x < 0) p_x = 0;
-						if (p_x + p_popupW > p_screenW)
-						p_x = Math.max(0, p_screenW - p_popupW);
-						
-						int p_y;
-						if (p_yBelow + p_popupH <= p_screenH) {
-							p_y = p_yBelow;
-						} else if (p_yAbove >= 0) {
-							p_y = p_yAbove;
-						} else {
-							p_y = Math.max(0, p_screenH - p_popupH);
-						}
-						p_pv.setAlpha(0f);
-						p_pv.setScaleX(0.94f);
-						p_pv.setScaleY(0.94f);
-						
-						p.showAtLocation(
-						dropdown_btn,
-						android.view.Gravity.TOP | android.view.Gravity.START,
-						p_x,
-						p_y
-						);
-						
-						p_pv.setPivotX(p_pv.getMeasuredWidth());
-						p_pv.setPivotY(0f);
-						
-						p_pv.animate()
-						.alpha(1f)
-						.scaleX(1f)
-						.scaleY(1f)
-						.setDuration(140)
-						.setInterpolator(new android.view.animation.DecelerateInterpolator())
-						.start();
-					} else {
-						SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.unsupported_code));
+						return false;
 					}
-				}
-			});
-		}
-		save_btn.setOnClickListener(new View.OnClickListener(){
-			@Override
-			public void onClick(View _clickedView){
-				cardSaveName = card_name_txt.getText().toString();
-				if (!folder) {
-					cardSaveCode = code_edit.getText().toString();
-				}
-				if (_isValidItem()) {
-					ArrayList<Integer> picked = new ArrayList<>();
-					for (HashMap<String, Object> m : colors_list) {
-						Object v = m.get("color");
-						if (!(v instanceof Integer)) continue;
-						picked.add((Integer) v);
-					}
-					cards = new HashMap<>();
-					cards.put("name", cardSaveName);
-					if (!folder) {
-						if (!cardSaveType.equals(getString(R.string.none))) {
-							cards.put("type", cardSaveType);
-							cards.put("code", cardSaveCode);
-						}
-						if (!pendingImages.isEmpty()) {
-							cards.put("images", new ArrayList<String>(pendingImages));
-							pendingImages.clear();
-						}
-						if (!pendingDelete.isEmpty()) {
-							for (String v : pendingDelete) {
-								File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
-								if (f.exists()) f.delete();
-							}
-							pendingDelete.clear();
-						}
-					}
-					cards.put("folder", folder);
-					cards.put("grad_style", selectedGradStyle);
-					cards.put("id", id);
-					cards.put("favorite", favorite);
-					cards.put("colors", new Gson().toJson(picked));
-					if (_newItem) {
-						newCardSaved = true;
-						if (folder) {
-							cards.put("data", new ArrayList<HashMap<String,Object>>());
-						}
-						cards.put("used", (double)(0));
-						card_prefs.edit().putLong("lastId", newId).commit();
-						_data.add(cards);
-						if (inFolder) {
-							ArrayList<HashMap<String, Object>> masterContainer =
-							resolveContainerList(cards_list_all, folderIdStack);
-							masterContainer.add(cards);
-						} else {
-							cards_list_all.add(cards);
-						}
-					} else {
-						if (folder) {
-							cards.put("data", (ArrayList<HashMap<String,Object>>)_data.get((int)(_position)).get("data"));
-						}
-						cards.put("used", (double)((double)_data.get((int)(_position)).get("used")));
-						_data.set((int)(_position), cards);
-						if (inFolder) {
-							ArrayList<HashMap<String, Object>> masterContainer =
-							resolveContainerList(cards_list_all, folderIdStack);
-							int index = indexOfCardById(masterContainer, id);
-							masterContainer.set(index, cards);
-						} else {
-							int index = indexOfCardById(cards_list_all, id);
-							cards_list_all.set((int)(index), cards);
-						}
-					}
-					card_prefs.edit().putString("cards", new Gson().toJson(cards_list_all)).commit();
-					applySortFilter(
-					search_txt.getText().toString(),
-					loadSortTypeId(),
-					loadOrderId(),
-					loadFilterId()
-					);
-					bottomShii.dismiss();
-				} else {
-					SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.empty_err));
-				}
-			}
-		});
-		fav_btn.setOnClickListener(new View.OnClickListener(){
-			@Override
-			public void onClick(View _clickedView){
-				if (_newItem) {
-					toggleFavorite(fav_btn, true, new ArrayList<HashMap<String, Object>>(), 0);
-				} else {
-					toggleFavorite(fav_btn, false, _data, (int) _position);
-				}    
-				favorite = !favorite;
-			}
-		});
-		if (_newItem) {
-			folder_btn.setOnClickListener(new View.OnClickListener(){
-				@Override
-				public void onClick(View _clickedView){
-					if (folder_btn.isSelected()) {
-						folder = false;
-						folder_btn.setSelected(false);
-						ObjectAnimator anim1 = ObjectAnimator.ofFloat(code_txt, "alpha", 0f, 1f);
-						ObjectAnimator anim2 = ObjectAnimator.ofFloat(code_edit, "alpha", 0f, 1f);
-						ObjectAnimator anim3 = ObjectAnimator.ofFloat(type_txt, "alpha", 0f, 1f);
-						ObjectAnimator anim4 = ObjectAnimator.ofFloat(dropdown_btn, "alpha", 0f, 1f);
-						ObjectAnimator anim5 = ObjectAnimator.ofFloat(picture_gallery_txt, "alpha", 0f, 1f);
-						ObjectAnimator anim6 = ObjectAnimator.ofFloat(pictures_rec, "alpha", 0f, 1f);
-						ObjectAnimator anim7 = ObjectAnimator.ofFloat(color_theme_txt, "alpha", 0f, 1f);
-						code_txt.setVisibility(View.VISIBLE);
-						code_edit.setVisibility(View.VISIBLE);
-						type_txt.setVisibility(View.VISIBLE);
-						dropdown_btn.setVisibility(View.VISIBLE);
-						picture_gallery_txt.setVisibility(View.VISIBLE);
-						pictures_rec.setVisibility(View.VISIBLE);
-						color_theme_txt.setVisibility(View.VISIBLE);
-						AnimatorSet animSet = new AnimatorSet();
-						animSet.playTogether(anim1, anim2, anim3, anim4);
-						animSet.setDuration(250);
-						animSet.setInterpolator(new LinearInterpolator());
-						animSet.start();
-						float scan_btn_density = getResources().getDisplayMetrics().density;
-						scan_btn.setClickable(true);
-						scan_btn.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{0xFFD2B6DC}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int) (12 * scan_btn_density), (int) (2 * scan_btn_density), 0xFF424242, 0xFFFFFFFF), 
-						null
-						));
-						
-					} else {
-						folder = true;
-						folder_btn.setSelected(true);
-						folder_btn.animate().cancel();
-						folder_btn.setScaleX(1f);
-						folder_btn.setScaleY(1f);
-						
-						folder_btn.animate()
-						.scaleX(1.18f)
-						.scaleY(1.18f)
-						.setDuration(90)
-						.setInterpolator(new android.view.animation.OvershootInterpolator())
-						.withEndAction(new Runnable() {
-							@Override
-							public void run() {
-								folder_btn.animate()
-								.scaleX(1f)
-								.scaleY(1f)
-								.setDuration(120)
-								.setInterpolator(new android.view.animation.DecelerateInterpolator())
-								.start();
-							}
-						})
-						.start();
-						ObjectAnimator anim1 = ObjectAnimator.ofFloat(code_txt, "alpha", 1f, 0f);
-						ObjectAnimator anim2 = ObjectAnimator.ofFloat(code_edit, "alpha", 1f, 0f);
-						ObjectAnimator anim3 = ObjectAnimator.ofFloat(type_txt, "alpha", 1f, 0f);
-						ObjectAnimator anim4 = ObjectAnimator.ofFloat(dropdown_btn, "alpha", 1f, 0f);
-						ObjectAnimator anim5 = ObjectAnimator.ofFloat(picture_gallery_txt, "alpha", 1f, 0f);
-						ObjectAnimator anim6 = ObjectAnimator.ofFloat(pictures_rec, "alpha", 1f, 0f);
-						ObjectAnimator anim7 = ObjectAnimator.ofFloat(color_theme_txt, "alpha", 1f, 0f);
-						AnimatorSet animSet = new AnimatorSet();
-						animSet.playTogether(anim1, anim2, anim3, anim4);
-						animSet.setDuration(250);
-						animSet.setInterpolator(new LinearInterpolator());
-						animSet.addListener(new AnimatorListenerAdapter() {
-							@Override
-							public void onAnimationEnd(Animator animation) {
-								code_txt.setVisibility(View.GONE);
-								code_edit.setVisibility(View.GONE);
-								type_txt.setVisibility(View.GONE);
-								dropdown_btn.setVisibility(View.GONE);
-								picture_gallery_txt.setVisibility(View.GONE);
-								pictures_rec.setVisibility(View.GONE);
-								color_theme_txt.setVisibility(View.GONE);
-							}
-						});
-						animSet.start();
-						scan_btn.setClickable(false);
-						scan_btn.setFocusable(false);
-						scan_btn.setBackground(new RippleDrawable(
-						new ColorStateList(
-						new int[][]{new int[]{}},
-						new int[]{Color.TRANSPARENT}
-						),
-						new GradientDrawable() {
-							public GradientDrawable getIns(int a, int b, int c, int d) {
-								this.setCornerRadius(a);
-								this.setStroke(b, c);
-								this.setColor(d);
-								return this;
-							}
-						}.getIns((int)12, (int)2, 0xFF212121, 0xFF9E9E9E), 
-						null
-						));
-					}
-				}
-			});
-		} else {
-			del_btn.setOnClickListener(new View.OnClickListener(){
-				@Override
-				public void onClick(View _clickedView){
-					d = new AlertDialog.Builder(MainActivity.this).create();
-					LayoutInflater dLI = getLayoutInflater();
-					View dCV = (View) dLI.inflate(R.layout.dialog, null);
-					d.setView(dCV);
-					final TextView message_txt = (TextView)
-					dCV.findViewById(R.id.message_txt);
-					final TextView positive_txt = (TextView)
-					dCV.findViewById(R.id.positive_txt);
-					final TextView negative_txt = (TextView)
-					dCV.findViewById(R.id.negative_txt);
-					final LinearLayout dialog_parent = (LinearLayout)
-					dCV.findViewById(R.id.parent);
-					final LinearLayout buttons_bar = (LinearLayout)
-					dCV.findViewById(R.id.buttons_bar);
-					float scale = textScaleFromLevel((int) textLevel);
-					TextView[] views = new TextView[] { message_txt, positive_txt, negative_txt };
-					for (TextView tv : views) {
-						if (tv != null) applyTextScale(tv, scale);
-					}
-					float positive_txt_density = getResources().getDisplayMetrics().density;
-					positive_txt.setClickable(true);
-					positive_txt.setBackground(new RippleDrawable(
-					new ColorStateList(
-					new int[][]{new int[]{}},
-					new int[]{0xFFF2EAF5}
-					),
-					new GradientDrawable() {
-						public GradientDrawable getIns(int a, int b, int c, int d) {
-							this.setCornerRadius(a);
-							this.setStroke(b, c);
-							this.setColor(d);
-							return this;
-						}
-					}.getIns((int) (12 * positive_txt_density), (int) (0 * positive_txt_density), Color.TRANSPARENT, 0xFFFF0000), 
-					null
-					));
-					
-					float negative_txt_density = getResources().getDisplayMetrics().density;
-					negative_txt.setClickable(true);
-					negative_txt.setBackground(new RippleDrawable(
-					new ColorStateList(
-					new int[][]{new int[]{}},
-					new int[]{0xFFF2EAF5}
-					),
-					new GradientDrawable() {
-						public GradientDrawable getIns(int a, int b, int c, int d) {
-							this.setCornerRadius(a);
-							this.setStroke(b, c);
-							this.setColor(d);
-							return this;
-						}
-					}.getIns((int) (12 * negative_txt_density), (int) (0 * negative_txt_density), Color.TRANSPARENT, 0xFFFF0000), 
-					null
-					));
-					
-					dialog_parent.setClickable(true);
-					final float dialog_parent_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-					final float dialog_parent_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-					final float dialog_parent_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-					final float dialog_parent_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-					final int dialog_parent_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 2, getResources().getDisplayMetrics());
-					final GradientDrawable dialog_parent_bg = new GradientDrawable();
-					dialog_parent_bg.setColor(0xFFFFFFFF);
-					dialog_parent_bg.setCornerRadii(new float[]{dialog_parent_rTL,dialog_parent_rTL,dialog_parent_rTR,dialog_parent_rTR,dialog_parent_rBR,dialog_parent_rBR,dialog_parent_rBL,dialog_parent_rBL});
-					dialog_parent_bg.setStroke(dialog_parent_strokePx, 0xFF424242);
-					dialog_parent.setBackground(dialog_parent_bg);
-					buttons_bar.setClickable(true);
-					
-					final float buttons_bar_rTL = TypedValue.applyDimension(
-					TypedValue.COMPLEX_UNIT_DIP,
-					(float) 0,
-					getResources().getDisplayMetrics()
-					);
-					
-					final float buttons_bar_rTR = TypedValue.applyDimension(
-					TypedValue.COMPLEX_UNIT_DIP,
-					(float) 0,
-					getResources().getDisplayMetrics()
-					);
-					
-					final float buttons_bar_rBR = TypedValue.applyDimension(
-					TypedValue.COMPLEX_UNIT_DIP,
-					(float) 12,
-					getResources().getDisplayMetrics()
-					);
-					
-					final float buttons_bar_rBL = TypedValue.applyDimension(
-					TypedValue.COMPLEX_UNIT_DIP,
-					(float) 12,
-					getResources().getDisplayMetrics()
-					);
-					
-					buttons_bar.setBackground(new ShapeDrawable(new RoundRectShape(
-					new float[]{
-						buttons_bar_rTL, buttons_bar_rTL,
-						buttons_bar_rTR, buttons_bar_rTR,
-						buttons_bar_rBR, buttons_bar_rBR,
-						buttons_bar_rBL, buttons_bar_rBL
-					},
-					null,
-					null
-					)) {{
-							getPaint().setColor(0xFFFF0000);
-						}});
-					positive_txt.setTextColor(0xFFFFFFFF);
-					negative_txt.setTextColor(0xFFFFFFFF);
-					d.setCancelable(true);
-					d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-					message_txt.setText(getString(R.string.card_del_ask));
-					positive_txt.setText(getString(R.string.yes));
-					negative_txt.setText(getString(R.string.no));
-					positive_txt.setOnClickListener(new View.OnClickListener(){
-						@Override
-						public void onClick(View _clickedView){
-							int pos = (int) _position;
-							String targetId = String.valueOf(_data.get(pos).get("id"));
-							ArrayList<HashMap<String, Object>> container;
-							if (inFolder && !folderIdStack.isEmpty()) {
-								container = resolveContainerList(cards_list_all, folderIdStack);
-							} else {
-								container = cards_list_all;
-							}
-							boolean removed = removeByIdInList(container, targetId);
-							if (!removed) removed = removeByIdRecursive(cards_list_all, targetId);
-							File dir = new File(getFilesDir(), "card_images/" + id);
-							if (dir.exists()) deleteRecursive(dir);
-							card_prefs.edit().putString("cards", new Gson().toJson(cards_list_all)).commit();
-							SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.card_del_msg));
-							applySortFilter(
-							search_txt.getText().toString(),
-							loadSortTypeId(),
-							loadOrderId(),
-							loadFilterId()
+				});
+				dropdown_btn.setOnClickListener(new View.OnClickListener(){
+					@Override
+					public void onClick(View _clickedView){
+						if (isValidCode(code_edit.getText().toString())) {
+							try {
+								if (p != null) p.dismiss();
+							} catch (Exception p_e) {}
+							
+							LayoutInflater p_li = getLayoutInflater();
+							View p_pv = p_li.inflate(R.layout.dropdown_layout, null);
+							
+							p = new PopupWindow(
+							p_pv,
+							ViewGroup.LayoutParams.WRAP_CONTENT,
+							ViewGroup.LayoutParams.WRAP_CONTENT,
+							true
 							);
-							d.dismiss();
-							bottomShii.dismiss();
+							
+							p.setOutsideTouchable(true);
+							p.setFocusable(true);
+							p.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+							final LinearLayout parent = (LinearLayout) p_pv.findViewById(R.id.parent);
+							items_rec = (RecyclerView) p_pv.findViewById(R.id.items_rec);
+							
+							items_rec.setLayoutManager(
+							new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false)
+							);
+							itemsAdapter = new Items_recAdapter(types_list);
+							items_rec.setAdapter(itemsAdapter);
+							Bg.apply(parent, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, Color.TRANSPARENT);
+							final Runnable p_dismissAnim = new Runnable() {
+								@Override
+								public void run() {
+									p_pv.animate()
+									.alpha(0f)
+									.scaleX(0.96f)
+									.scaleY(0.96f)
+									.setDuration(120)
+									.setInterpolator(new android.view.animation.AccelerateInterpolator())
+									.withEndAction(new Runnable() {
+										@Override
+										public void run() {
+											try { p.dismiss(); } catch (Exception p_e) {}
+										}
+									})
+									.start();
+								}
+							};
+							
+							p_pv.setOnTouchListener(new View.OnTouchListener() {
+								@Override
+								public boolean onTouch(View p_v, android.view.MotionEvent p_event) {
+									if (p_event.getAction() == android.view.MotionEvent.ACTION_OUTSIDE) {
+										p_dismissAnim.run();
+										return true;
+									}
+									return false;
+								}
+							});
+							
+							p_pv.measure(
+							View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+							View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+							);
+							int p_popupW = p_pv.getMeasuredWidth();
+							int p_popupH = p_pv.getMeasuredHeight();
+							
+							int[] p_loc = new int[2];
+							dropdown_btn.getLocationOnScreen(p_loc);
+							int p_anchorX = p_loc[0];
+							int p_anchorY = p_loc[1];
+							
+							android.util.DisplayMetrics p_dm = getResources().getDisplayMetrics();
+							int p_screenW = p_dm.widthPixels;
+							int p_screenH = p_dm.heightPixels;
+							
+							int p_x = p_anchorX + dropdown_btn.getWidth() - p_popupW;
+							
+							int p_yBelow = p_anchorY + dropdown_btn.getHeight();
+							int p_yAbove = p_anchorY - p_popupH;
+							
+							if (p_x < 0) p_x = 0;
+							if (p_x + p_popupW > p_screenW)
+							p_x = Math.max(0, p_screenW - p_popupW);
+							
+							int p_y;
+							if (p_yBelow + p_popupH <= p_screenH) {
+								p_y = p_yBelow;
+							} else if (p_yAbove >= 0) {
+								p_y = p_yAbove;
+							} else {
+								p_y = Math.max(0, p_screenH - p_popupH);
+							}
+							p_pv.setAlpha(0f);
+							p_pv.setScaleX(0.94f);
+							p_pv.setScaleY(0.94f);
+							
+							p.showAtLocation(
+							dropdown_btn,
+							android.view.Gravity.TOP | android.view.Gravity.START,
+							p_x,
+							p_y
+							);
+							
+							p_pv.setPivotX(p_pv.getMeasuredWidth());
+							p_pv.setPivotY(0f);
+							
+							p_pv.animate()
+							.alpha(1f)
+							.scaleX(1f)
+							.scaleY(1f)
+							.setDuration(140)
+							.setInterpolator(new android.view.animation.DecelerateInterpolator())
+							.start();
+						} else {
+							SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.unsupported_code));
 						}
-					});
-					negative_txt.setOnClickListener(new View.OnClickListener(){
-						@Override
-						public void onClick(View _clickedView){
-							d.dismiss();
-						}
-					});
-					d.show();
-				}
-			});
-		}
-		colors_rec.setLayoutManager(
-		new LinearLayoutManager(MainActivity.this, LinearLayoutManager.HORIZONTAL, false)
-		);
-		final int spacingPx = (int) (4 * getResources().getDisplayMetrics().density);
-		colors_rec.addItemDecoration(new RecyclerView.ItemDecoration() {
-			@Override
-			public void getItemOffsets(
-			Rect outRect,
-			View view,
-			RecyclerView parent,
-			RecyclerView.State state
-			) {
-				int position = parent.getChildAdapterPosition(view);
-				if (position == RecyclerView.NO_POSITION) return;
-				
-				if (position < parent.getAdapter().getItemCount() - 1) {
-					outRect.right = spacingPx;
-				}
+					}
+				});
 			}
-		});
-		colors_list.clear();
-		if (_newItem) {
-			colors = new HashMap<>();
-			colors.put("color", (int)(0xFF008DCD));
-			colors_list.add(colors);
-		} else {
-			try {
-				java.lang.reflect.Type t =
-				new com.google.gson.reflect.TypeToken<ArrayList<Integer>>(){}.getType();
-				ArrayList<Integer> picked =
-				new Gson().fromJson(String.valueOf(_data.get((int) _position).get("colors")), t);
-				
-				if (picked != null) {
-					for (Integer c : picked) {
-						colors = new HashMap<>();
-						colors.put("color", c);
-						colors_list.add(colors);
+			save_btn.setOnClickListener(new View.OnClickListener(){
+				@Override
+				public void onClick(View _clickedView){
+					cardSaveName = card_name_txt.getText().toString();
+					if (!folder) {
+						cardSaveCode = code_edit.getText().toString();
+					}
+					if (_isValidItem()) {
+						ArrayList<Integer> picked = new ArrayList<>();
+						for (HashMap<String, Object> m : colors_list) {
+							Object v = m.get("color");
+							if (!(v instanceof Integer)) continue;
+							picked.add((Integer) v);
+						}
+						cards = new HashMap<>();
+						cards.put("name", cardSaveName);
+						if (!folder) {
+							if (!cardSaveType.equals(getString(R.string.none))) {
+								cards.put("type", cardSaveType);
+								cards.put("code", cardSaveCode);
+							}
+							if (!pendingImages.isEmpty()) {
+								cards.put("images", new ArrayList<String>(pendingImages));
+								pendingImages.clear();
+							}
+							if (!pendingDelete.isEmpty()) {
+								for (String v : pendingDelete) {
+									File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
+									if (f.exists()) f.delete();
+								}
+								pendingDelete.clear();
+							}
+						}
+						cards.put("folder", folder);
+						cards.put("grad_style", selectedGradStyle);
+						cards.put("id", id);
+						cards.put("favorite", favorite);
+						cards.put("colors", new Gson().toJson(picked));
+						if (_newItem) {
+							newCardSaved = true;
+							if (folder) {
+								cards.put("data", new ArrayList<HashMap<String,Object>>());
+							}
+							cards.put("used", (double)(0));
+							card_prefs.edit().putLong("lastId", newId).commit();
+							cards_list.add(cards);
+							if (inFolder) {
+								ArrayList<HashMap<String, Object>> masterContainer = resolveContainerList(cards_list_all, folderIdStack);
+								masterContainer.add(cards);
+							} else {
+								cards_list_all.add(cards);
+							}
+						} else {
+							if (folder) {
+								cards.put("data", (ArrayList<HashMap<String,Object>>)_data.get("data"));
+							}
+							cards.put("used", (double)((double)_data.get("used")));
+							cards_list.set((int)(indexOfCardById(cards_list, id)), cards);
+							if (inFolder) {
+								ArrayList<HashMap<String, Object>> masterContainer =
+								resolveContainerList(cards_list_all, folderIdStack);
+								int index = indexOfCardById(masterContainer, id);
+								masterContainer.set(index, cards);
+							} else {
+								int index = indexOfCardById(cards_list_all, id);
+								cards_list_all.set((int)(index), cards);
+							}
+						}
+						_saveCards(null);
+						applySortFilter(
+						search_txt.getText().toString(),
+						loadSortTypeId(),
+						loadOrderId(),
+						loadFilterId()
+						);
+						bs.dismiss();
+					} else {
+						SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.empty_err));
 					}
 				}
-			} catch (Exception e) {
+			});
+			fav_btn.setOnClickListener(new View.OnClickListener(){
+				@Override
+				public void onClick(View _clickedView){
+					if (_newItem) {
+						toggleFavorite(fav_btn, true, new HashMap<String, Object>());
+					} else {
+						toggleFavorite(fav_btn, false, _data);
+					}
+					favorite = !favorite;
+				}
+			});
+			if (_newItem) {
+				folder_btn.setOnClickListener(new View.OnClickListener(){
+					@Override
+					public void onClick(View _clickedView){
+						if (folder_btn.isSelected()) {
+							folder = false;
+							folder_btn.setSelected(false);
+							ObjectAnimator anim1 = ObjectAnimator.ofFloat(code_txt, "alpha", 0f, 1f);
+							ObjectAnimator anim2 = ObjectAnimator.ofFloat(code_edit, "alpha", 0f, 1f);
+							ObjectAnimator anim3 = ObjectAnimator.ofFloat(type_txt, "alpha", 0f, 1f);
+							ObjectAnimator anim4 = ObjectAnimator.ofFloat(dropdown_btn, "alpha", 0f, 1f);
+							ObjectAnimator anim5 = ObjectAnimator.ofFloat(picture_gallery_txt, "alpha", 0f, 1f);
+							ObjectAnimator anim6 = ObjectAnimator.ofFloat(pictures_rec, "alpha", 0f, 1f);
+							ObjectAnimator anim7 = ObjectAnimator.ofFloat(color_theme_txt, "alpha", 0f, 1f);
+							code_txt.setVisibility(View.VISIBLE);
+							code_edit.setVisibility(View.VISIBLE);
+							type_txt.setVisibility(View.VISIBLE);
+							dropdown_btn.setVisibility(View.VISIBLE);
+							picture_gallery_txt.setVisibility(View.VISIBLE);
+							pictures_rec.setVisibility(View.VISIBLE);
+							color_theme_txt.setVisibility(View.VISIBLE);
+							AnimatorSet animSet = new AnimatorSet();
+							animSet.playTogether(anim1, anim2, anim3, anim4);
+							animSet.setDuration(250);
+							animSet.setInterpolator(new LinearInterpolator());
+							animSet.start();
+							Bg.apply(scan_btn, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+							scan_btn.setClickable(true);
+							scan_btn.setFocusable(true);
+						} else {
+							folder = true;
+							folder_btn.setSelected(true);
+							folder_btn.animate().cancel();
+							folder_btn.setScaleX(1f);
+							folder_btn.setScaleY(1f);
+							
+							folder_btn.animate()
+							.scaleX(1.18f)
+							.scaleY(1.18f)
+							.setDuration(90)
+							.setInterpolator(new android.view.animation.OvershootInterpolator())
+							.withEndAction(new Runnable() {
+								@Override
+								public void run() {
+									folder_btn.animate()
+									.scaleX(1f)
+									.scaleY(1f)
+									.setDuration(120)
+									.setInterpolator(new android.view.animation.DecelerateInterpolator())
+									.start();
+								}
+							})
+							.start();
+							ObjectAnimator anim1 = ObjectAnimator.ofFloat(code_txt, "alpha", 1f, 0f);
+							ObjectAnimator anim2 = ObjectAnimator.ofFloat(code_edit, "alpha", 1f, 0f);
+							ObjectAnimator anim3 = ObjectAnimator.ofFloat(type_txt, "alpha", 1f, 0f);
+							ObjectAnimator anim4 = ObjectAnimator.ofFloat(dropdown_btn, "alpha", 1f, 0f);
+							ObjectAnimator anim5 = ObjectAnimator.ofFloat(picture_gallery_txt, "alpha", 1f, 0f);
+							ObjectAnimator anim6 = ObjectAnimator.ofFloat(pictures_rec, "alpha", 1f, 0f);
+							ObjectAnimator anim7 = ObjectAnimator.ofFloat(color_theme_txt, "alpha", 1f, 0f);
+							AnimatorSet animSet = new AnimatorSet();
+							animSet.playTogether(anim1, anim2, anim3, anim4);
+							animSet.setDuration(250);
+							animSet.setInterpolator(new LinearInterpolator());
+							animSet.addListener(new AnimatorListenerAdapter() {
+								@Override
+								public void onAnimationEnd(Animator animation) {
+									code_txt.setVisibility(View.GONE);
+									code_edit.setVisibility(View.GONE);
+									type_txt.setVisibility(View.GONE);
+									dropdown_btn.setVisibility(View.GONE);
+									picture_gallery_txt.setVisibility(View.GONE);
+									pictures_rec.setVisibility(View.GONE);
+									color_theme_txt.setVisibility(View.GONE);
+								}
+							});
+							animSet.start();
+							Bg.apply(scan_btn, 0xFF9E9E9E, null, null, 12, null, 2, 0xFF212121, Color.TRANSPARENT);
+							scan_btn.setClickable(false);
+							scan_btn.setFocusable(false);
+						}
+					}
+				});
+			} else {
+				del_btn.setOnClickListener(new View.OnClickListener(){
+					@Override
+					public void onClick(View _clickedView){
+						showDialog(R.layout.dialog, R.id.parent, (dlg, root) -> {
+							final TextView message_txt = (TextView) root.findViewById(R.id.message_txt);
+							final TextView positive_txt = (TextView) root.findViewById(R.id.positive_txt);
+							final TextView negative_txt = (TextView) root.findViewById(R.id.negative_txt);
+							final LinearLayout buttons_bar = (LinearLayout) root.findViewById(R.id.buttons_bar);
+							float scale = textScaleFromLevel((int) textLevel);
+							TextView[] views = new TextView[] { message_txt, positive_txt, negative_txt };
+							for (TextView tv : views) {
+								if (tv != null) applyTextScale(tv, scale);
+							}
+							Bg.apply(positive_txt, 0xFFFF0000, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+							Bg.apply(negative_txt, 0xFFFF0000, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
+							Bg.apply(buttons_bar, 0xFFFF0000, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+							positive_txt.setTextColor(0xFFFFFFFF);
+							negative_txt.setTextColor(0xFFFFFFFF);
+							message_txt.setText(getString(R.string.card_del_ask));
+							positive_txt.setText(getString(R.string.yes));
+							negative_txt.setText(getString(R.string.no));
+							positive_txt.setOnClickListener(new View.OnClickListener(){
+								@Override
+								public void onClick(View _clickedView){
+									String targetId = id;
+									int pos = indexOfCardById(cards_list, id);
+									ArrayList<HashMap<String, Object>> container;
+									if (inFolder && !folderIdStack.isEmpty()) {
+										container = resolveContainerList(cards_list_all, folderIdStack);
+									} else {
+										container = cards_list_all;
+									}
+									boolean removed = removeByIdInList(container, targetId);
+									if (!removed) removed = removeByIdRecursive(cards_list_all, targetId);
+									File dir = new File(getFilesDir(), "card_images/" + id);
+									if (dir.exists()) deleteRecursive(dir);
+									_saveCards(null);
+									SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.card_del_msg));
+									applySortFilter(
+									search_txt.getText().toString(),
+									loadSortTypeId(),
+									loadOrderId(),
+									loadFilterId()
+									);
+									dlg.dismiss();
+									bs.dismiss();
+								}
+							});
+							negative_txt.setOnClickListener(new View.OnClickListener(){
+								@Override
+								public void onClick(View _clickedView){
+									dlg.dismiss();
+								}
+							});
+						});
+					}
+				});
+			}
+			colors_rec.setLayoutManager(
+			new LinearLayoutManager(MainActivity.this, LinearLayoutManager.HORIZONTAL, false)
+			);
+			final int spacingPx = (int) (4 * getResources().getDisplayMetrics().density);
+			colors_rec.addItemDecoration(new RecyclerView.ItemDecoration() {
+				@Override
+				public void getItemOffsets(
+				Rect outRect,
+				View view,
+				RecyclerView parent,
+				RecyclerView.State state
+				) {
+					int position = parent.getChildAdapterPosition(view);
+					if (position == RecyclerView.NO_POSITION) return;
+					
+					if (position < parent.getAdapter().getItemCount() - 1) {
+						outRect.right = spacingPx;
+					}
+				}
+			});
+			colors_list.clear();
+			if (_newItem) {
 				colors = new HashMap<>();
 				colors.put("color", (int)(0xFF008DCD));
 				colors_list.add(colors);
-				SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.color_fail).concat("".concat(e.getMessage())));
-			}
-		}
-		colors = new HashMap<>();
-		colors.put("color", "plus");
-		colors_list.add(colors);
-		colors = new HashMap<>();
-		colors.put("color", "settings");
-		colors_list.add(colors);
-		colorsAdapter = new Colors_recAdapter(colors_list);
-		colors_rec.setAdapter(colorsAdapter);
-		bottomShii.show();
-		if ((boolean)settings.get("colors_tutorial") && (_newItem && !debug)) {
-			tapTargetRoot = (ViewGroup) bottomShii.getWindow().getDecorView();
-			colors_rec.post(new Runnable() {
-				@Override
-				public void run() {
-					showColorsTutorialStep(bottomShii, colors_rec, 0);
+			} else {
+				try {
+					java.lang.reflect.Type t =
+					new com.google.gson.reflect.TypeToken<ArrayList<Integer>>(){}.getType();
+					ArrayList<Integer> picked =
+					new Gson().fromJson(String.valueOf(_data.get("colors")), t);
+					
+					if (picked != null) {
+						for (Integer c : picked) {
+							colors = new HashMap<>();
+							colors.put("color", c);
+							colors_list.add(colors);
+						}
+					}
+				} catch (Exception e) {
+					colors = new HashMap<>();
+					colors.put("color", (int)(0xFF008DCD));
+					colors_list.add(colors);
+					SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.color_fail).concat("".concat(e.getMessage())));
 				}
-			});
-		}
-	}
-	
-	
-	public void _loadLastId() {
-		long new_id = card_prefs.getLong("lastId", -1) + 1;
-		java.util.ArrayDeque<HashMap<String, Object>> stack = new java.util.ArrayDeque<>();
-		for (HashMap<String, Object> m : cards_list_all) {
-			stack.push(m);
-		}
-		while(!stack.isEmpty()) {
-			HashMap<String, Object> map = stack.pop();
-			String id_string = map.get("id").toString();
-			long id_long = Long.valueOf(id_string);
-			if (new_id < id_long) {
-				new_id = id_long;
 			}
-			Boolean isFolder = (Boolean) map.get("folder");
-			if (isFolder) {
-				ArrayList<HashMap<String, Object>> folder_data = (ArrayList<HashMap<String, Object>>) map.get("data");
-				for (HashMap<String, Object> child : folder_data) {
-					stack.push(child);
-				}    
+			colors = new HashMap<>();
+			colors.put("color", "plus");
+			colors_list.add(colors);
+			colors = new HashMap<>();
+			colors.put("color", "settings");
+			colors_list.add(colors);
+			colorsAdapter = new Colors_recAdapter(colors_list);
+			colors_rec.setAdapter(colorsAdapter);
+			if ((boolean)settings.get("colors_tutorial") && (_newItem && debug)) {
+				colors_rec.post(() -> {
+					showColorsTutorialStep(bs, colors_rec, 0);
+				});
 			}
-		}
-		card_prefs.edit().putLong("lastId", new_id).commit();
-	}
-	
-	
-	public void _showEanWarning() {
-		d = new AlertDialog.Builder(MainActivity.this).create();
-		LayoutInflater dLI = getLayoutInflater();
-		View dCV = (View) dLI.inflate(R.layout.dialog, null);
-		d.setView(dCV);
-		final LinearLayout dialog_parent = (LinearLayout)
-		dCV.findViewById(R.id.parent);
-		final LinearLayout buttons_bar = (LinearLayout)
-		dCV.findViewById(R.id.buttons_bar);
-		final TextView message_txt = (TextView)
-		dCV.findViewById(R.id.message_txt);
-		final TextView positive_txt = (TextView)
-		dCV.findViewById(R.id.positive_txt);
-		final TextView negative_txt = (TextView)
-		dCV.findViewById(R.id.negative_txt);
-		d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-		d.setCancelable(false);
-		dialog_parent.setClickable(true);
-		final float dialog_parent_rTL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-		final float dialog_parent_rTR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-		final float dialog_parent_rBR = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-		final float dialog_parent_rBL = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 12, getResources().getDisplayMetrics());
-		final int dialog_parent_strokePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (float) 2, getResources().getDisplayMetrics());
-		final GradientDrawable dialog_parent_bg = new GradientDrawable();
-		dialog_parent_bg.setColor(0xFFFFFFFF);
-		dialog_parent_bg.setCornerRadii(new float[]{dialog_parent_rTL,dialog_parent_rTL,dialog_parent_rTR,dialog_parent_rTR,dialog_parent_rBR,dialog_parent_rBR,dialog_parent_rBL,dialog_parent_rBL});
-		dialog_parent_bg.setStroke(dialog_parent_strokePx, 0xFF212121);
-		dialog_parent.setBackground(dialog_parent_bg);
-		buttons_bar.setClickable(true);
-		
-		final float buttons_bar_rTL = TypedValue.applyDimension(
-		TypedValue.COMPLEX_UNIT_DIP,
-		(float) 0,
-		getResources().getDisplayMetrics()
-		);
-		
-		final float buttons_bar_rTR = TypedValue.applyDimension(
-		TypedValue.COMPLEX_UNIT_DIP,
-		(float) 0,
-		getResources().getDisplayMetrics()
-		);
-		
-		final float buttons_bar_rBR = TypedValue.applyDimension(
-		TypedValue.COMPLEX_UNIT_DIP,
-		(float) 12,
-		getResources().getDisplayMetrics()
-		);
-		
-		final float buttons_bar_rBL = TypedValue.applyDimension(
-		TypedValue.COMPLEX_UNIT_DIP,
-		(float) 12,
-		getResources().getDisplayMetrics()
-		);
-		
-		buttons_bar.setBackground(new ShapeDrawable(new RoundRectShape(
-		new float[]{
-			buttons_bar_rTL, buttons_bar_rTL,
-			buttons_bar_rTR, buttons_bar_rTR,
-			buttons_bar_rBR, buttons_bar_rBR,
-			buttons_bar_rBL, buttons_bar_rBL
-		},
-		null,
-		null
-		)) {{
-				getPaint().setColor(0xFFD2B6DC);
-			}});
-		float positive_txt_density = getResources().getDisplayMetrics().density;
-		positive_txt.setClickable(true);
-		positive_txt.setBackground(new RippleDrawable(
-		new ColorStateList(
-		new int[][]{new int[]{}},
-		new int[]{0xFFF2EAF5}
-		),
-		new GradientDrawable() {
-			public GradientDrawable getIns(int a, int b, int c, int d) {
-				this.setCornerRadius(a);
-				this.setStroke(b, c);
-				this.setColor(d);
-				return this;
+		}, dialog -> {
+			if (_newItem && !newCardSaved) {
+				File dir = new File(getFilesDir(), "card_images/" + id);
+				if (dir.exists()) deleteRecursive(dir);
 			}
-		}.getIns((int) (12 * positive_txt_density), (int) (0 * positive_txt_density), Color.TRANSPARENT, 0xFFD2B6DC), 
-		null
-		));
-		
-		negative_txt.setVisibility(View.GONE);
-		message_txt.setText(getString(R.string.invalid_checksum_desc));
-		positive_txt.setText(getString(R.string.close));
-		float scale = textScaleFromLevel((int) textLevel);
-		applyTextScale(message_txt, scale);
-		applyTextScale(positive_txt, scale);
-		positive_txt.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View _view) {
-				d.dismiss();
+			if (_newItem && !pendingImages.isEmpty()) {
+				for (String v : pendingImages) {
+					File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
+					if (f.exists()) f.delete();
+				}
+				pendingImages.clear();
 			}
 		});
-		d.show();
 	}
 	
 	
-	public void _displayImage(final String _image) {
-		d = new AlertDialog.Builder(MainActivity.this).create();
-		LayoutInflater dLI = getLayoutInflater();
-		View dCV = (View) dLI.inflate(R.layout.image_display_dialog, null);
-		d.setView(dCV);
-		final FrameLayout parent = (FrameLayout)
-		dCV.findViewById(R.id.parent);
-		final ImageView display_img = (ImageView)
-		dCV.findViewById(R.id.display_img);
-		final ImageView close_img = (ImageView)
-		dCV.findViewById(R.id.close_img);
-		d.setCancelable(true);
-		d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-		Window window = d.getWindow();
-		if (window != null) {
-			window.setLayout(
-			ViewGroup.LayoutParams.WRAP_CONTENT,
-			ViewGroup.LayoutParams.WRAP_CONTENT
-			);
-			window.setGravity(Gravity.CENTER);
-		}
-		parent.setClickable(true);
-		
-		final float parent_rTL = TypedValue.applyDimension(
-		TypedValue.COMPLEX_UNIT_DIP,
-		(float) 12,
-		getResources().getDisplayMetrics()
-		);
-		
-		final float parent_rTR = TypedValue.applyDimension(
-		TypedValue.COMPLEX_UNIT_DIP,
-		(float) 12,
-		getResources().getDisplayMetrics()
-		);
-		
-		final float parent_rBR = TypedValue.applyDimension(
-		TypedValue.COMPLEX_UNIT_DIP,
-		(float) 12,
-		getResources().getDisplayMetrics()
-		);
-		
-		final float parent_rBL = TypedValue.applyDimension(
-		TypedValue.COMPLEX_UNIT_DIP,
-		(float) 12,
-		getResources().getDisplayMetrics()
-		);
-		
-		parent.setBackground(new ShapeDrawable(new RoundRectShape(
-		new float[]{
-			parent_rTL, parent_rTL,
-			parent_rTR, parent_rTR,
-			parent_rBR, parent_rBR,
-			parent_rBL, parent_rBL
-		},
-		null,
-		null
-		)) {{
-				getPaint().setColor(0xFF000000);
-			}});
-		int w = (int) (SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.8);
-		parent.setClipToOutline(true);
-		File f = new File(getFilesDir(), "card_images/" + id + "/" + _image);
-		
-		if (f.exists() && f.length() > 0) {
-			Picasso.with(getApplicationContext())
-			.load(f)
-			.into(display_img);
+	public void _saveSettings() {
+		card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
+	}
+	
+	
+	public void _saveCards(final String _value) {
+		if (_value == null) {
+			card_prefs.edit().putString("cards", new Gson().toJson(cards_list_all)).commit();
 		} else {
-			display_img.setImageResource(R.drawable.ic_broken_image);
-			ViewGroup.LayoutParams display_img_layoutParams = display_img.getLayoutParams();
-			display_img_layoutParams.width = w;
-			display_img_layoutParams.height = w;
-			display_img.setLayoutParams(display_img_layoutParams);
+			card_prefs.edit().putString("cards", _value).commit();
 		}
-		close_img.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View _view) {
-				d.dismiss();
-			}
-		});
-		d.show();
-	}
-	
-	
-	public boolean _isValidItem() {
-		if (cardSaveName.isEmpty()) {
-			return (false);
-		}
-		if (!folder && !debug) {
-			if (!cardSaveCode.isEmpty() && cardSaveType.equals(getString(R.string.none))) {
-				// Can't have a code without code type
-				return (false);
-			}
-			if (cardSaveCode.isEmpty() && pendingImages.isEmpty()) {
-				// Can't have no code and no images if not a folder
-				return (false);
-			}
-		}
-		return (true);
 	}
 	
 	public class Cards_recAdapter extends RecyclerView.Adapter<Cards_recAdapter.ViewHolder> {
-		
-		ArrayList<HashMap<String, Object>> _data;
-		
-		public Cards_recAdapter(ArrayList<HashMap<String, Object>> _arr) {
-			_data = _arr;
-		}
-		
-		@Override
-		public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-			LayoutInflater _inflater = getLayoutInflater();
-			View _v = _inflater.inflate(R.layout.cards_recycler, null);
-			RecyclerView.LayoutParams _lp = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-			_v.setLayoutParams(_lp);
-			return new ViewHolder(_v);
-		}
+        
+        public static final int TYPE_HEADER = 0;
+        public static final int TYPE_ITEM = 1;
+        
+        ArrayList<HashMap<String, Object>> _data;
+        
+        public Cards_recAdapter(ArrayList<HashMap<String, Object>> _arr) {
+            _data = _arr;
+        }
+        
+        @Override
+        public int getItemViewType(int position) {
+            HashMap<String, Object> m = _data.get(position);
+            Object t = m.get(KEY_ROW_TYPE);
+            if (t != null && ROW_HEADER.equals(String.valueOf(t))) return TYPE_HEADER;
+            return TYPE_ITEM;
+        }
+        
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            LayoutInflater _inflater = getLayoutInflater();
+            
+            if (viewType == TYPE_HEADER) {
+                View _v = _inflater.inflate(R.layout.header, parent, false);
+                RecyclerView.LayoutParams _lp = new RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+                _v.setLayoutParams(_lp);
+                return new ViewHolder(_v, true);
+            }
+            
+            View _v = _inflater.inflate(R.layout.cards_recycler, parent, false);
+            RecyclerView.LayoutParams _lp = new RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            _v.setLayoutParams(_lp);
+            return new ViewHolder(_v, false);
+        }
 		
 		@Override
 		public void onBindViewHolder(ViewHolder _holder, final int _position) {
-			View _view = _holder.itemView;
+            View _view = _holder.itemView;
+            
+            final HashMap<String, Object> m = _data.get(_position);
+            
+            if (_holder.isHeader) {
+                Object titleObj = m.get("title");
+                _holder.tvHeader.setText(titleObj == null ? "" : String.valueOf(titleObj));
+                return;
+            }
 			
 			final FrameLayout parent = _view.findViewById(R.id.parent);
-			final View gradient = _view.findViewById(R.id.gradient);
-			final ImageView folder_outline = _view.findViewById(R.id.folder_outline);
+			final LinearLayout vertical_layout = _view.findViewById(R.id.vertical_layout);
+			final ImageView type_img = _view.findViewById(R.id.type_img);
 			final TextView card_name = _view.findViewById(R.id.card_name);
+			final TextView card_label = _view.findViewById(R.id.card_label);
 			
-			Object nameObj = _data.get(_position).get("name");
+			type_img.setVisibility(View.VISIBLE);
+			Object nameObj = m.get("name");
 			card_name.setText(nameObj == null ? "" : String.valueOf(nameObj));
 			ArrayList<Integer> picked = new ArrayList<>();
 			try {
-				Object raw = _data.get(_position).get("colors");
+				Object raw = m.get("colors");
 				if (raw != null) {
 					String s = String.valueOf(raw);
 					ArrayList<Integer> tmp = new Gson().fromJson(
 					s,
-					new com.google.gson.reflect.TypeToken<ArrayList<Integer>>(){}.getType()
+					new com.google.gson.reflect.TypeToken<ArrayList<Integer>>() {}.getType()
 					);
 					if (tmp != null) picked.addAll(tmp);
 				}
@@ -5030,110 +3789,111 @@ public class MainActivity extends AppCompatActivity {
 			
 			GradientDrawable.Orientation ori = GradientDrawable.Orientation.LEFT_RIGHT;
 			try {
-				Object st = _data.get(_position).get("grad_style");
+				Object st = m.get("grad_style");
 				String style = (st == null) ? null : String.valueOf(st);
 				ori = _gradOrientationFromStyle(style);
 			} catch (Exception ignore) { }
 			
-			final int strokePx = (int) TypedValue.applyDimension(
-			TypedValue.COMPLEX_UNIT_DIP, 2, _view.getResources().getDisplayMetrics()
-			);
-			final float radiusPx = TypedValue.applyDimension(
-			TypedValue.COMPLEX_UNIT_DIP, 12, _view.getResources().getDisplayMetrics()
-			);
-			
-			GradientDrawable content = new GradientDrawable();
-			content.setShape(GradientDrawable.RECTANGLE);
-			content.setCornerRadius(radiusPx);
-			content.setStroke(strokePx, 0xFF212121);
+			Integer solidColor = null;
+			int[] gradientColors = null;
 			
 			if (picked.size() <= 0) {
-				content.setColor(0xFFFFFFFF);
+				solidColor = 0xFFFFFFFF;
 			} else if (picked.size() == 1) {
-				content.setColor(picked.get(0));
+				solidColor = picked.get(0);
 			} else {
-				int[] arr = new int[picked.size()];
-				for (int i = 0; i < picked.size(); i++) arr[i] = picked.get(i);
-				
-				content.setOrientation(ori);
-				content.setColors(arr);
+				gradientColors = new int[picked.size()];
+				for (int i = 0; i < picked.size(); i++) {
+					gradientColors[i] = picked.get(i);
+				}
 			}
 			
-			parent.setClickable(true);
-			gradient.setBackground(new RippleDrawable(
-			new ColorStateList(
-			new int[][]{ new int[]{} },
-			new int[]{ 0xFFD2B6DC }
-			),
-			content,
-			null
-			));
-			applyTextScale(card_name, textScaleFromLevel((int) textLevel));
-			parent.post(new Runnable() {
-				@Override
-				public void run() {
-					int w = parent.getWidth();
-					card_name.setPadding((int) TypedValue.applyDimension(
-					TypedValue.COMPLEX_UNIT_DIP,
-					(int) Math.round(w * 0.07),
-					getResources().getDisplayMetrics()
-					), (int) TypedValue.applyDimension(
-					TypedValue.COMPLEX_UNIT_DIP,
-					8,
-					getResources().getDisplayMetrics()
-					), (int) TypedValue.applyDimension(
-					TypedValue.COMPLEX_UNIT_DIP,
-					(int) Math.round(w * 0.07),
-					getResources().getDisplayMetrics()
-					), (int) TypedValue.applyDimension(
-					TypedValue.COMPLEX_UNIT_DIP,
-					8,
-					getResources().getDisplayMetrics()
-					));
-					
-					ViewGroup.LayoutParams parent_layoutParams = parent.getLayoutParams();
-					
-					parent_layoutParams.height = (int) Math.round(w / 1.25);
-					
-					parent.setLayoutParams(parent_layoutParams);
-					FrameLayout.LayoutParams v_lp = (FrameLayout.LayoutParams) gradient.getLayoutParams();
-					if ((boolean)_data.get((int)(_position)).get("folder")) {
-						int h = (int) Math.round(w / 1.25);
-						
-						int mL = Math.round(w * 0.1f);
-						int mR = mL;
-						int mB = Math.round(h * 0.125f);
-						int mT = Math.round(h * 0.25f);
-						
-						int bleed = Math.max(1, Math.round(Math.min(w, h) * 0.05f));
-						
-						mL = Math.max(0, mL - bleed);
-						mR = Math.max(0, mR - bleed);
-						mB = Math.max(0, mB - bleed);
-						mT = Math.max(0, mT - bleed);
-						
-						v_lp.setMargins(mL, mT, mR, mB);
-						folder_outline.setVisibility(View.VISIBLE);
+			Bg.apply(
+			parent,
+			solidColor,
+			gradientColors,
+			ori,
+			16f,
+			null,
+			0f,
+			0x00000000,
+			0xFFD2B6DC
+			);
+			float scale = textScaleFromLevel((int) textLevel);
+			applyTextScale(card_name, scale);
+			applyTextScale(card_label, scale);
+			parent.post(() -> {
+				int w = parent.getWidth();
+				int type_w = (int) Math.round(w * 0.15);
+				int type_m = (int) Math.round(w * 0.05);
+				setSize(parent, KEEP, (int) Math.round(w * 0.7));
+				ViewGroup.LayoutParams t_lp = type_img.getLayoutParams();
+				t_lp.width = type_w;
+				t_lp.height = type_w;
+				if (t_lp instanceof ViewGroup.MarginLayoutParams) {
+					ViewGroup.MarginLayoutParams t_mlp = (ViewGroup.MarginLayoutParams) t_lp;
+					t_mlp.setMargins(0, 0, type_m, type_m);
+				}
+				type_img.setLayoutParams(t_lp);
+				if ((boolean)m.get("folder")) {
+					ArrayList<HashMap<String, Object>> folder_data = new ArrayList<>();
+					folder_data.addAll((ArrayList<HashMap<String, Object>>) _data.get(_position).get("data"));
+					int len = folder_data.size();
+					card_name.setAllCaps(false);
+					card_label.setText(cardsCountText(len));
+					card_label.setVisibility(View.VISIBLE);
+					if (isVirtualFavorites(m)) {
+						type_img.setImageResource(R.drawable.ic_fav);
 					} else {
-						v_lp.setMargins(0, 0, 0, 0);
-						folder_outline.setVisibility(View.INVISIBLE);
+						type_img.setImageResource(R.drawable.ic_folder);
 					}
-					gradient.setLayoutParams(v_lp);
+				} else {
+					card_name.setAllCaps(true);
+					card_label.setVisibility(View.GONE);
+					if (m.containsKey("type")) {
+						String type = String.valueOf(m.get("type"));
+						if (type.equals("QR_CODE")) {
+							type_img.setImageResource(R.drawable.ic_qr_soft);
+						} else if (type.equals("CODE_128") | type.equals("EAN_13")) {
+							type_img.setImageResource(R.drawable.ic_bar_soft);
+						} else {
+							type_img.setVisibility(View.GONE);
+						}
+					} else {
+						type_img.setImageResource(R.drawable.ic_img_soft);
+					}
 				}
 			});
 			parent.setOnClickListener(new View.OnClickListener() {
 				@Override
 				public void onClick(View _view) {
 					try {
-						HashMap<String, Object> card = _data.get((int) _position);
-						double cur = (double) card.get("used");
+						double cur = (double) m.get("used");
 						cur++;
-						card.put("used", cur);
+						m.put("used", cur);
 						card_prefs.edit().putString("cards", new Gson().toJson(cards_list_all)).apply();
 					} catch (Exception ignore) {}
-					if ((boolean)_data.get((int)(_position)).get("folder")) {
-						String clickedId = String.valueOf(_data.get(_position).get("id"));
-						String clickedName = String.valueOf(_data.get(_position).get("name"));
+					if ((boolean)m.get("folder")) {
+						if (isVirtualFavorites(m)) {
+							folderIdStack.clear();
+							folderNameStack.clear();
+							
+							folderIdStack.add("__favorites__");
+							folderNameStack.add(getString(R.string.favorites));
+							
+							folderPath = joinWithSlash(folderNameStack);
+							inFolder = true;
+							
+							applySortFilter(
+							search_txt.getText().toString(),
+							loadSortTypeId(),
+							loadOrderId(),
+							loadFilterId()
+							);
+							return;
+						}
+						String clickedId = String.valueOf(m.get("id"));
+						String clickedName = String.valueOf(m.get("name"));
 						
 						folderIdStack.add(clickedId);
 						folderNameStack.add(clickedName);
@@ -5148,14 +3908,14 @@ public class MainActivity extends AppCompatActivity {
 						);
 						return;
 					} else {
-						_displayInfo(_data, _position, false);
+						_displayInfo(m, false);
 					}
 				}
 			});
 			parent.setOnLongClickListener(new View.OnLongClickListener() {
 				@Override
 				public boolean onLongClick(View _view) {
-					_displayInfo(_data, _position, false);
+					_displayInfo(m, false);
 					return true;
 				}
 			});
@@ -5167,60 +3927,31 @@ public class MainActivity extends AppCompatActivity {
 		}
 		
 		public class ViewHolder extends RecyclerView.ViewHolder {
-			public ViewHolder(View v) {
-				super(v);
-			}
-		}
+            
+            public boolean isHeader;
+            
+            public TextView tvHeader;
+            
+            public FrameLayout parent;
+            public LinearLayout vertical_layout;
+            public ImageView type_img;
+            public TextView card_name;
+            public TextView card_label;
+            
+            public ViewHolder(View v, boolean header) {
+                super(v);
+                isHeader = header;
+                
+                if (header) {
+                    tvHeader = v.findViewById(R.id.tvHeader);
+                } else {
+                    parent = v.findViewById(R.id.parent);
+                    vertical_layout = v.findViewById(R.id.vertical_layout);
+                    type_img = v.findViewById(R.id.type_img);
+                    card_name = v.findViewById(R.id.card_name);
+                    card_label = v.findViewById(R.id.card_label);
+                }
+            }
+        }
 	}
-	
-	@Deprecated
-	public void showMessage(String _s) {
-		Toast.makeText(getApplicationContext(), _s, Toast.LENGTH_SHORT).show();
-	}
-	
-	@Deprecated
-	public int getLocationX(View _v) {
-		int _location[] = new int[2];
-		_v.getLocationInWindow(_location);
-		return _location[0];
-	}
-	
-	@Deprecated
-	public int getLocationY(View _v) {
-		int _location[] = new int[2];
-		_v.getLocationInWindow(_location);
-		return _location[1];
-	}
-	
-	@Deprecated
-	public int getRandom(int _min, int _max) {
-		Random random = new Random();
-		return random.nextInt(_max - _min + 1) + _min;
-	}
-	
-	@Deprecated
-	public ArrayList<Double> getCheckedItemPositionsToArray(ListView _list) {
-		ArrayList<Double> _result = new ArrayList<Double>();
-		SparseBooleanArray _arr = _list.getCheckedItemPositions();
-		for (int _iIdx = 0; _iIdx < _arr.size(); _iIdx++) {
-			if (_arr.valueAt(_iIdx))
-			_result.add((double)_arr.keyAt(_iIdx));
-		}
-		return _result;
-	}
-	
-	@Deprecated
-	public float getDip(int _input) {
-		return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, _input, getResources().getDisplayMetrics());
-	}
-	
-	@Deprecated
-	public int getDisplayWidthPixels() {
-		return getResources().getDisplayMetrics().widthPixels;
-	}
-	
-	@Deprecated
-	public int getDisplayHeightPixels() {
-		return getResources().getDisplayMetrics().heightPixels;
-	}
-}
+}

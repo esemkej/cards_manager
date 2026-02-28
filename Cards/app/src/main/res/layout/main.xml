@@ -13,63 +13,76 @@
 			android:id="@+id/parent"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent"
-			android:background="#F2EAF5"
+			android:background="@color/app_bg"
 			android:orientation="vertical">
 			<LinearLayout
 				android:id="@+id/filter_parent"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
-				android:padding="4dp"
+				android:padding="12dp"
+				android:gravity="center_vertical"
 				android:orientation="horizontal">
-				<LinearLayout
-					android:id="@+id/filter_bar"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_margin="4dp"
-					android:padding="4dp"
-					android:orientation="horizontal"
-					android:elevation="2dp">
-					<ImageView
-						android:id="@+id/filter_img"
-						android:layout_width="wrap_content"
-						android:layout_height="wrap_content"
-						android:src="@drawable/ic_filter"
-						android:scaleType="fitCenter" />
-				</LinearLayout>
 				<LinearLayout
 					android:id="@+id/search_bar"
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content"
 					android:layout_margin="4dp"
-					android:padding="4dp"
+					android:padding="2dp"
+					android:gravity="center_vertical"
 					android:orientation="horizontal"
-					android:layout_weight="1"
-					android:elevation="2dp">
+					android:layout_weight="1">
+					<ImageView
+						android:id="@+id/search_img"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:paddingLeft="8dp"
+						android:src="@drawable/ic_search"
+						android:scaleType="fitCenter" />
 					<EditText
 						android:id="@+id/search_txt"
 						android:layout_width="match_parent"
 						android:layout_height="wrap_content"
-						android:padding="8dp"
+						android:paddingLeft="6dp"
+						android:paddingTop="8dp"
+						android:paddingRight="8dp"
+						android:paddingBottom="8dp"
 						android:textSize="16sp"
-						android:textColor="#212121"
+						android:textColor="@color/app_text_dark"
 						android:hint="@string/search_cards"
-						android:textColorHint="#9E9E9E"
+						android:textColorHint="@color/app_text_hint"
 						android:singleLine="true"
 						android:layout_gravity="center_horizontal|center_vertical"
 						android:background="@null" />
 				</LinearLayout>
 				<LinearLayout
+					android:id="@+id/filter_bar"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginLeft="8dp"
+					android:layout_marginTop="4dp"
+					android:layout_marginRight="8dp"
+					android:layout_marginBottom="4dp"
+					android:orientation="horizontal">
+					<ImageView
+						android:id="@+id/filter_img"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:src="@drawable/ic_filter"
+						android:scaleType="fitCenter" />
+				</LinearLayout>
+				<LinearLayout
 					android:id="@+id/settings_bar"
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
-					android:layout_margin="4dp"
-					android:padding="4dp"
-					android:orientation="vertical"
-					android:elevation="2dp">
+					android:layout_marginLeft="8dp"
+					android:layout_marginTop="4dp"
+					android:layout_marginRight="8dp"
+					android:layout_marginBottom="4dp"
+					android:orientation="vertical">
 					<ImageView
 						android:id="@+id/settings_img"
-						android:layout_width="wrap_content"
-						android:layout_height="wrap_content"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
 						android:src="@drawable/ic_settings"
 						android:scaleType="fitCenter" />
 				</LinearLayout>
@@ -83,27 +96,42 @@
 					android:layout_width="match_parent"
 					android:layout_height="match_parent"
 					android:paddingLeft="8dp"
-					android:paddingTop="4dp"
 					android:paddingRight="8dp"
-					android:paddingBottom="4dp"
 					tools:listitem="@layout/cards_recycler" />
 			</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-			<LinearLayout
-				android:id="@+id/no_items_lay"
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:gravity="center_horizontal|center_vertical"
-				android:orientation="vertical">
-				<TextView
-					android:id="@+id/no_items_txt"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:padding="8dp"
-					android:gravity="center_horizontal"
-					android:text="@string/no_items"
-					android:textSize="25sp"
-					android:textColor="#212121" />
-			</LinearLayout>
+            <LinearLayout
+                android:id="@+id/no_items_lay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_horizontal|center_vertical"
+                android:orientation="vertical">
+                <ImageView
+                    android:id="@+id/wallet_img"
+                    android:layout_width="match_parent"
+                    android:layout_height="175dp"
+                    android:src="@drawable/ic_wallet"
+                    android:scaleType="fitCenter" />
+                <TextView
+                    android:id="@+id/no_items_top_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:gravity="center_horizontal"
+                    android:text="@string/no_cards_added"
+                    android:textSize="25sp"
+                    android:textColor="@color/app_text_dark" />
+                <TextView
+                    android:id="@+id/no_items_bottom_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:paddingBottom="8dp"
+                    android:gravity="center"
+                    android:text="@string/get_started"
+                    android:textSize="20sp"
+                    android:textColor="@color/app_text_secondary" />
+            </LinearLayout>
 		</LinearLayout>
 	</LinearLayout>
 	<com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -111,6 +139,10 @@
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_margin="16dp"
-		android:layout_gravity="right|bottom"
-		app:srcCompat="@drawable/ic_add" />
+        android:gravity="center"
+		android:layout_gravity="center_horizontal|bottom"
+		app:srcCompat="@drawable/ic_add"
+        app:tint="@color/app_icon_reversed"
+        app:backgroundTint="@color/app_accent"
+        app:maxImageSize="50dp" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

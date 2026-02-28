@@ -1,7 +1,32 @@
 <resources>
-	<color name="colorPrimary">#9E89A5</color>
-	<color name="colorPrimaryDark">#F2EAF5</color>
-	<color name="colorAccent">#9E89A5</color>
-	<color name="colorControlHighlight">#F2EAF5</color>
-	<color name="colorControlNormal">#212121</color>
+    <!-- App neutrals -->
+    <color name="app_bg">#F7F7F7</color>
+    <color name="app_surface">#FFFFFF</color>
+    <color name="app_surface_var">#E2E1E6</color>
+    <color name="app_stroke">#C6CACF</color>
+    
+    <!-- Text / icons -->
+    <color name="app_text_dark">#212121</color>
+    <color name="app_text_primary">#FFFFFF</color>
+    <color name="app_text_secondary">#6B6F76</color>
+    <color name="app_text_hint">#7A797F</color>
+
+    <color name="app_icon_primary">#212121</color>
+    <color name="app_icon_secondary">#C6CACF</color>
+    <color name="app_icon_disabled">#8A8F96</color>
+    <color name="app_icon_reversed">#FFFFFF</color>
+
+    <!-- Monochrome accent -->
+    <color name="app_accent">#2B2B2E</color>
+    <color name="app_accent_pressed">#1C1C1E</color>
+
+    <!-- Ripple/highlight -->
+    <color name="app_ripple">#1A2B2B2E</color>
+
+    <!-- Sketchware -->
+    <color name="colorPrimary">@color/app_accent</color>
+    <color name="colorPrimaryDark">@color/app_bg</color>
+    <color name="colorAccent">@color/app_accent</color>
+    <color name="colorControlHighlight">@color/app_ripple</color>
+    <color name="colorControlNormal">@color/app_icon_primary</color>
 </resources>

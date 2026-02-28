@@ -65,14 +65,6 @@
 						android:text="@string/by_use_count"
 						android:textSize="12sp"
 						android:textColor="#212121" />
-					<RadioButton
-						android:id="@+id/by_type"
-						android:focusable="false"
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:padding="8dp"
-						android:text="@string/by_type"
-						android:textSize="12sp" />
 				</RadioGroup>
 				<LinearLayout
 					android:id="@+id/div1"

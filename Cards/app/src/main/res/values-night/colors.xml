@@ -1,0 +1,32 @@
+<resources>
+    <!-- App neutrals -->
+    <color name="app_bg">#121212</color>
+    <color name="app_surface">#1C1C1E</color>
+    <color name="app_surface_var">#2A2A2D</color>
+    <color name="app_stroke">#3A3A3D</color>
+
+    <!-- Text / icons -->
+    <color name="app_text_dark">#FFFFFF</color>
+    <color name="app_text_primary">#FFFFFF</color>
+    <color name="app_text_secondary">#A0A4AA</color>
+    <color name="app_text_hint">#66FFFFFF</color>
+
+    <color name="app_icon_primary">#FFFFFF</color>
+    <color name="app_icon_secondary">#3A3A3D</color>
+    <color name="app_icon_disabled">#A0A4AA</color>
+    <color name="app_icon_reversed">#212121</color>
+
+    <!-- Monochrome accent -->
+    <color name="app_accent">#E6E6E8</color>
+    <color name="app_accent_pressed">#FFFFFF</color>
+    
+    <!-- Ripple/highlight -->
+    <color name="app_ripple">#1AE6E6E8</color>
+    
+    <!-- Sketchware -->
+    <color name="colorPrimary">@color/app_accent</color>
+    <color name="colorPrimaryDark">@color/app_bg</color>
+    <color name="colorAccent">@color/app_accent</color>
+    <color name="colorControlHighlight">@color/app_ripple</color>
+    <color name="colorControlNormal">@color/app_icon_primary</color>
+</resources>
