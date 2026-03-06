@@ -9,7 +9,7 @@
     <string name="bottom_top">Zdola hore</string>
     <string name="bottomleft_topright">Zľava dole doprava hore</string>
     <string name="bottomright_topleft">Zprava dole doľava hore</string>
-    <string name="by_date_created">Dátumu vytvorenia</string>
+    <string name="by_date_created">Dátumu</string>
     <string name="by_name">Názvu</string>
     <string name="by_type">Typu</string>
     <string name="by_use_count">Počtu použití</string>
@@ -98,7 +98,7 @@
     <string name="settings_title">Nastavenia</string>
     <string name="show">Zobraziť:</string>
     <string name="show_tutorial">Spustiť prvotný tutoriál pri ďalšom spustení</string>
-    <string name="sort_by">Usporiadať podľa:</string>
+    <string name="sort_by">Usporiadať podľa</string>
     <string name="take_photo">Odfotiť</string>
     <string name="text_copied">Text bol skopírovaný</string>
     <string name="text_size">Veľkosť textu:</string>

@@ -4,7 +4,17 @@
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
-	android:orientation="vertical">
+	android:orientation="vertical"
+	android:gravity="center_horizontal"
+	android:background="@drawable/rounded_background">
+	<View
+		android:layout_width="75dp"
+		android:layout_height="4dp"
+		android:id="@+id/top_bar"
+		android:background="@color/app_icon_disabled"
+		android:layout_marginTop="12dp"
+		android:clickable="true"
+		android:focusable="true" />
 	<ScrollView
 		android:id="@+id/p_scroll"
 		android:layout_width="match_parent"
@@ -13,23 +23,38 @@
 			android:id="@+id/parent"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent"
-			android:orientation="vertical"
-			android:background="@drawable/rounded_background">
+			android:orientation="vertical">
 			<LinearLayout
 				android:id="@+id/sorts_layout"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:padding="4dp"
 				android:orientation="vertical">
-				<TextView
-					android:id="@+id/sort_by_txt"
-					android:focusable="false"
-					android:layout_width="wrap_content"
+				<LinearLayout
+					android:layout_width="match_parent"
 					android:layout_height="wrap_content"
-					android:padding="8dp"
-					android:text="@string/sort_by"
-					android:textSize="14sp"
-					android:textColor="#212121" />
+					android:gravity="start|center_vertical"
+					android:orientation="horizontal"
+					android:paddingStart="4dp"
+					android:paddingEnd="4dp">
+					<ImageView
+						android:id="@+id/sort_img"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:src="@drawable/ic_sort"
+						android:scaleType="fitCenter" />
+					<TextView
+						android:id="@+id/sort_by_txt"
+						android:focusable="false"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:padding="8dp"
+						android:text="@string/sort_by"
+						android:textSize="16sp"
+						android:textStyle="bold"
+						android:textColor="@color/app_text_secondary"
+						android:textAllCaps="true"/>
+				</LinearLayout>
 				<RadioGroup
 					android:id="@+id/sort_types"
 					android:layout_width="match_parent"

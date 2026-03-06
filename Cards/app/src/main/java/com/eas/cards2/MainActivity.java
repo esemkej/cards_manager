@@ -39,6 +39,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.*;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -89,8 +90,8 @@ import java.io.OutputStream;
 import java.util.UUID;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.squareup.picasso.Picasso;
-
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -263,9 +264,11 @@ public class MainActivity extends AppCompatActivity {
 		filter_bar.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View _view) {
-				showBottomSheet(R.layout.filters_dialog, 0, (bs, root) -> {
+				/*showBottomSheet(R.layout.filters_dialog, 0, (bs, root) -> {
+					final View top_bar = (View) root.findViewById(R.id.top_bar);
 					final LinearLayout div1 = (LinearLayout) root.findViewById(R.id.div1);
 					final LinearLayout div2 = (LinearLayout) root.findViewById(R.id.div2);
+					final ImageView sort_img = root.findViewById(R.id.sort_img);
 					final RadioGroup sort_types = (RadioGroup) root.findViewById(R.id.sort_types);
 					final RadioGroup orders = (RadioGroup) root.findViewById(R.id.orders);
 					final RadioGroup filters = (RadioGroup) root.findViewById(R.id.filters);
@@ -283,12 +286,50 @@ public class MainActivity extends AppCompatActivity {
 					for (RadioButton tv : views) {
 						if (tv != null) applyTextScale(tv, scale);
 					}
+
 					Bg.apply(div1, 0xFFBDBDBD, null, null, 360, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
 					Bg.apply(div2, 0xFF212121, null, null, 360, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+					Bg.apply(top_bar, ContextCompat.getColor(MainActivity.this, R.color.app_icon_disabled), null, null, 360, null, 0, null, null);
 					sort_types.check(loadSortTypeId());
 					orders.check(loadOrderId());
 					filters.check(loadFilterId());
 					setupSortFilterListeners(sort_types, orders, filters);
+				});*/
+				showBottomSheet(R.layout.filter_dialog, 0, (bs, root) -> {
+					final View top_bar = root.findViewById(R.id.top_bar);
+					final TextView filters_txt = root.findViewById(R.id.filters_txt);
+					final TextView sort_by_txt = root.findViewById(R.id.sort_by_txt);
+					final ImageView close_img = root.findViewById(R.id.close_img);
+					final ImageView sort_img = root.findViewById(R.id.sort_img);
+					final MaterialButton by_name = root.findViewById(R.id.by_name);
+					final MaterialButton by_date_created = root.findViewById(R.id.by_date_created);
+					final MaterialButton by_use_count = root.findViewById(R.id.by_use_count);
+
+					float scale = textScaleFromLevel((int) textLevel);
+					View[] views = new View[] {
+							filters_txt,
+							sort_by_txt,
+							by_name,
+							by_date_created,
+							by_use_count
+					};
+					for (View v : views) {
+						if (v instanceof TextView) {
+							applyTextScale((TextView) v, scale);
+						}
+					}
+
+					filters_txt.post(() -> {
+						int h = filters_txt.getHeight();
+						setSize(close_img, ViewGroup.LayoutParams.WRAP_CONTENT, h);
+					});
+					sort_by_txt.post(() -> {
+						int h = sort_by_txt.getHeight();
+						setSize(sort_img, ViewGroup.LayoutParams.WRAP_CONTENT, h);
+					});
+
+					close_img.setColorFilter(ContextCompat.getColor(MainActivity.this, R.color.app_icon_primary));
+					Bg.apply(top_bar, ContextCompat.getColor(MainActivity.this, R.color.app_icon_disabled), null, null, 360, null, 0, null, null);
 				});
 			}
 		});
@@ -651,10 +692,6 @@ public class MainActivity extends AppCompatActivity {
 	
 	private void initializeLogic() {
 		debug = false;
-		search_img.setColorFilter(getResources().getColor(R.color.app_text_hint), PorterDuff.Mode.MULTIPLY);
-		filter_img.setColorFilter(getResources().getColor(R.color.app_icon_primary), PorterDuff.Mode.MULTIPLY);
-		settings_img.setColorFilter(getResources().getColor(R.color.app_icon_primary), PorterDuff.Mode.MULTIPLY);
-		wallet_img.setColorFilter(getResources().getColor(R.color.app_icon_primary), PorterDuff.Mode.MULTIPLY);
 		if (card_prefs.contains("settings")) {
 			settings = new Gson().fromJson(card_prefs.getString("settings", ""), new TypeToken<HashMap<String, Object>>(){}.getType());
 			final GridLayoutManager cards_rec_layoutManager =
@@ -1111,10 +1148,7 @@ public class MainActivity extends AppCompatActivity {
 		}
 		return true;
 	}
-	public static int indexOfCardById(
-	ArrayList<HashMap<String, Object>> cardsList,
-	String targetId
-	) {
+	public static int indexOfCardById(ArrayList<HashMap<String, Object>> cardsList, String targetId) {
 		if (cardsList == null || targetId == null) return -1;
 		
 		for (int i = 0; i < cardsList.size(); i++) {
@@ -1565,9 +1599,7 @@ public class MainActivity extends AppCompatActivity {
 		}
 		return sb.toString();
 	}
-	private void setupSortFilterListeners(final RadioGroup sort_types,
-	final RadioGroup orders,
-	final RadioGroup filters) {
+	private void setupSortFilterListeners(final RadioGroup sort_types, final RadioGroup orders, final RadioGroup filters) {
 		
 		RadioGroup.OnCheckedChangeListener listener = new RadioGroup.OnCheckedChangeListener() {
 			@Override
@@ -2611,8 +2643,7 @@ public class MainActivity extends AppCompatActivity {
 		d.show();
 		return new DialogShell<>(d, content);
 	}
-	private DialogShell<com.google.android.material.bottomsheet.BottomSheetDialog>
-	showBottomSheet(int layoutResId, Binder<com.google.android.material.bottomsheet.BottomSheetDialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
+	private DialogShell<com.google.android.material.bottomsheet.BottomSheetDialog> showBottomSheet(int layoutResId, Binder<com.google.android.material.bottomsheet.BottomSheetDialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
 		com.google.android.material.bottomsheet.BottomSheetDialog bs = new com.google.android.material.bottomsheet.BottomSheetDialog(MainActivity.this);
 		
 		View content = getLayoutInflater().inflate(layoutResId, null);
@@ -2697,10 +2728,7 @@ public class MainActivity extends AppCompatActivity {
 			this.desc = desc;
 		}
 	}
-	private void runTTSequence(android.app.Activity host,
-	java.util.List<TTStep> steps,
-	int index,
-	Runnable onFinish) {
+	private void runTTSequence(android.app.Activity host, java.util.List<TTStep> steps, int index, Runnable onFinish) {
 		if (index >= steps.size()) {
 			if (onFinish != null) onFinish.run();
 			return;
@@ -2713,10 +2741,7 @@ public class MainActivity extends AppCompatActivity {
 		));
 	}
 	
-	private void runTTSequence(android.app.Dialog host,
-	java.util.List<TTStep> steps,
-	int index,
-	Runnable onFinish) {
+	private void runTTSequence(android.app.Dialog host, java.util.List<TTStep> steps, int index, Runnable onFinish) {
 		if (index >= steps.size()) {
 			if (onFinish != null) onFinish.run();
 			return;

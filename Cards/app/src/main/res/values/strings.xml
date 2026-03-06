@@ -9,7 +9,7 @@
     <string name="bottom_top">Bottom to top</string>
     <string name="bottomleft_topright">Bottom left to top right</string>
     <string name="bottomright_topleft">Bottom right to top left</string>
-    <string name="by_date_created">Date created</string>
+    <string name="by_date_created">Date</string>
     <string name="by_name">Name</string>
     <string name="by_type">Type</string>
     <string name="by_use_count">Use count</string>
@@ -98,7 +98,7 @@
     <string name="settings_title">Settings</string>
     <string name="show">Show:</string>
     <string name="show_tutorial">Show first-use tutorial on next startup:</string>
-    <string name="sort_by">Sort by:</string>
+    <string name="sort_by">Sort by</string>
     <string name="take_photo">Take a photo</string>
     <string name="text_copied">Text was copied</string>
     <string name="text_size">Text size:</string>
