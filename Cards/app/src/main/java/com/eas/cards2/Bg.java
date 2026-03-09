@@ -77,6 +77,8 @@ public final class Bg {
 
         // Optional ripple wrapper
         if (rippleColor != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            v.setClickable(true);
+            v.setFocusable(true);
             ColorStateList ripple = ColorStateList.valueOf(rippleColor);
             // Mask null is okay; ripple will use content outline, but mask improves shape fidelity sometimes.
             return new RippleDrawable(ripple, content, null);

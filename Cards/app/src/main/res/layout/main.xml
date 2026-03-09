@@ -110,7 +110,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="175dp"
                     android:src="@drawable/ic_wallet"
-                    android:scaleType="fitCenter" />
+                    android:scaleType="fitCenter"
+                    app:tint="@color/app_stroke"/>
                 <TextView
                     android:id="@+id/no_items_top_txt"
                     android:layout_width="wrap_content"
@@ -134,15 +135,24 @@
             </LinearLayout>
 		</LinearLayout>
 	</LinearLayout>
-	<com.google.android.material.floatingactionbutton.FloatingActionButton
-		android:id="@+id/_fab"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:layout_margin="16dp"
+    <LinearLayout
+        android:id="@+id/fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_margin="16dp"
+        android:padding="8dp"
+        android:elevation="6dp"
         android:gravity="center"
-		android:layout_gravity="center_horizontal|bottom"
-		app:srcCompat="@drawable/ic_add"
-        app:tint="@color/app_icon_reversed"
-        app:backgroundTint="@color/app_accent"
-        app:maxImageSize="50dp" />
+        android:background="@drawable/gradient_fab"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_add"
+            android:scaleType="fitCenter"/>
+
+    </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

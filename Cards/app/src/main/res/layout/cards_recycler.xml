@@ -16,19 +16,20 @@
 			android:id="@+id/vertical_layout"
 			android:layout_width="wrap_content"
 			android:layout_height="match_parent"
-			android:gravity="center_horizontal|center_vertical"
-			android:orientation="vertical"
-			android:layout_gravity="center_horizontal|center_vertical">
+            android:layout_gravity="center"
+			android:gravity="center"
+			android:orientation="vertical">
 			<TextView
 				android:id="@+id/card_name"
 				android:focusable="false"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
 				android:text="@string/card_name"
 				android:textSize="20sp"
 				android:textStyle="bold"
 				android:textColor="#FFFFFF"
-				android:maxLines="3"
+				android:maxLines="2"
 				android:ellipsize="end" />
 			<TextView
 				android:id="@+id/card_label"
@@ -50,6 +51,7 @@
 			android:src="@drawable/default_image"
 			android:scaleType="fitCenter"
 			android:alpha="0.9"
-			android:layout_gravity="right|bottom" />
+			android:layout_gravity="right|bottom"
+            app:tint="@android:color/white"/>
 	</FrameLayout>
 </LinearLayout>
