@@ -27,7 +27,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import com.budiyev.android.codescanner.*;
 import com.budiyev.android.codescanner.CodeScannerView;
-import com.getkeepsafe.taptargetview.*;
 import com.google.zxing.*;
 import java.io.*;
 import java.text.*;
@@ -37,7 +36,8 @@ import jp.wasabeef.picasso.transformations.*;
 import org.json.*;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 
 public class ScannerActivity extends AppCompatActivity {
 	
@@ -100,4 +100,4 @@ public class ScannerActivity extends AppCompatActivity {
 		mCodeScanner.startPreview();
 	}
 	
-}
+}

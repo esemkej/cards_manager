@@ -5,13 +5,11 @@ import android.animation.*;
 import android.animation.ObjectAnimator;
 import android.app.*;
 import android.app.Activity;
-import android.content.*;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.res.*;
 import android.graphics.*;
 import android.graphics.drawable.*;
 import android.net.Uri;
@@ -21,6 +19,7 @@ import android.text.TextWatcher;
 import android.util.*;
 import android.view.*;
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.widget.*;
 import android.widget.EditText;
@@ -36,6 +35,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.zxing.*;
@@ -45,7 +45,6 @@ import java.util.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.google.android.material.textfield.TextInputEditText;
 import com.google.zxing.common.BitMatrix;
 
 import androidx.activity.result.ActivityResult;
@@ -55,8 +54,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import android.text.method.KeyListener;
-import android.view.inputmethod.InputMethodManager;
+
 import android.os.Build;
 import android.provider.MediaStore;
 import android.webkit.MimeTypeMap;
@@ -70,9 +68,11 @@ import com.squareup.picasso.Picasso;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import com.google.android.material.slider.Slider;
 
-
 public class MainActivity extends AppCompatActivity {
     // ==================== INTS ====================
+    private int sort;
+    private int order;
+    private int filter;
     private int theme;
     private static final int REQ_CAMERA = 1000;
     private static final int REQ_TAKE_PHOTO = 2001;
@@ -147,11 +147,16 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout search_bar;
     private LinearLayout filter_bar;
     private LinearLayout settings_bar;
+    private LinearLayout code_lay;
+    private LinearLayout scan_btn;
 
     // ==================== TEXTS AND EDITTEXTS ====================
     private TextView type_txt;
     private TextView no_items_top_txt;
     private TextView no_items_bottom_txt;
+    private TextView code_hint;
+    private TextView scan_txt;
+    private TextView display_btn;
 	private EditText code_edit;
     private EditText search_txt;
 
@@ -160,6 +165,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView filter_img;
     private ImageView settings_img;
     private ImageView wallet_img;
+    private ImageView code_img;
 
     // ==================== RECYCLERS ====================
     private RecyclerView cards_rec;
@@ -226,11 +232,12 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         if (card_prefs.contains("code") && card_prefs.contains("type")) {
             if (code_edit != null) {
-                code_menu_lay.setVisibility(View.VISIBLE);
                 code_edit.setText(card_prefs.getString("code", ""));
-                type_txt.setText(getString(R.string.card_type).concat(" ".concat(card_prefs.getString("type", ""))));
+                type_txt.setText(card_prefs.getString("type", ""));
                 cardSaveCode = card_prefs.getString("code", "");
                 cardSaveType = card_prefs.getString("type", "");
+                code_hint.setVisibility(View.GONE);
+                displayCode(cardSaveType, cardSaveCode);
                 card_prefs.edit().remove("code").commit();
                 card_prefs.edit().remove("type").commit();
             } else {
@@ -414,6 +421,10 @@ public class MainActivity extends AppCompatActivity {
                     final LinearLayout all = root.findViewById(R.id.all);
                     final LinearLayout favorites = root.findViewById(R.id.favorites);
 
+                    sort = loadSortTypeId();
+                    order = loadOrderId();
+                    filter = loadFilterId();
+
 					float scale = textScaleFromLevel((int) textLevel);
 					View[] views = new View[] {
 							filters_txt,
@@ -444,7 +455,7 @@ public class MainActivity extends AppCompatActivity {
                     pairs.add(new View[]{all_img, all_txt});
                     pairs.add(new View[]{favorites_img, favorites_txt});
                     for (View[] pair : pairs) {
-                        matchImageSize(pair, 1.2f);
+                        matchImageSize(pair, 1.2f, false);
                     }
 
                     Bg.apply(orders, color(R.color.app_surface_var), null, null, 16, null, 1, color(R.color.app_stroke), null);
@@ -452,34 +463,40 @@ public class MainActivity extends AppCompatActivity {
                     makeButton(apply_filters, 1);
 
                     TextView[] sort_buttons = new TextView[] {by_name, by_date_created, by_use_count};
-                    refreshToggleGroup(sort_buttons, loadSortTypeId());
+                    refreshToggleGroup(sort_buttons, sort);
                     for (TextView t : sort_buttons) {
-                        t.setOnClickListener(v -> {int selectedId = t.getId(); saveSortPrefs(selectedId, loadOrderId(), loadFilterId()); refreshToggleGroup(sort_buttons, selectedId);});
+                        t.setOnClickListener(v -> {int selectedId = t.getId(); sort = selectedId; refreshToggleGroup(sort_buttons, selectedId);});
                     }
 
                     List<View[]> order_buttons = new ArrayList<>();
                     order_buttons.add(new View[]{ascending, ascending_img, ascending_txt});
                     order_buttons.add(new View[]{descending, descending_img, descending_txt});
-                    refreshSwitchGroup(order_buttons, loadOrderId(), 0);
+                    refreshSwitchGroup(order_buttons, order, 0);
                     for (LinearLayout l : new LinearLayout[]{ascending, descending}) {
-                        l.setOnClickListener(v -> {int selectedId = l.getId(); saveSortPrefs(loadSortTypeId(), selectedId, loadFilterId()); refreshSwitchGroup(order_buttons, selectedId, 0);});
+                        l.setOnClickListener(v -> {int selectedId = l.getId(); order = selectedId; refreshSwitchGroup(order_buttons, selectedId, 0);});
                     }
 
-                    List<View[]> show_buttons = new ArrayList<>();
-                    show_buttons.add(new View[]{all, all_img, all_txt});
-                    show_buttons.add(new View[]{favorites, favorites_img, favorites_txt});
-                    refreshSwitchGroup(show_buttons, loadFilterId(), 1);
+                    List<View[]> filter_buttons = new ArrayList<>();
+                    filter_buttons.add(new View[]{all, all_img, all_txt});
+                    filter_buttons.add(new View[]{favorites, favorites_img, favorites_txt});
+                    refreshSwitchGroup(filter_buttons, filter, 1);
                     for (LinearLayout l : new LinearLayout[]{all, favorites}) {
-                        l.setOnClickListener(v -> {int selectedId = l.getId(); saveSortPrefs(loadSortTypeId(), loadOrderId(), selectedId); refreshSwitchGroup(show_buttons, selectedId, 1);});
+                        l.setOnClickListener(v -> {int selectedId = l.getId(); filter = selectedId; refreshSwitchGroup(filter_buttons, selectedId, 1);});
                     }
 
                     close_img.setOnClickListener(v -> {bs.dismiss();});
-                    apply_filters.setOnClickListener(v -> {bs.dismiss();});
+                    apply_filters.setOnClickListener(v -> {
+                        saveSortPrefs(sort, order, filter);
+                        applySortFilter(search_txt.getText().toString(), sort, order, filter);
+                        bs.dismiss();
+                    });
                     reset_to_default.setOnClickListener(v -> {
-                        saveSortPrefs(R.id.by_name, R.id.ascending, R.id.all);
-                        refreshToggleGroup(sort_buttons, R.id.by_name);
-                        refreshSwitchGroup(order_buttons, R.id.ascending, 0);
-                        refreshSwitchGroup(show_buttons, R.id.all, 1);
+                        sort = R.id.by_name;
+                        order = R.id.ascending;
+                        filter = R.id.all;
+                        refreshToggleGroup(sort_buttons, sort);
+                        refreshSwitchGroup(order_buttons, order, 0);
+                        refreshSwitchGroup(filter_buttons, filter, 1);
                     });
 				});
 			}
@@ -572,7 +589,7 @@ public class MainActivity extends AppCompatActivity {
                     pairs.add(new View[]{import_img, import_txt});
                     pairs.add(new View[]{export_img, export_txt});
                     for (View[] pair : pairs) {
-                        matchImageSize(pair, 1.2f);
+                        matchImageSize(pair, 1.2f, false);
                     }
 
                     TextView[] theme_buttons = new TextView[] {light, dark, system_default};
@@ -610,7 +627,7 @@ public class MainActivity extends AppCompatActivity {
                             applyTextScale((TextView) v, text_scale);
                         }
                         for (View[] pair : pairs) {
-                            matchImageSize(pair, 1.2f);
+                            matchImageSize(pair, 1.2f, false);
                         }
                     });
                     camera.setOnClickListener(v -> {scanImage = false; refreshSwitchGroup(mode_buttons, R.id.camera, 0);});
@@ -1150,6 +1167,138 @@ public class MainActivity extends AppCompatActivity {
             cardsAdapter.notifyDataSetChanged();
         }
     }
+    private void scanCode(boolean scanImg) {
+        if (scanImg) {
+            pickImage(new OnImagePicked() {
+                @Override
+                public void onPicked(Uri uri) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                android.graphics.Bitmap bitmap = loadBitmapFromUri(uri, 2048);
+
+                                com.google.zxing.Result result = decodeWithZxing(bitmap);
+
+                                final String text = result.getText();
+                                final String type = result.getBarcodeFormat().toString();
+
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        code_edit.setText(text);
+                                        type_txt.setText(type);
+                                        cardSaveCode = text;
+                                        cardSaveType = type;
+                                        code_hint.setVisibility(View.GONE);
+                                        displayCode(cardSaveType, cardSaveCode);
+                                    }
+                                });
+
+                            } catch (final Exception e) {
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        SketchwareUtil.showMessage(getApplicationContext(), e.toString());
+                                    }
+                                });
+                            }
+                        }
+                    }).start();
+                }
+            }, new OnCancelled() {
+                @Override
+                public void onCancelled() {
+
+                }
+            });
+        } else {
+            scan = true;
+            openScannerOrRequestPermission();
+        }
+    }
+    private void displayCode(String codeType, String codeValue) {
+        code_img.post(() -> {
+            try {
+                BarcodeFormat format = mapFormat(codeType);
+                int width  = code_img.getWidth();
+                int height = is2D(format) ? width : (int) (width * 0.4f);
+
+                Map<EncodeHintType, Object> hints = new HashMap<>();
+                hints.put(EncodeHintType.MARGIN, 1);
+
+                BitMatrix matrix = new MultiFormatWriter().encode(codeValue, format, width, height, hints);
+
+                Bitmap bitmap = toBitmap(matrix);
+                code_img.setImageBitmap(bitmap);
+                setSize(code_img, ViewGroup.LayoutParams.WRAP_CONTENT, KEEP);
+                setSize(code_lay, ViewGroup.LayoutParams.WRAP_CONTENT, KEEP);
+
+            } catch (WriterException | IllegalArgumentException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+    private void scanOrDisplayCode(boolean scan) {
+        showDialog(R.layout.code_display_dialog, R.id.parent, (dlg, dRoot) -> {
+            final TextView save = dRoot.findViewById(R.id.save);
+            final TextView code_details_txt = dRoot.findViewById(R.id.code_details_txt);
+            final ImageView rescan = dRoot.findViewById(R.id.rescan);
+            final ImageView close_img = dRoot.findViewById(R.id.close_img);
+            final LinearLayout code_display = dRoot.findViewById(R.id.code_display);
+            code_hint = dRoot.findViewById(R.id.code_hint);
+            code_lay = dRoot.findViewById(R.id.code_lay);
+            code_img = dRoot.findViewById(R.id.code_img);
+            code_edit = dRoot.findViewById(R.id.code_edit);
+            type_txt = dRoot.findViewById(R.id.type_txt);
+
+            matchImageSize(new View[]{rescan, save}, 1, true);
+            matchImageSize(new View[]{close_img, code_details_txt}, 1.2f, false);
+
+            Bg.apply(code_display, color(R.color.app_surface_var), null, null, 16, null, 0, null, null);
+            Bg.apply(code_lay, null, null, null, 16, null, 0, null, null);
+            code_lay.setClipToOutline(true);
+            makeButton(save, 0);
+            makeButton(rescan, 0);
+
+            code_edit.setClickable(false);
+            code_edit.setFocusable(false);
+            code_edit.setFocusableInTouchMode(false);
+            code_edit.setCursorVisible(false);
+            code_edit.setKeyListener(null);
+            code_edit.setText(getString(R.string.none));
+            type_txt.setText(getString(R.string.none));
+            scan_txt.setVisibility(View.GONE);
+            display_btn.setVisibility(View.VISIBLE);
+            setSize(scan_btn, ViewGroup.LayoutParams.WRAP_CONTENT, KEEP);
+
+            save.setOnClickListener(s -> {
+                if (type_txt.getText().toString().isEmpty() || code_edit.getText().toString().isEmpty()) {
+                    SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.please_scan_code));
+                } else {
+                    dlg.dismiss();
+                }
+            });
+            rescan.setOnClickListener(r -> {scanCode(scanImage);});
+            close_img.setOnClickListener(c -> {
+                if (cardSaveType.equals(getString(R.string.none)) && cardSaveCode.isEmpty()) {
+                    scan_txt.setVisibility(View.VISIBLE);
+                    display_btn.setVisibility(View.GONE);
+                    setSize(scan_btn, ViewGroup.LayoutParams.MATCH_PARENT, KEEP);
+                }
+                dlg.dismiss();
+            });
+
+            if (scan) {
+                scanCode(scanImage);
+            } else {
+                displayCode(cardSaveType, cardSaveCode);
+                code_edit.setText(cardSaveCode);
+                type_txt.setText(cardSaveType);
+                code_hint.setVisibility(View.GONE);
+            }
+        });
+    }
     public boolean isValidItem() {
         if (cardSaveName.isEmpty()) {
             return (false);
@@ -1253,8 +1402,28 @@ public class MainActivity extends AppCompatActivity {
         }
         return true;
     }
-    private String cardsCountText(int count) {
-        return getResources().getQuantityString(R.plurals.cards_count, count, count);
+    private boolean is2D(BarcodeFormat format) {
+        return format == BarcodeFormat.QR_CODE || format == BarcodeFormat.AZTEC || format == BarcodeFormat.DATA_MATRIX || format == BarcodeFormat.PDF_417;
+    }
+    private String itemsCountText(int count) {
+        return getResources().getQuantityString(R.plurals.items_count, count, count);
+    }
+    private String randomGradStyle() {
+        String[] directions = {"lr", "rl", "tb", "bt", "tl_br", "tr_bl", "bl_tr", "br_tl"};
+        return directions[new Random().nextInt(directions.length)];
+    }
+    private Bitmap toBitmap(BitMatrix matrix) {
+        int w = matrix.getWidth();
+        int h = matrix.getHeight();
+        int[] pixels = new int[w * h];
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                pixels[y * w + x] = matrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF;
+            }
+        }
+        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        bmp.setPixels(pixels, 0, w, 0, 0, w, h);
+        return bmp;
     }
     private ArrayList<HashMap<String, Object>> buildSectionedList(ArrayList<HashMap<String, Object>> sortedItems) {
         ArrayList<HashMap<String, Object>> folders = new ArrayList<>();
@@ -1289,39 +1458,60 @@ public class MainActivity extends AppCompatActivity {
 
         return out;
     }
+    private BarcodeFormat mapFormat(String type) {
+        switch (type.toUpperCase().replace("-", "_").replace(" ", "_")) {
+            case "QR":
+            case "QR_CODE":        return BarcodeFormat.QR_CODE;
+            case "AZTEC":          return BarcodeFormat.AZTEC;
+            case "DATA_MATRIX":    return BarcodeFormat.DATA_MATRIX;
+            case "PDF_417":
+            case "PDF417":         return BarcodeFormat.PDF_417;
+            case "CODE_128":       return BarcodeFormat.CODE_128;
+            case "CODE_39":        return BarcodeFormat.CODE_39;
+            case "CODE_93":        return BarcodeFormat.CODE_93;
+            case "EAN_13":
+            case "EAN13":          return BarcodeFormat.EAN_13;
+            case "EAN_8":
+            case "EAN8":           return BarcodeFormat.EAN_8;
+            case "UPC_A":
+            case "UPCA":           return BarcodeFormat.UPC_A;
+            case "UPC_E":
+            case "UPCE":           return BarcodeFormat.UPC_E;
+            case "ITF":            return BarcodeFormat.ITF;
+            case "CODABAR":        return BarcodeFormat.CODABAR;
+            default:               return BarcodeFormat.QR_CODE;
+        }
+    }
 
     // ==================== CARD CRUD ====================
-    public void displayInfo(final HashMap<String, Object> _data, final boolean _newItem) {
+    public void displayInfo(final HashMap<String, Object> data, final boolean newItem) {
         pendingImages.clear();
         pictures_list.clear();
         noCode = false;
-        boolean favFolder = isVirtualFavorites(_data);
-        if (_newItem) {
+        if (newItem) {
             newId = card_prefs.getLong("lastId", -1) + 1;
             cardSaveName = "";
             cardSaveType = getString(R.string.none);
             cardSaveCode = "";
-            selectedGradStyle = "lr";
+            selectedGradStyle = randomGradStyle();
             id = String.valueOf(newId);;
             favorite = false;
             folder = false;
             newCardSaved = false;
         } else {
-            cardSaveName = _data.get("name").toString();
-            selectedGradStyle = _data.get("grad_style").toString();
-            id = _data.get("id").toString();
-            if (!favFolder) {
-                favorite = (boolean)_data.get("favorite");
-            }
-            folder = (boolean)_data.get("folder");
-            if (!folder && (_data.containsKey("type") && _data.containsKey("code"))) {
-                cardSaveType = _data.get("type").toString();
-                cardSaveCode = _data.get("code").toString();
+            cardSaveName = data.get("name").toString();
+            selectedGradStyle = data.get("grad_style").toString();
+            id = data.get("id").toString();
+            favorite = (boolean) data.get("favorite");
+            folder = (boolean) data.get("folder");
+            if (!folder && (data.containsKey("type") && data.containsKey("code"))) {
+                cardSaveType = data.get("type").toString();
+                cardSaveCode = data.get("code").toString();
             } else {
                 noCode = true;
             }
-            if (_data.containsKey("images")) {
-                pendingImages.addAll((ArrayList<String>) _data.get("images"));
+            if (data.containsKey("images")) {
+                pendingImages.addAll((ArrayList<String>) data.get("images"));
                 for (String fn : pendingImages) {
                     if (fn == null) continue;
                     HashMap<String, Object> m = new HashMap<>();
@@ -1332,40 +1522,238 @@ public class MainActivity extends AppCompatActivity {
         }
 
         showBottomSheet(R.layout.display_dialog, 0, (bs, root) -> {
-            final TextView card_name = root.findViewById(R.id.card_name);
-            final TextView card_name_txt = root.findViewById(R.id.card_name_txt);
+            final View top_bar = root.findViewById(R.id.top_bar);
+            final TextView folder_txt = root.findViewById(R.id.folder_txt);
+            final TextView color_theme_txt = root.findViewById(R.id.color_theme_txt);
+            final TextView picture_gallery_txt = root.findViewById(R.id.picture_gallery_txt);
+            final TextView save_txt = root.findViewById(R.id.save_txt);
+            final TextView del_txt = root.findViewById(R.id.del_txt);
+            final EditText card_name = root.findViewById(R.id.card_name);
+            final ImageView close_img = root.findViewById(R.id.close_img);
+            final ImageView text_img = root.findViewById(R.id.text_img);
             final ImageView folder_btn = root.findViewById(R.id.folder_btn);
             final ImageView fav_btn = root.findViewById(R.id.fav_btn);
+            final ImageView scan_img = root.findViewById(R.id.scan_img);
+            final ImageView save_img = root.findViewById(R.id.save_img);
+            final ImageView del_img = root.findViewById(R.id.del_img);
             final LinearLayout card_name_lay = root.findViewById(R.id.card_name_lay);
+            final LinearLayout save_btn = root.findViewById(R.id.save_btn);
+            final LinearLayout del_btn = root.findViewById(R.id.del_btn);
+            final LinearLayout picture_lay = root.findViewById(R.id.picture_lay);
+            final LinearLayout code_btn_lay = root.findViewById(R.id.code_btn_lay);
+            scan_txt = root.findViewById(R.id.scan_txt);
+            display_btn = root.findViewById(R.id.display_btn);
+            scan_btn = root.findViewById(R.id.scan_btn);
+            colors_rec = root.findViewById(R.id.colors_rec);
+            pictures_rec = root.findViewById(R.id.pictures_rec);
+
+            matchImageSize(new View[]{close_img, folder_txt}, 1.2f, false);
+            matchImageSize(new View[]{folder_btn, card_name}, 1.2f, true);
+            matchImageSize(new View[]{fav_btn, card_name}, 1.2f, true);
+            matchImageSize(new View[]{text_img, card_name}, 1.1f, false);
+            matchImageSize(new View[]{save_img, save_txt}, 1.1f, false);
+            matchImageSize(new View[]{del_img, del_txt}, 1.1f, false);
+            display_btn.post(() -> {
+                int h = Math.round(display_btn.getHeight() * 1f);
+                setSize(scan_img, h, h);
+                if (newItem || noCode) {
+                    display_btn.setVisibility(View.GONE);
+                } else {
+                    scan_txt.setVisibility(View.GONE);
+                    setSize(scan_btn, ViewGroup.LayoutParams.WRAP_CONTENT, KEEP);
+                }
+            });
+
+            Bg.apply(card_name_lay, color(R.color.app_surface_var), null, null, 16, null, 0, null, null);
+            makeTopBar(top_bar);
+            makeButton(display_btn, 2);
+            makeButton(scan_btn, 2);
+            makeButton(save_btn, 0);
 
             float scale = textScaleFromLevel((int) textLevel);
             View[] views = new View[]{
                     card_name,
-                    card_name_txt
+                    color_theme_txt,
+                    display_btn,
+                    save_txt,
+                    scan_txt,
+                    del_txt
             };
             for (View v : views) {
                 applyTextScale((TextView) v, scale);
             }
 
-            List<View[]> pairs = new ArrayList<>();
-            pairs.add(new View[]{folder_btn, card_name_lay});
-            pairs.add(new View[]{fav_btn, card_name_lay});
-            for (View[] pair : pairs) {
-                matchImageSize(pair, 0.75f);
+            colors_list.clear();
+            folder_btn.setSelected(folder);
+            fav_btn.setSelected(favorite);
+            folder_txt.setText(getString(R.string.folder) + " " + (inFolder ? folderPath : getString(R.string.none)));
+
+            if (!folder) {
+                View[] nf_views = new View[]{
+                        picture_gallery_txt
+                };
+                for (View v : nf_views) {
+                    applyTextScale((TextView) v, scale);
+                }
+
+                pictures_rec.setLayoutManager(new LinearLayoutManager(MainActivity.this, LinearLayoutManager.HORIZONTAL, false));
+                pictures = new HashMap<>();
+                pictures.put("image", "plus");
+                pictures_list.add(pictures);
+                picturesAdapter = new Pictures_recAdapter(pictures_list);
+                pictures_rec.setAdapter(picturesAdapter);
+
+                scan_btn.setOnClickListener(v -> {scanOrDisplayCode(true);});
+                display_btn.setOnClickListener(v -> {scanOrDisplayCode(false);});
             }
+
+            if (newItem) {
+                del_btn.setVisibility(View.GONE);
+
+                colors = new HashMap<>();
+                colors.put("color", color(R.color.app_accent));
+                colors_list.add(colors);
+
+                folder_btn.setOnClickListener(v -> {
+                    boolean newSelected = !folder_btn.isSelected();
+                    folder = newSelected;
+                    folder_btn.setSelected(newSelected);
+                    animateCheckButton(folder_btn, new View[]{picture_lay, code_btn_lay, color_theme_txt}, newSelected);
+                });
+            } else {
+                card_name.setText(cardSaveName);
+
+                try {
+                    java.lang.reflect.Type t = new com.google.gson.reflect.TypeToken<ArrayList<Integer>>(){}.getType();
+                    ArrayList<Integer> picked = new Gson().fromJson(String.valueOf(data.get("colors")), t);
+
+                    if (picked != null) {
+                        for (Integer c : picked) {
+                            colors = new HashMap<>();
+                            colors.put("color", c);
+                            colors_list.add(colors);
+                        }
+                    }
+                } catch (Exception e) {
+                    colors = new HashMap<>();
+                    colors.put("color", 0xFF008DCD);
+                    colors_list.add(colors);
+                    SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.color_fail) + " " + e.getMessage());
+                }
+                if (folder) {
+                    picture_lay.setVisibility(View.GONE);
+                    code_btn_lay.setVisibility(View.GONE);
+                } else {
+                    if (noCode) {picture_gallery_txt.setVisibility(View.GONE);}
+                }
+            }
+
+            fav_btn.setOnClickListener(v -> {toggleFavorite(fav_btn, newItem, newItem ? null : data);});
+            save_btn.setOnClickListener(v -> {
+                cardSaveName = card_name.getText().toString();
+
+                if (isValidItem()) {
+                    ArrayList<Integer> picked = new ArrayList<>();
+                    for (HashMap<String, Object> m : colors_list) {
+                        Object color = m.get("color");
+                        if (!(color instanceof Integer)) continue;
+                        picked.add((Integer) color);
+                    }
+
+                    cards = new HashMap<>();
+                    cards.put("name", cardSaveName);
+
+                    if (!folder) {
+                        if (!cardSaveType.equals(getString(R.string.no))) {
+                            cards.put("type", cardSaveType);
+                            cards.put("code", cardSaveCode);
+                        }
+                        if (!pendingImages.isEmpty()) {
+                            cards.put("images", new ArrayList<>(pendingImages));
+                            pendingImages.clear();
+                        }
+                        if (!pendingDelete.isEmpty()) {
+                            for (String str : pendingDelete) {
+                                File f = new File(getFilesDir(), "card_images/" + id + "/" + str);
+                                if (f.exists()) f.delete();
+                            }
+                            pendingDelete.clear();
+                        }
+                    }
+
+                    cards.put("folder", folder);
+                    cards.put("grad_style", selectedGradStyle);
+                    cards.put("id", id);
+                    cards.put("favorite", favorite);
+                    cards.put("colors", new Gson().toJson(picked));
+
+                    if (newItem) {
+                        newCardSaved = true;
+                        if (folder) {
+                            cards.put("data", new ArrayList<HashMap<String,Object>>());
+                        }
+                        cards.put("used", (double) (0));
+                        card_prefs.edit().putLong("lastId", newId).commit();
+                        cards_list.add(cards);
+                        if (inFolder) {
+                            ArrayList<HashMap<String, Object>> masterContainer = resolveContainerList(cards_list_all, folderIdStack);
+                            masterContainer.add(cards);
+                        } else {
+                            cards_list_all.add(cards);
+                        }
+                    } else {
+                        if (folder) {
+                            cards.put("data", data.get("data"));
+                        }
+                        cards.put("used", data.get("used"));
+                        cards_list.set(indexOfCardById(cards_list, id), cards);
+                        if (inFolder) {
+                            ArrayList<HashMap<String, Object>> masterContainer =
+                                    resolveContainerList(cards_list_all, folderIdStack);
+                            int index = indexOfCardById(masterContainer, id);
+                            masterContainer.set(index, cards);
+                        } else {
+                            int index = indexOfCardById(cards_list_all, id);
+                            cards_list_all.set(index, cards);
+                        }
+                    }
+
+                    saveCards(null);
+                    applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
+                    bs.dismiss();
+                }
+            });
+
+            close_img.setOnClickListener(v -> {bs.dismiss();});
+            del_btn.setOnClickListener(v -> {showDefaultDialog(getString(R.string.delete), getString(R.string.del_ask), getString(R.string.delete), getString(R.string.cancel), () -> {
+                ArrayList<HashMap<String, Object>> container;
+                container = inFolder && !folderIdStack.isEmpty() ? resolveContainerList(cards_list_all, folderIdStack) : cards_list_all;
+
+                boolean removed = removeByIdInList(container, id);
+                if (!removed) removed = removeByIdRecursive(cards_list_all, id);
+
+                File dir = new File(getFilesDir(), "card_images/" + id);
+                if (dir.exists()) deleteRecursive(dir);
+
+                saveCards(null);
+                SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.del_msg));
+                applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
+                bs.dismiss();
+            }, null, null, true);});
+
+            colors_rec.setLayoutManager(new LinearLayoutManager(MainActivity.this, LinearLayoutManager.HORIZONTAL, false));
+            colors = new HashMap<>();
+            colors.put("color", "plus");
+            colors_list.add(colors);
+            colorsAdapter = new Colors_recAdapter(colors_list);
+            colors_rec.setAdapter(colorsAdapter);
         });
     }
-    private void toggleFavorite(View heartView, boolean isNew, HashMap<String, Object> _data) {
-        boolean currentlyFavorite = false;
-        if (isNew) {
-            currentlyFavorite = heartView.isSelected();
-        } else {
-            currentlyFavorite = (boolean) _data.get("favorite");
-        }
-        boolean newFavorite = !currentlyFavorite;
-        heartView.setSelected(newFavorite);
+    private void toggleFavorite(View heartView, boolean isNew, HashMap<String, Object> data) {
+        favorite = !favorite;
+        heartView.setSelected(favorite);
 
-        if (newFavorite) {
+        if (favorite) {
             heartView.animate().cancel();
             heartView.setScaleX(1f);
             heartView.setScaleY(1f);
@@ -1389,14 +1777,14 @@ public class MainActivity extends AppCompatActivity {
                     .start();
         }
         if (!isNew) {
-            _data.put("favorite", newFavorite);
+            data.put("favorite", favorite);
             if (inFolder) {
                 ArrayList<HashMap<String, Object>> masterContainer = resolveContainerList(cards_list_all, folderIdStack);
                 int index = indexOfCardById(masterContainer, id);
-                masterContainer.get(index).put("favorite", newFavorite);
+                masterContainer.get(index).put("favorite", favorite);
             } else {
                 int index = indexOfCardById(cards_list_all, id);
-                cards_list_all.get(index).put("favorite", newFavorite);
+                cards_list_all.get(index).put("favorite", favorite);
             }
             card_prefs.edit().putString("cards", new Gson().toJson(cards_list_all)).commit();
             applySortFilter(search_txt.getText().toString(),loadSortTypeId(),loadOrderId(), loadFilterId());
@@ -2041,7 +2429,20 @@ public class MainActivity extends AppCompatActivity {
             Bg.apply(button, color(R.color.app_surface), null, null, 16, null, 1, color(R.color.app_stroke), color(R.color.app_ripple));
         } else if (style == 1) {
             Bg.apply(button, null, new int[]{color(R.color.app_accent), color(R.color.app_accent_light)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
+        } else if (style == 2) {
+            Bg.apply(button, null, new int[]{color(R.color.app_accent_light), color(R.color.app_accent)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
+        } else if (style == 3) {
+            Bg.apply(button, color(R.color.app_accent_caution), null, null, 16, null, 0, null, color(R.color.app_ripple));
         }
+    }
+    private void makeDashedButton(View button, int fillColor, int cornerRadius, int strokeColor, int strokeWidth, int dashLength, int dashGap) {
+        float density = getResources().getDisplayMetrics().density;
+        button.setClickable(true);
+        button.setBackground(new GradientDrawable() {{
+            setCornerRadius(cornerRadius * density);
+            setStroke((int) (strokeWidth * density), strokeColor, dashLength * density, dashGap * density);
+            setColor(fillColor);
+        }});
     }
     private void makeSwitchButton(View[] views, boolean toggled, int style) {
         final LinearLayout parent = (LinearLayout) views[0];
@@ -2079,21 +2480,70 @@ public class MainActivity extends AppCompatActivity {
             boolean toggled = views[0].getId() == selectedId;
             makeSwitchButton(views, toggled, style);
         }
-        applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
     }
     private void refreshToggleGroup(View[] views, int selectedId) {
         for (View v : views) {
             makeToggleButton(v, v.getId() == selectedId);
         }
-        applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
     }
-    private void matchImageSize(View[] views, float multiplier) {
-        ImageView image = (ImageView) views[0];
-        View view = views[1];
+    private void matchImageSize(View[] pair, float multiplier, boolean matchWidth) {
+        final ImageView image = (ImageView) pair[0];
+        final View view = pair[1];
         view.post(() -> {
-            int h = (int) Math.round(view.getHeight() * multiplier);
-            setSize(image, ViewGroup.LayoutParams.WRAP_CONTENT, h);
+            int h = Math.round(view.getHeight() * multiplier);
+            setSize(image, matchWidth ? h : ViewGroup.LayoutParams.WRAP_CONTENT, h);
         });
+    }
+    private void animateCheckButton(View checkView, View[] affectedViews, boolean selected) {
+        AnimatorSet animSet = new AnimatorSet();
+        checkView.setSelected(selected);
+
+        if (selected) {
+            checkView.animate().cancel();
+            checkView.setScaleX(1f);
+            checkView.setScaleY(1f);
+
+            checkView.animate()
+                    .scaleX(1.18f)
+                    .scaleY(1.18f)
+                    .setDuration(90)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator())
+                    .withEndAction(() -> {
+                        checkView.animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(120)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                .start();
+                    })
+                    .start();
+            animSet.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    if (affectedViews != null) {
+                        for (View v : affectedViews) {
+                            v.setVisibility(View.GONE);
+                        }
+                    }
+                }
+            });
+        } else if (affectedViews != null) {
+            for (View v : affectedViews) {
+                v.setVisibility(View.VISIBLE);
+            }
+        }
+
+        List<Animator> anims = new ArrayList<>();
+        if (affectedViews != null) {
+            for (View v : affectedViews) {
+                anims.add(ObjectAnimator.ofFloat(v, "alpha", selected ? 1f : 0f, selected ? 0f : 1f));
+            }
+        }
+
+        animSet.playTogether(anims);
+        animSet.setDuration(250);
+        animSet.setInterpolator(new LinearInterpolator());
+        animSet.start();
     }
     private static void applyTextScale(TextView tv, float scale) {
         Object tag = tv.getTag(TAG_BASE_TEXT_PX);
@@ -2105,11 +2555,6 @@ public class MainActivity extends AppCompatActivity {
             tv.setTag(TAG_BASE_TEXT_PX, basePx);
         }
         tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, basePx * scale);
-    }
-    private static float textScaleFromLevel(int level) {
-        int clamped = Math.max(1, Math.min(5, level));
-        int delta = clamped - 3;
-        return (float) Math.pow(1.12, delta);
     }
     private static void setSize(View v, int width, int height) {
         ViewGroup.LayoutParams lp = v.getLayoutParams();
@@ -2134,6 +2579,64 @@ public class MainActivity extends AppCompatActivity {
         int w = (widthDp == KEEP ? KEEP : Math.round(widthDp * d));
         int h = (heightDp == KEEP ? KEEP : Math.round(heightDp * d));
         setSize(v, w, h);
+    }
+    public static void revealDisplayButton(
+            TextView displayBtn,
+            LinearLayout scanBtn,
+            TextView scanTxt) {
+
+        final int FADE_DURATION  = 160;
+        final int MORPH_DELAY    = 80;
+        final int MORPH_DURATION = 320;
+
+        // Snap scan_btn to wrap_content immediately (was match_parent)
+        setSize(scanBtn, ViewGroup.LayoutParams.WRAP_CONTENT, KEEP);
+
+        // Prepare display_btn: visible but takes no space and fully transparent
+        LinearLayout.LayoutParams displayParams = (LinearLayout.LayoutParams) displayBtn.getLayoutParams();
+        displayParams.width  = 0;
+        displayParams.weight = 0f;
+        displayBtn.setLayoutParams(displayParams);
+        displayBtn.setVisibility(View.VISIBLE);
+        displayBtn.setAlpha(0f);
+
+        // Phase 1: fade out scan_txt, then let scan_btn snap naturally to icon-only
+        scanTxt.animate()
+                .alpha(0f)
+                .setDuration(FADE_DURATION)
+                .withEndAction(() -> scanTxt.setVisibility(View.GONE))
+                .start();
+
+        // Phase 2: grow display_btn via weight
+        ValueAnimator morph = ValueAnimator.ofFloat(0f, 1f);
+        morph.setStartDelay(MORPH_DELAY);
+        morph.setDuration(MORPH_DURATION);
+        morph.setInterpolator(new DecelerateInterpolator(1.5f));
+
+        morph.addUpdateListener(anim -> {
+            float t = (float) anim.getAnimatedValue();
+            LinearLayout.LayoutParams dp = (LinearLayout.LayoutParams) displayBtn.getLayoutParams();
+            dp.weight = t;
+            displayBtn.setLayoutParams(dp);
+            displayBtn.setAlpha(Math.max(0f, (t - 0.2f) / 0.8f));
+        });
+
+        morph.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                LinearLayout.LayoutParams dp = (LinearLayout.LayoutParams) displayBtn.getLayoutParams();
+                dp.weight = 1f;
+                displayBtn.setLayoutParams(dp);
+                displayBtn.setAlpha(1f);
+            }
+        });
+
+        morph.start();
+    }
+    private static float textScaleFromLevel(int level) {
+        int clamped = Math.max(1, Math.min(5, level));
+        int delta = clamped - 3;
+        return (float) Math.pow(1.12, delta);
     }
     private int color(int id) {
         return ContextCompat.getColor(MainActivity.this, id);
@@ -2165,7 +2668,7 @@ public class MainActivity extends AppCompatActivity {
         View root = content.findViewById(rootIdOr0);
         if (root == null) return;
 
-        Bg.apply(root, 0xFFFFFFFF, null, null, 12f, null, 2f, 0xFF212121, null);
+        Bg.apply(root, color(R.color.app_bg), null, null, 16, null, 0, null, null);
     }
     private void showPopup(View anchor, PopupPos pos, int xDp, int yDp, int topTextRes, int bottomTextRes, int topIconRes, int bottomIconRes, Runnable onTop, Runnable onBottom, Runnable onDismiss) {
         if (anchor == null) return;
@@ -2362,6 +2865,37 @@ public class MainActivity extends AppCompatActivity {
             });
         });
     }
+    private void showDefaultDialog(String title, String message, String pos_txt, String neg_txt, Runnable positive, Runnable negative, Runnable dismiss, boolean caution) {
+        showDialog(R.layout.dialog, R.id.parent, (dlg, root) -> {
+            final TextView title_txt = root.findViewById(R.id.title_txt);
+            final TextView message_txt = root.findViewById(R.id.message_txt);
+            final TextView positive_txt = root.findViewById(R.id.positive_txt);
+            final TextView negative_txt = root.findViewById(R.id.negative_txt);
+            final ImageView close_img = root.findViewById(R.id.close_img);
+
+            float scale = textScaleFromLevel((int) textLevel);
+            applyTextScale(title_txt, scale);
+            applyTextScale(message_txt, scale);
+            applyTextScale(positive_txt, scale);
+            applyTextScale(negative_txt, scale);
+            matchImageSize(new View[]{close_img, title_txt}, 1.2f, false);
+
+            title_txt.setText(title);
+            message_txt.setText(message);
+            positive_txt.setText(pos_txt);
+            negative_txt.setText(neg_txt);
+
+            makeButton(negative_txt, 0);
+            makeButton(positive_txt, caution ? 3 : 0);
+            positive_txt.setTextColor(caution ? 0xFFFFFFFF : color(R.color.app_accent));
+
+            positive_txt.setOnClickListener(v -> {if (positive != null) positive.run(); dlg.dismiss();});
+            negative_txt.setOnClickListener(v -> {if (negative != null) negative.run(); dlg.dismiss();});
+            close_img.setOnClickListener(v -> {dlg.dismiss();});
+        }, dialog -> {
+            if (dismiss != null) dismiss.run();
+        });
+    }
     private static void setupWindowTransparent(Dialog d) {
         if (d == null) return;
         d.setCancelable(true);
@@ -2369,6 +2903,18 @@ public class MainActivity extends AppCompatActivity {
         if (d.getWindow() != null) {
             d.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
         }
+    }
+    private static void setupWindowSize(Dialog d, int horizontalMarginDp) {
+        if (d == null || d.getWindow() == null) return;
+
+        float density = d.getContext().getResources().getDisplayMetrics().density;
+        int marginPx = Math.round(horizontalMarginDp * density);
+        int screenWidth = d.getContext().getResources().getDisplayMetrics().widthPixels;
+
+        WindowManager.LayoutParams params = d.getWindow().getAttributes();
+        params.width = screenWidth - (marginPx * 2);
+        params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        d.getWindow().setAttributes(params);
     }
     private DialogShell<Dialog> showDialog(int layoutResId, Binder<Dialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
         Dialog d = new Dialog(MainActivity.this);
@@ -2380,6 +2926,7 @@ public class MainActivity extends AppCompatActivity {
         if (onBind != null) onBind.bind(d, content);
 
         d.show();
+        setupWindowSize(d, 24);
         return new DialogShell<>(d, content);
     }
     private DialogShell<Dialog> showDialog(int layoutResId, int rootIdOr0, Binder<Dialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
@@ -2405,6 +2952,14 @@ public class MainActivity extends AppCompatActivity {
         if (onBind != null) onBind.bind(bs, content);
 
         bs.show();
+
+        View bSheet = bs.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bSheet != null) {
+            com.google.android.material.bottomsheet.BottomSheetBehavior<View> behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(bSheet);
+            behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            behavior.setSkipCollapsed(true);
+        }
+
         return new DialogShell<>(bs, content);
     }
     private DialogShell<com.google.android.material.bottomsheet.BottomSheetDialog> showBottomSheet(int layoutResId, int rootIdOr0, Binder<com.google.android.material.bottomsheet.BottomSheetDialog> onBind, android.content.DialogInterface.OnDismissListener onDismiss) {
@@ -2497,6 +3052,7 @@ public class MainActivity extends AppCompatActivity {
             type_img.setVisibility(View.VISIBLE);
             Object nameObj = m.get("name");
             card_name.setText(nameObj == null ? "" : String.valueOf(nameObj));
+
             ArrayList<Integer> picked = new ArrayList<>();
             try {
                 Object raw = m.get("colors");
@@ -2530,11 +3086,12 @@ public class MainActivity extends AppCompatActivity {
                     gradientColors[i] = picked.get(i);
                 }
             }
+            Bg.apply(parent, solidColor, gradientColors, ori, 16, null, 0, null, color(R.color.app_ripple));
 
-            Bg.apply(parent, solidColor, gradientColors, ori, 16f, null, 0f, 0x00000000, 0xFFD2B6DC);
             float scale = textScaleFromLevel((int) textLevel);
             applyTextScale(card_name, scale);
             applyTextScale(card_label, scale);
+
             parent.post(() -> {
                 int w = parent.getWidth();
                 int type_w = (int) Math.round(w * 0.15);
@@ -2551,12 +3108,12 @@ public class MainActivity extends AppCompatActivity {
                 ViewGroup.MarginLayoutParams c_mlp = (ViewGroup.MarginLayoutParams) card_name.getLayoutParams();
                 c_mlp.setMargins(type_m, type_m, type_m, type_m);
                 card_name.setLayoutParams(c_mlp);
-                if ((boolean)m.get("folder")) {
+                if ((boolean) m.get("folder")) {
                     ArrayList<HashMap<String, Object>> folder_data = new ArrayList<>();
                     folder_data.addAll((ArrayList<HashMap<String, Object>>) _data.get(_position).get("data"));
                     int len = folder_data.size();
                     card_name.setAllCaps(false);
-                    card_label.setText(cardsCountText(len));
+                    card_label.setText(itemsCountText(len));
                     card_label.setVisibility(View.VISIBLE);
                     if (isVirtualFavorites(m)) {
                         type_img.setImageResource(R.drawable.ic_fav);
@@ -2589,7 +3146,9 @@ public class MainActivity extends AppCompatActivity {
                         m.put("used", cur);
                         card_prefs.edit().putString("cards", new Gson().toJson(cards_list_all)).apply();
                     } catch (Exception ignore) {}
-                    if ((boolean)m.get("folder")) {
+                    if ((boolean) m.get("folder")) {
+                        inFolder = true;
+
                         if (isVirtualFavorites(m)) {
                             folderIdStack.clear();
                             folderNameStack.clear();
@@ -2598,7 +3157,6 @@ public class MainActivity extends AppCompatActivity {
                             folderNameStack.add(getString(R.string.favorites));
 
                             folderPath = joinWithSlash(folderNameStack);
-                            inFolder = true;
 
                             applySortFilter(
                                     search_txt.getText().toString(),
@@ -2615,14 +3173,12 @@ public class MainActivity extends AppCompatActivity {
                         folderNameStack.add(clickedName);
 
                         folderPath = joinWithSlash(folderNameStack);
-                        inFolder = true;
                         applySortFilter(
                                 search_txt.getText().toString(),
                                 loadSortTypeId(),
                                 loadOrderId(),
                                 loadFilterId()
                         );
-                        return;
                     } else {
                         displayInfo(m, false);
                     }
@@ -2631,7 +3187,9 @@ public class MainActivity extends AppCompatActivity {
             parent.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View _view) {
-                    displayInfo(m, false);
+                    if (!isVirtualFavorites(m)) {
+                        displayInfo(m, false);
+                    }
                     return true;
                 }
             });
@@ -2693,32 +3251,16 @@ public class MainActivity extends AppCompatActivity {
             final LinearLayout parent = _view.findViewById(R.id.parent);
             final ImageView plus_img = _view.findViewById(R.id.plus_img);
             if (_data.get((int)(_position)).get("color").toString().equals("plus")) {
-                Bg.apply(parent, 0xFFFFFFFF, null, null, 360, null, 2, 0xFF212121, 0xFFD2B6DC);
+                makeDashedButton(parent, color(R.color.app_bg), 360, color(R.color.app_stroke), 2, 8, 4);
+                parent.setElevation(0);
                 plus_lay.setVisibility(View.VISIBLE);
                 color.setVisibility(View.GONE);
-                plus_img.setImageResource(R.drawable.ic_add_grey);
-                ViewGroup.LayoutParams plus_img_layoutParams = plus_img.getLayoutParams();
-                plus_img_layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                plus_img_layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
-                plus_img.setLayoutParams(plus_img_layoutParams);
             } else {
-                if (_data.get((int)(_position)).get("color").toString().equals("settings")) {
-                    Bg.apply(parent, 0xFFFFFFFF, null, null, 360, null, 2, 0xFF212121, 0xFFD2B6DC);
-                    plus_lay.setVisibility(View.VISIBLE);
-                    color.setVisibility(View.GONE);
-                    plus_img.setImageResource(R.drawable.ic_settings);
-                    plus_img.post(() -> {
-                        ViewGroup.LayoutParams plus_img_layoutParams = plus_img.getLayoutParams();
-                        plus_img_layoutParams.width = (int) (plus_img.getWidth() * 0.6);
-                        plus_img_layoutParams.height = (int) (plus_img.getHeight() * 0.6);
-                        plus_img.setLayoutParams(plus_img_layoutParams);
-                    });
-                } else {
-                    int bgColor = (int) (_data.get((int)(_position)).get("color"));
-                    Bg.apply(parent, bgColor, null, null, 360f, null, 2f, 0xFF212121, 0xFFD2B6DC);
-                    color.setVisibility(View.VISIBLE);
-                    plus_lay.setVisibility(View.GONE);
-                }
+                int bgColor = (int) (_data.get((int)(_position)).get("color"));
+                Bg.apply(parent, bgColor, null, null, 360, null, 0, null, null);
+                parent.setElevation(2 * getResources().getDisplayMetrics().density);
+                color.setVisibility(View.VISIBLE);
+                plus_lay.setVisibility(View.GONE);
             }
             parent.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -2726,89 +3268,7 @@ public class MainActivity extends AppCompatActivity {
                     int pos = _holder.getBindingAdapterPosition();
                     if (pos == RecyclerView.NO_POSITION) return;
                     boolean isNew = "plus".equals(_data.get(pos).get("color").toString());
-                    if (_data.get((int)(pos)).get("color").toString().equals("settings")) {
-                        showDialog(R.layout.radio_dialog, R.id.parent, (dlg, root) -> {
-                            final RadioGroup grad_styles = (RadioGroup) root.findViewById(R.id.grad_styles);
-                            final TextView title_txt = (TextView) root.findViewById(R.id.title_txt);
-                            final TextView save_txt = (TextView) root.findViewById(R.id.save_txt);
-                            final TextView close_txt = (TextView) root.findViewById(R.id.close_txt);
-                            final LinearLayout button_bar = (LinearLayout) root.findViewById(R.id.button_bar);
-                            final RadioButton leftright = (RadioButton) root.findViewById(R.id.leftright);
-                            final RadioButton rightleft = (RadioButton) root.findViewById(R.id.rightleft);
-                            final RadioButton topbottom = (RadioButton) root.findViewById(R.id.topbottom);
-                            final RadioButton bottomtop = (RadioButton) root.findViewById(R.id.bottomtop);
-                            final RadioButton tl_br = (RadioButton) root.findViewById(R.id.tl_br);
-                            final RadioButton tr_bl = (RadioButton) root.findViewById(R.id.tr_bl);
-                            final RadioButton bl_tr = (RadioButton) root.findViewById(R.id.bl_tr);
-                            final RadioButton br_tl = (RadioButton) root.findViewById(R.id.br_tl);
-                            float scale = textScaleFromLevel((int) textLevel);
-                            TextView[] views = new TextView[] { title_txt, save_txt, close_txt };
-                            for (TextView tv : views) {
-                                if (tv != null) applyTextScale(tv, scale);
-                            }
-                            RadioButton[] buttons = new RadioButton[] { leftright, rightleft, topbottom, bottomtop, tl_br, tr_bl, bl_tr, br_tl };
-                            for (RadioButton rb : buttons) {
-                                if (rb != null) applyTextScale(rb, scale);
-                            }
-                            Bg.apply(save_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
-                            Bg.apply(close_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
-                            Bg.apply(button_bar, 0xFFD2B6DC, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
-                            grad_styles.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-                                @Override
-                                public void onCheckedChanged(RadioGroup group, int id) {
-                                    if (id == R.id.leftright) {
-                                        selectedGradStyle = "lr";
-                                    } else if (id == R.id.rightleft) {
-                                        selectedGradStyle = "rl";
-                                    } else if (id == R.id.topbottom) {
-                                        selectedGradStyle = "tb";
-                                    } else if (id == R.id.bottomtop) {
-                                        selectedGradStyle = "bt";
-                                    } else if (id == R.id.tl_br) {
-                                        selectedGradStyle = "tl_br";
-                                    } else if (id == R.id.tr_bl) {
-                                        selectedGradStyle = "tr_bl";
-                                    } else if (id == R.id.bl_tr) {
-                                        selectedGradStyle = "bl_tr";
-                                    } else if (id == R.id.br_tl) {
-                                        selectedGradStyle = "br_tl";
-                                    } else {
-                                        selectedGradStyle = "lr";
-                                    }
-                                }
-                            });
-                            if ("lr".equals(selectedGradStyle)) {
-                                grad_styles.check(R.id.leftright);
-                            } else if ("rl".equals(selectedGradStyle)) {
-                                grad_styles.check(R.id.rightleft);
-                            } else if ("tb".equals(selectedGradStyle)) {
-                                grad_styles.check(R.id.topbottom);
-                            } else if ("bt".equals(selectedGradStyle)) {
-                                grad_styles.check(R.id.bottomtop);
-                            } else if ("tl_br".equals(selectedGradStyle)) {
-                                grad_styles.check(R.id.tl_br);
-                            } else if ("tr_bl".equals(selectedGradStyle)) {
-                                grad_styles.check(R.id.tr_bl);
-                            } else if ("bl_tr".equals(selectedGradStyle)) {
-                                grad_styles.check(R.id.bl_tr);
-                            } else {
-                                grad_styles.check(R.id.leftright);
-                            }
-                            save_txt.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View _view) {
-                                    dlg.dismiss();
-                                }
-                            });
-                            close_txt.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View _view) {
-                                    dlg.dismiss();
-                                }
-                            });
-                        });
-                    } else {
-                        showDialog(R.layout.color_picker_dialog, R.id.parent, (dlg, root) -> {
+                    showDialog(R.layout.color_picker_dialog, R.id.parent, (dlg, root) -> {
                             final HsvColorPickerView color_picker = (HsvColorPickerView) root.findViewById(R.id.color_picker);
                             final LinearLayout button_bar = (LinearLayout) root.findViewById(R.id.button_bar);
                             final TextView add_txt = (TextView) root.findViewById(R.id.add_txt);
@@ -2827,7 +3287,7 @@ public class MainActivity extends AppCompatActivity {
                                     if (isNew) {
                                         colors = new HashMap<>();
                                         colors.put("color", (int)(color_picker.getColor()));
-                                        int insertPos = Math.max(0, _data.size() - 2);
+                                        int insertPos = Math.max(0, _data.size() - 1);
                                         _data.add(insertPos, colors);
                                         colorsAdapter.notifyItemInserted(insertPos);
                                     } else {
@@ -2846,7 +3306,6 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             });
                         });
-                    }
                 }
             });
             parent.setOnLongClickListener(new View.OnLongClickListener() {
@@ -2899,31 +3358,20 @@ public class MainActivity extends AppCompatActivity {
             if (v.equals("plus")) {
                 picture.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 picture.setImageResource(R.drawable.ic_add_photo);
-                float parent_density = getResources().getDisplayMetrics().density;
-                parent.setClickable(true);
-                parent.setBackground(new RippleDrawable(
-                        new ColorStateList(
-                                new int[][]{new int[]{}},
-                                new int[]{Color.TRANSPARENT}
-                        ),
-                        new GradientDrawable() {
-                            public GradientDrawable getIns(int a, int b, int c, int d) {
-                                this.setCornerRadius(a);
-                                this.setStroke(b, c, 8 * parent_density, 4 * parent_density);
-                                this.setColor(d);
-                                return this;
-                            }
-                        }.getIns((int) (12 * parent_density), (int) (3 * parent_density), 0xFFC6CACF, 0xFFF2EAF5),
-                        null
-                ));
+                picture.setColorFilter(color(R.color.app_icon_dashed));
+                makeDashedButton(parent, color(R.color.app_bg), 16, color(R.color.app_stroke), 2, 8, 4);
                 picture.post(() -> {
                     ViewGroup.LayoutParams picture_layoutParams = picture.getLayoutParams();
                     picture_layoutParams.width = (int) (picture.getWidth() * 0.35);
                     picture_layoutParams.height = (int) (picture.getHeight() * 0.35);
                     picture.setLayoutParams(picture_layoutParams);
                 });
+                parent.setElevation(0);
             } else {
                 picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                picture.clearColorFilter();
+                parent.setElevation(1 * getResources().getDisplayMetrics().density);
+
                 File f = new File(getFilesDir(), "card_images/" + id + "/" + v);
 
                 if (f.exists() && f.length() > 0) {
@@ -3037,7 +3485,7 @@ public class MainActivity extends AppCompatActivity {
                             code_edit.setText("");
                         }
                         cardSaveType = type;
-                        type_txt.setText(getString(R.string.card_type).concat(" ".concat(type)));
+                        type_txt.setText(type);
                         p.dismiss();
                     }
                 }

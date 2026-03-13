@@ -103,7 +103,9 @@
                     android:text="@string/by_name"
                     android:textColor="@color/app_text_primary"
                     android:textSize="14sp"
-                    android:gravity="center_horizontal"/>
+                    android:gravity="center_horizontal"
+                    android:singleLine="true"
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/by_date_created"
@@ -117,7 +119,9 @@
                     android:text="@string/by_date_created"
                     android:textColor="@color/app_text_primary"
                     android:textSize="14sp"
-                    android:gravity="center_horizontal"/>
+                    android:gravity="center_horizontal"
+                    android:singleLine="true"
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/by_use_count"
@@ -130,7 +134,9 @@
                     android:text="@string/by_use_count"
                     android:textColor="@color/app_text_primary"
                     android:textSize="14sp"
-                    android:gravity="center_horizontal"/>
+                    android:gravity="center_horizontal"
+                    android:singleLine="true"
+                    android:ellipsize="end"/>
 
             </LinearLayout>
 

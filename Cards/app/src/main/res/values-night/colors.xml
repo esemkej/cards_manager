@@ -15,10 +15,12 @@
     <color name="app_icon_secondary">#3A3A3D</color>
     <color name="app_icon_disabled">#A0A4AA</color>
     <color name="app_icon_reversed">#212121</color>
+    <color name="app_icon_dashed">#949AA6</color>
 
     <!-- Accent -->
     <color name="app_accent">#276bf1</color>
     <color name="app_accent_light">#60a5fa</color>
+    <color name="app_accent_caution">#f43f5e</color>
     
     <!-- Ripple/highlight -->
     <color name="app_ripple">#1a54cc</color>

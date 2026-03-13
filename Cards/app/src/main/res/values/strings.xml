@@ -28,19 +28,24 @@
     <string name="card_type">Card code type:</string>
     <string name="change">Change</string>
     <string name="close">Close</string>
+    <string name="code_details">Code details</string>
     <string name="code_fail">Code generation failed:</string>
     <string name="color_fail">Couldn\'t load colors:</string>
     <string name="color_theme">Color theme</string>
     <string name="copy_as_text">Copy as text</string>
     <string name="dark">Dark</string>
     <string name="data_settings">Data settings</string>
+    <string name="delete">Delete</string>
+    <string name="del_ask">Do you really want to delete this item?</string>
     <string name="del_card">Delete card</string>
     <string name="del_folder">Delete folder</string>
+    <string name="del_msg">Item was removed</string>
     <string name="descending">Descending</string>
+    <string name="display_code">Display code</string>
     <string name="edit_desc">Tap the color item to edit already existing colors</string>
     <string name="edit_folder">Edit folder</string>
     <string name="edit_title">Editing existing colors</string>
-    <string name="enter_code">Enter card code</string>
+    <string name="enter_code">Enter code</string>
     <string name="empty_err">Card\'s name, code or code type is empty</string>
     <string name="enter_card_name">Enter card name</string>
     <string name="export_data">Export</string>
@@ -77,6 +82,7 @@
     <string name="invalid_edit">Card name can\'t be empty</string>
     <string name="left_right">Left to right</string>
     <string name="light">Light</string>
+    <string name="linear">Linear</string>
     <string name="no">No</string>
     <string name="no_cards_added">No cards added yet</string>
     <string name="none">None</string>
@@ -86,11 +92,14 @@
     <string name="photo_save_error">Encountered an error while saving the photo</string>
     <string name="pick_image">Pick an image</string>
     <string name="picture_gallery">Picture gallery</string>
+    <string name="please_scan_code">Please scan the code</string>
     <string name="radio_grad_title">Gradient direction</string>
     <string name="recommended">Recommended</string>
     <string name="removes_code">This option removes the code</string>
+    <string name="rescan_code">Rescan code</string>
     <string name="reset_to_default">Reset to default</string>
     <string name="right_left">Right to left</string>
+    <string name="rounded">Rounded</string>
     <string name="save">Save</string>
     <string name="save_as_file">Save as file</string>
     <string name="scan_code">Scan code</string>
@@ -117,8 +126,8 @@
     <string name="ux">User experience</string>
     <string name="visual_settings">Visual settings</string>
     <string name="yes">Yes</string>
-    <plurals name="cards_count">
-		<item quantity="one">%d card</item>
-		<item quantity="other">%d cards</item>
+    <plurals name="items_count">
+		<item quantity="one">%d item</item>
+		<item quantity="other">%d items</item>
 	</plurals>
 </resources>

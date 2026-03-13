@@ -18,20 +18,20 @@
 			android:id="@+id/color"
 			android:layout_width="50dp"
 			android:layout_height="50dp"
-			android:orientation="vertical"
-			android:elevation="2dp" />
+			android:orientation="vertical"/>
 		<LinearLayout
 			android:id="@+id/plus_lay"
 			android:layout_width="50dp"
 			android:layout_height="50dp"
-			android:gravity="center_horizontal|center_vertical"
+			android:gravity="center"
 			android:orientation="vertical">
 			<com.google.android.material.imageview.ShapeableImageView
 				android:id="@+id/plus_img"
 				android:focusable="false"
 				android:layout_width="match_parent"
 				android:layout_height="match_parent"
-				android:src="@drawable/ic_add_grey" />
+				android:src="@drawable/ic_add"
+                app:tint="@color/app_icon_dashed"/>
 		</LinearLayout>
 	</LinearLayout>
 </LinearLayout>

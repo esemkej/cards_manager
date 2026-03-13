@@ -28,19 +28,24 @@
     <string name="card_type">Typ kódu karty:</string>
     <string name="change">Zmeniť</string>
     <string name="close">Zavrieť</string>
+    <string name="code_details">Detaily kódu</string>
     <string name="code_fail">Generovanie kódu zlyhalo:</string>
     <string name="color_fail">Nepodarilo sa načítať farby:</string>
     <string name="color_theme">Farebný motív</string>
     <string name="copy_as_text">Skopírovať ako text</string>
     <string name="dark">Tmavý</string>
     <string name="data_settings">Nastavenia dát</string>
+    <string name="delete">Odstrániť</string>
+    <string name="del_ask">Naozaj chcete odstrániť túto položku?</string>
     <string name="del_card">Odstrániť kartu</string>
     <string name="del_folder">Odstrániť priečinok</string>
+    <string name="del_msg">Položka bola odstránená</string>
     <string name="descending">Zostupne</string>
+    <string name="display_code">Zobraziť kód</string>
     <string name="edit_desc">Kliknite na položku farby pre jej upravenie</string>
     <string name="edit_folder">Upraviť priečinok</string>
     <string name="edit_title">Úprava vytvorených farieb</string>
-    <string name="enter_code">Zadajte kód karty</string>
+    <string name="enter_code">Zadajte kód</string>
     <string name="empty_err">Názov, kód alebo typ kódu je prázdny</string>
     <string name="enter_card_name">Zadajte meno karty</string>
     <string name="export_data">Exportovať</string>
@@ -77,6 +82,7 @@
     <string name="invalid_edit">Meno karty nemôže ostať prázdne</string>
     <string name="left_right">Zľava doprava</string>
     <string name="light">Svetlý</string>
+    <string name="linear">Rovný</string>
     <string name="no">Nie</string>
     <string name="no_cards_added">Nemáte žiadne pridané karty</string>
     <string name="none">Žiadny</string>
@@ -86,11 +92,14 @@
     <string name="photo_save_error">Nastala chyba pri ukladaní fotky</string>
     <string name="pick_image">Vybrať obrázok</string>
     <string name="picture_gallery">Galéria obrázkov</string>
+    <string name="please_scan_code">Prosím naskenujte kód</string>
     <string name="radio_grad_title">Smer farebného prechodu</string>
     <string name="recommended">Odporúčané</string>
     <string name="removes_code">Táto možnosť odstráni kód</string>
+    <string name="rescan_code">Znovu naskenovať kód</string>
     <string name="reset_to_default">Obnoviť predvolené</string>
     <string name="right_left">Zprava doľava</string>
+    <string name="rounded">Okrúhly</string>
     <string name="save">Uložiť</string>
     <string name="save_as_file">Uložiť ako súbor</string>
     <string name="scan_code">Naskenovať kód</string>
@@ -117,10 +126,10 @@
     <string name="ux">Užívateľský zážitok</string>
     <string name="visual_settings">Vizuálne nastavenia</string>
     <string name="yes">Áno</string>
-    <plurals name="cards_count">
-		<item quantity="one">%d karta</item>
-		<item quantity="few">%d karty</item>
-		<item quantity="many">%d kariet</item>
-		<item quantity="other">%d kariet</item>
+    <plurals name="items_count">
+		<item quantity="one">%d položka</item>
+		<item quantity="few">%d položky</item>
+		<item quantity="many">%d položiek</item>
+		<item quantity="other">%d položiek</item>
 	</plurals>
 </resources>
