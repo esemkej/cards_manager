@@ -1721,7 +1721,6 @@ public class MainActivity extends AppCompatActivity {
                     saveCards(null);
                     applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
                     bs.dismiss();
-                    //
                 }
             });
 
