@@ -94,7 +94,7 @@
 				<androidx.recyclerview.widget.RecyclerView
 					android:id="@+id/cards_rec"
 					android:layout_width="match_parent"
-					android:layout_height="match_parent"
+					android:layout_height="wrap_content"
 					android:paddingLeft="8dp"
 					android:paddingRight="8dp"
 					tools:listitem="@layout/cards_recycler" />

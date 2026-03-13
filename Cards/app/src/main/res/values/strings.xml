@@ -2,6 +2,7 @@
 <resources>
     <string name="add">Add</string>
     <string name="add_desc">Tap the plus item to add new colors. These colors will be used in the card\'s gradient background to distinguish it</string>
+    <string name="add_photos">Add photos</string>
     <string name="add_title">Adding new colors</string>
     <string name="all">All</string>
     <string name="app_name">Cards</string>
@@ -22,6 +23,7 @@
     <string name="cancel">Cancel</string>
     <string name="cards">Cards</string>
     <string name="card_code">Card code:</string>
+    <string name="card_colors">Card colors</string>
     <string name="card_del_ask">Do you really want to remove this card?</string>
     <string name="card_del_msg">Card was removed</string>
     <string name="card_name">Card name</string>

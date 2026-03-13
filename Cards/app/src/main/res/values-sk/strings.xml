@@ -2,6 +2,7 @@
 <resources>
     <string name="add">Pridať</string>
     <string name="add_desc">Kliknite na položku so symbolom plus pre pridanie nových farieb. Tieto farby budu použité pre sklonové pozadie karty pre ich rozlíšenie</string>
+    <string name="add_photos">Pridať fotky</string>
     <string name="add_title">Pridávanie nových farieb</string>
     <string name="all">Všetky</string>
     <string name="app_name">Karty</string>
@@ -22,6 +23,7 @@
     <string name="cancel">Zrušiť</string>
     <string name="cards">Karty</string>
     <string name="card_code">Kód karty:</string>
+    <string name="card_colors">Farby karty</string>
     <string name="card_del_ask">Naozaj chcete odstrániť túto kartu?</string>
     <string name="card_del_msg">Karta bola odstránená</string>
     <string name="card_name">Názov karty</string>
