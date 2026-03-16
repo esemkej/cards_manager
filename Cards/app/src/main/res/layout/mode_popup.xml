@@ -14,8 +14,8 @@
 			android:id="@+id/camera_lay"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:layout_marginBottom="4dp"
-			android:padding="4dp"
+			android:layout_margin="6dp"
+			android:padding="12dp"
 			android:background="#FFFFFF"
 			android:gravity="center_vertical"
 			android:orientation="horizontal"
@@ -34,15 +34,15 @@
 				android:layout_height="wrap_content"
 				android:padding="8dp"
 				android:text="@string/camera_scanner"
-				android:textSize="14sp"
+				android:textSize="16sp"
 				android:textColor="#212121" />
 		</LinearLayout>
 		<LinearLayout
 			android:id="@+id/image_lay"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:layout_marginBottom="4dp"
-			android:padding="4dp"
+			android:layout_margin="6dp"
+			android:padding="12dp"
 			android:background="#FFFFFF"
 			android:gravity="center_vertical"
 			android:orientation="horizontal"
@@ -61,7 +61,7 @@
 				android:layout_height="wrap_content"
 				android:padding="8dp"
 				android:text="@string/scan_from_image"
-				android:textSize="14sp"
+				android:textSize="16sp"
 				android:textColor="#212121" />
 		</LinearLayout>
 	</LinearLayout>

@@ -1244,18 +1244,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-    private void scanOrDisplayCode(boolean scan, String codeType, String codeValue) {
-        showDialog(R.layout.code_display_dialog, R.id.parent, (dlg, dRoot) -> {
-            final TextView save = dRoot.findViewById(R.id.save);
-            final TextView code_details_txt = dRoot.findViewById(R.id.code_details_txt);
-            final ImageView rescan = dRoot.findViewById(R.id.rescan);
-            final ImageView close_img = dRoot.findViewById(R.id.close_img);
-            final LinearLayout code_display = dRoot.findViewById(R.id.code_display);
-            code_hint = dRoot.findViewById(R.id.code_hint);
-            code_lay = dRoot.findViewById(R.id.code_lay);
-            code_img = dRoot.findViewById(R.id.code_img);
-            code_edit = dRoot.findViewById(R.id.code_edit);
-            type_txt = dRoot.findViewById(R.id.type_txt);
+    private void scanOrDisplayCode(boolean scan, boolean quickDisplay, String codeType, String codeValue) {
+        showDialog(R.layout.code_display_dialog, R.id.parent, (dlg, root) -> {
+            final TextView save = root.findViewById(R.id.save);
+            final TextView code_details_txt = root.findViewById(R.id.code_details_txt);
+            final ImageView rescan = root.findViewById(R.id.rescan);
+            final ImageView close_img = root.findViewById(R.id.close_img);
+            final LinearLayout code_display = root.findViewById(R.id.code_display);
+            final LinearLayout buttons_bar = root.findViewById(R.id.buttons_bar);
+            code_hint = root.findViewById(R.id.code_hint);
+            code_lay = root.findViewById(R.id.code_lay);
+            code_img = root.findViewById(R.id.code_img);
+            code_edit = root.findViewById(R.id.code_edit);
+            type_txt = root.findViewById(R.id.type_txt);
 
             matchImageSize(new View[]{rescan, save}, 1, true);
             matchImageSize(new View[]{close_img, code_details_txt}, 1.2f, false);
@@ -1266,18 +1267,20 @@ public class MainActivity extends AppCompatActivity {
             makeButton(save, 0);
             makeButton(rescan, 0);
 
+            if (quickDisplay) buttons_bar.setVisibility(View.GONE);
             code_edit.setClickable(false);
             code_edit.setFocusable(false);
             code_edit.setFocusableInTouchMode(false);
             code_edit.setCursorVisible(false);
             code_edit.setKeyListener(null);
-            code_edit.setText(getString(R.string.none));
-            type_txt.setText(getString(R.string.none));
             try {
                 scan_txt.setVisibility(View.GONE);
                 display_btn.setVisibility(View.VISIBLE);
                 setSize(scan_btn, ViewGroup.LayoutParams.WRAP_CONTENT, KEEP);
             } catch (Exception ignored) {}
+
+            code_edit.setText(codeValue == null || codeValue.isEmpty() ? getString(R.string.none) : codeValue);
+            type_txt.setText(codeType == null || codeType.isEmpty() ? getString(R.string.none) : codeType);
 
             save.setOnClickListener(s -> {
                 if (type_txt.getText().toString().isEmpty() || code_edit.getText().toString().isEmpty()) {
@@ -1300,8 +1303,6 @@ public class MainActivity extends AppCompatActivity {
                 scanCode(scanImage);
             } else {
                 displayCode(codeType, codeValue);
-                code_edit.setText(codeValue);
-                type_txt.setText(codeType);
                 code_hint.setVisibility(View.GONE);
             }
         });
@@ -1610,8 +1611,8 @@ public class MainActivity extends AppCompatActivity {
                 picturesAdapter = new Pictures_recAdapter(pictures_list);
                 pictures_rec.setAdapter(picturesAdapter);
 
-                scan_btn.setOnClickListener(v -> {scanOrDisplayCode(true, null, null);});
-                display_btn.setOnClickListener(v -> {scanOrDisplayCode(false, cardSaveType, cardSaveCode);});
+                scan_btn.setOnClickListener(v -> {scanOrDisplayCode(true, false, null, null);});
+                display_btn.setOnClickListener(v -> {scanOrDisplayCode(false, false, cardSaveType, cardSaveCode);});
             }
 
             if (newItem) {
@@ -2483,15 +2484,21 @@ public class MainActivity extends AppCompatActivity {
         Bg.apply(top_bar, color(R.color.app_icon_disabled), null, null, 360, null, 0, null, null);
     }
     private void makeButton(View button, int style) {
-        if (style == 0) {
-            Bg.apply(button, color(R.color.app_surface), null, null, 16, null, 1, color(R.color.app_stroke), color(R.color.app_ripple));
-        } else if (style == 1) {
-            Bg.apply(button, null, new int[]{color(R.color.app_accent), color(R.color.app_accent_light)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
-        } else if (style == 2) {
-            Bg.apply(button, null, new int[]{color(R.color.app_accent_light), color(R.color.app_accent)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
-        } else if (style == 3) {
-            Bg.apply(button, color(R.color.app_accent_caution), null, null, 16, null, 0, null, color(R.color.app_ripple));
-        }
+//        if (style == 0) {
+//            Bg.apply(button, color(R.color.app_surface), null, null, 16, null, 1, color(R.color.app_stroke), color(R.color.app_ripple));
+//        } else if (style == 1) {
+//            Bg.apply(button, null, new int[]{color(R.color.app_accent), color(R.color.app_accent_light)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
+//        } else if (style == 2) {
+//            Bg.apply(button, null, new int[]{color(R.color.app_accent_light), color(R.color.app_accent)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
+//        } else if (style == 3) {
+//            Bg.apply(button, color(R.color.app_accent_caution), null, null, 16, null, 0, null, color(R.color.app_ripple));
+//        }
+        if (style == 0) Bg.apply(button, color(R.color.app_surface), null, null, 16, null, 1, color(R.color.app_stroke), color(R.color.app_ripple));
+        else if (style == 1) Bg.apply(button, null, new int[]{color(R.color.app_accent), color(R.color.app_accent_light)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
+        else if (style == 2) Bg.apply(button, null, new int[]{color(R.color.app_accent_light), color(R.color.app_accent)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
+        else if (style == 3) Bg.apply(button, color(R.color.app_accent_caution), null, null, 16, null, 0, null, color(R.color.app_ripple));
+        else if (style == 4) Bg.apply(button, color(R.color.app_surface), null, null, 16, null, 0, null, color(R.color.app_ripple));
+        else if (style == 5) Bg.apply(button, color(R.color.app_surface_var), null, null, 16, null, 0, null, color(R.color.app_ripple));
     }
     private void makeDashedButton(View button, int fillColor, int cornerRadius, int strokeColor, int strokeWidth, int dashLength, int dashGap) {
         float density = getResources().getDisplayMetrics().density;
@@ -2689,10 +2696,10 @@ public class MainActivity extends AppCompatActivity {
             View parent = overlay.findViewById(R.id.parent);
             View top_lay = overlay.findViewById(R.id.camera_lay);
             View bottom_lay = overlay.findViewById(R.id.image_lay);
-            TextView top_txt = (TextView) overlay.findViewById(R.id.camera_scanner_txt);
-            TextView bottom_txt = (TextView) overlay.findViewById(R.id.scan_from_image_txt);
-            ImageView top_img = (ImageView) overlay.findViewById(R.id.camera_img);
-            ImageView bottom_img = (ImageView) overlay.findViewById(R.id.scan_img);
+            TextView top_txt = overlay.findViewById(R.id.camera_scanner_txt);
+            TextView bottom_txt = overlay.findViewById(R.id.scan_from_image_txt);
+            ImageView top_img = overlay.findViewById(R.id.camera_img);
+            ImageView bottom_img = overlay.findViewById(R.id.scan_img);
 
             float scale = textScaleFromLevel((int) textLevel);
             if (top_txt != null) {
@@ -2703,11 +2710,11 @@ public class MainActivity extends AppCompatActivity {
                 bottom_txt.setText(getString(bottomTextRes));
                 applyTextScale(bottom_txt, scale);
             }
-            if (top_img != null) top_img.setImageResource(topIconRes);
-            if (bottom_img != null) bottom_img.setImageResource(bottomIconRes);
+            if (top_img != null) top_img.setImageResource(topIconRes); matchImageSize(new View[]{top_img, top_txt}, 0.8f, true);
+            if (bottom_img != null) bottom_img.setImageResource(bottomIconRes); matchImageSize(new View[]{bottom_img, bottom_txt}, 0.8f, true);
 
-            if (top_lay != null) Bg.apply(top_lay, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
-            if (bottom_lay != null) Bg.apply(bottom_lay, 0xFFFFFFFF, null, null, 12, null, 2, 0xFF212121, 0xFFD2B6DC);
+            if (top_lay != null) makeButton(top_lay, 4);
+            if (bottom_lay != null) makeButton(bottom_lay, 4);
 
             if (parent != null) {
                 parent.setClickable(true);
@@ -2885,10 +2892,15 @@ public class MainActivity extends AppCompatActivity {
             applyTextScale(negative_txt, scale);
             matchImageSize(new View[]{close_img, title_txt}, 1.2f, false);
 
-            title_txt.setText(title);
-            message_txt.setText(message);
-            positive_txt.setText(pos_txt);
-            negative_txt.setText(neg_txt);
+            if (title == null) title_txt.setVisibility(View.GONE);
+            else title_txt.setText(title);
+            if (message == null) message_txt.setVisibility(View.GONE);
+            else message_txt.setText(message);
+            if (pos_txt == null) positive_txt.setVisibility(View.GONE);
+            else positive_txt.setText(pos_txt);
+            if (neg_txt == null) negative_txt.setVisibility(View.GONE);
+            else negative_txt.setText(neg_txt);
+
 
             makeButton(negative_txt, 0);
             makeButton(positive_txt, caution ? 3 : 0);
@@ -3186,7 +3198,7 @@ public class MainActivity extends AppCompatActivity {
                                 loadFilterId()
                         );
                     } else if (m.containsKey("type") && m.containsKey("code")) {
-                        scanOrDisplayCode(false, (String) m.get("type"), (String) m.get("code"));
+                        scanOrDisplayCode(false, true, (String) m.get("type"), (String) m.get("code"));
                     } else {
                         displayInfo(m, false);
                     }
@@ -3257,14 +3269,13 @@ public class MainActivity extends AppCompatActivity {
             final LinearLayout color = _view.findViewById(R.id.color);
             final LinearLayout plus_lay = _view.findViewById(R.id.plus_lay);
             final LinearLayout parent = _view.findViewById(R.id.parent);
-            final ImageView plus_img = _view.findViewById(R.id.plus_img);
-            if (_data.get((int)(_position)).get("color").toString().equals("plus")) {
+            if (_data.get(_position).get("color").toString().equals("plus")) {
                 makeDashedButton(parent, color(R.color.app_bg), 360, color(R.color.app_stroke), 2, 8, 4);
                 parent.setElevation(0);
                 plus_lay.setVisibility(View.VISIBLE);
                 color.setVisibility(View.GONE);
             } else {
-                int bgColor = (int) (_data.get((int)(_position)).get("color"));
+                int bgColor = (int) (_data.get(_position).get("color"));
                 Bg.apply(parent, bgColor, null, null, 360, null, 0, null, null);
                 parent.setElevation(2 * getResources().getDisplayMetrics().density);
                 color.setVisibility(View.VISIBLE);
