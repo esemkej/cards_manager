@@ -48,6 +48,7 @@ import java.util.HashMap;
 
 import com.google.zxing.common.BitMatrix;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -137,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
     private OnImagePicked pendingPicked;
     private OnCancelled pendingCancelled;
     private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private Insets systemBarInsets = Insets.NONE;
 
     // ==================== LINEARLAYOUTS ====================
     private LinearLayout fab;
@@ -165,7 +167,6 @@ public class MainActivity extends AppCompatActivity {
     private ImageView settings_img;
     private ImageView wallet_img;
     private ImageView code_img;
-    private ImageView edit_hint_badge;
 
     // ==================== RECYCLERS ====================
     private RecyclerView cards_rec;
@@ -203,6 +204,7 @@ public class MainActivity extends AppCompatActivity {
 
         ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            systemBarInsets = bars;
 
             parent.setPadding(
                     pL + bars.left,
@@ -220,6 +222,39 @@ public class MainActivity extends AppCompatActivity {
             fab.setLayoutParams(lp);
 
             return insets;
+        });
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (inFolder && !folderIdStack.isEmpty()) {
+
+                    folderIdStack.remove(folderIdStack.size() - 1);
+                    folderNameStack.remove(folderNameStack.size() - 1);
+
+                    if (folderIdStack.isEmpty()) {
+                        inFolder = false;
+                        virtualFavorites = false;
+                        folderPath = "";
+                    } else {
+                        inFolder = true;
+                        folderPath = joinWithSlash(folderNameStack);
+                        virtualFavorites = VIRTUAL_FAVORITES_STACK_ID.equals(folderIdStack.get(0));
+                    }
+
+                    applySortFilter(
+                            search_txt.getText().toString(),
+                            loadSortTypeId(),
+                            loadOrderId(),
+                            loadFilterId()
+                    );
+                    return;
+                }
+
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+                setEnabled(true);
+            }
         });
 
         initialize(_savedInstanceState);
@@ -244,34 +279,6 @@ public class MainActivity extends AppCompatActivity {
                 card_prefs.edit().remove("type").commit();
             }
         }
-    }
-    @Override
-    public void onBackPressed() {
-        if (inFolder && !folderIdStack.isEmpty()) {
-
-            folderIdStack.remove(folderIdStack.size() - 1);
-            folderNameStack.remove(folderNameStack.size() - 1);
-
-            if (folderIdStack.isEmpty()) {
-                inFolder = false;
-                virtualFavorites = false;
-                folderPath = "";
-            } else {
-                inFolder = true;
-                folderPath = joinWithSlash(folderNameStack);
-                virtualFavorites = VIRTUAL_FAVORITES_STACK_ID.equals(folderIdStack.get(0));
-            }
-
-            applySortFilter(
-                    search_txt.getText().toString(),
-                    loadSortTypeId(),
-                    loadOrderId(),
-                    loadFilterId()
-            );
-            return;
-        }
-
-        super.onBackPressed();
     }
     @Override
     protected void onActivityResult(int _requestCode, int _resultCode, Intent _data) {
@@ -372,12 +379,10 @@ public class MainActivity extends AppCompatActivity {
 		settings_img = findViewById(R.id.settings_img);
 		cards_rec = findViewById(R.id.cards_rec);
 		wallet_img = findViewById(R.id.wallet_img);
-		edit_hint_badge = findViewById(R.id.edit_hint_badge);
 		no_items_top_txt = findViewById(R.id.no_items_top_txt);
 		no_items_bottom_txt = findViewById(R.id.no_items_bottom_txt);
 
 		card_prefs = getSharedPreferences("saveData", Activity.MODE_PRIVATE);
-		setupInfoBadge(edit_hint_badge, "hint_edit_item", 1);
 
 		srefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
 			@Override
@@ -692,7 +697,7 @@ public class MainActivity extends AppCompatActivity {
                     });
                     info_lay.setOnClickListener(v -> {
                         resetAllHints();
-                        setupInfoBadge(edit_hint_badge, "hint_edit_item", 1);
+                        if (cardsAdapter != null) cardsAdapter.notifyDataSetChanged();
                         showTipsDialog(0);
                     });
                     import_btn.setOnClickListener(v -> {
@@ -1098,17 +1103,25 @@ public class MainActivity extends AppCompatActivity {
                 srefresh.setVisibility(View.GONE);
                 no_items_lay.setVisibility(View.VISIBLE);
 
-                flp.bottomMargin = Math.round(125 * dens);
+                flp.bottomMargin = Math.round(125 * dens) + systemBarInsets.bottom;
                 int fab_size = (int) Math.round(w * 0.25);
                 setSize(fab, fab_size, fab_size);
             } else {
                 srefresh.setVisibility(View.VISIBLE);
                 no_items_lay.setVisibility(View.GONE);
 
-                flp.bottomMargin = Math.round(16 * dens);
-                flp.rightMargin = Math.round(16 * dens);
+                flp.bottomMargin = Math.round(16 * dens) + systemBarInsets.bottom;
+                flp.rightMargin = Math.round(16 * dens) + systemBarInsets.right;
                 int fab_size = (int) Math.round(w * 0.18);
                 setSize(fab, fab_size, fab_size);
+
+                int listBottomSpace = flp.bottomMargin + fab_size + Math.round(16 * dens);
+                cards_rec.setPadding(
+                        cards_rec.getPaddingLeft(),
+                        cards_rec.getPaddingTop(),
+                        cards_rec.getPaddingRight(),
+                        listBottomSpace
+                );
             }
             fab.setLayoutParams(flp);
         });
@@ -1394,7 +1407,6 @@ public class MainActivity extends AppCompatActivity {
 
         pw.showAsDropDown(anchor, 0, (int) (4 * getResources().getDisplayMetrics().density));
     }
-    /** Returns null if the item is valid, or the specific reason it isn't. */
     public String getValidationError() {
         if (cardSaveName.isEmpty()) {
             return getString(R.string.err_name_empty);
@@ -3084,6 +3096,7 @@ public class MainActivity extends AppCompatActivity {
             if (_holder.isHeader) {
                 Object titleObj = m.get("title");
                 _holder.tvHeader.setText(titleObj == null ? "" : String.valueOf(titleObj));
+                setupInfoBadge(_holder.ivHeaderInfo, "hint_edit_item", 1);
                 return;
             }
 
@@ -3252,6 +3265,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean isHeader;
 
             public TextView tvHeader;
+            public ImageView ivHeaderInfo;
 
             public FrameLayout parent;
             public LinearLayout vertical_layout;
@@ -3265,6 +3279,7 @@ public class MainActivity extends AppCompatActivity {
 
                 if (header) {
                     tvHeader = v.findViewById(R.id.tvHeader);
+                    ivHeaderInfo = v.findViewById(R.id.ivHeaderInfo);
                 } else {
                     parent = v.findViewById(R.id.parent);
                     vertical_layout = v.findViewById(R.id.vertical_layout);
