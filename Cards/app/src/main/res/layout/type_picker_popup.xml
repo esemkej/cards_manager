@@ -1,0 +1,41 @@
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/type_picker_parent"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:orientation="vertical">
+
+	<TextView
+		android:id="@+id/option_ean13"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:minWidth="140dp"
+		android:padding="12dp"
+		android:text="EAN_13"
+		android:textSize="14sp"
+		android:textColor="@color/app_text_dark"
+		android:singleLine="true"/>
+
+	<TextView
+		android:id="@+id/option_code128"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:minWidth="140dp"
+		android:padding="12dp"
+		android:text="CODE_128"
+		android:textSize="14sp"
+		android:textColor="@color/app_text_dark"
+		android:singleLine="true"/>
+
+	<TextView
+		android:id="@+id/option_qr"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:minWidth="140dp"
+		android:padding="12dp"
+		android:text="QR_CODE"
+		android:textSize="14sp"
+		android:textColor="@color/app_text_dark"
+		android:singleLine="true"/>
+
+</LinearLayout>

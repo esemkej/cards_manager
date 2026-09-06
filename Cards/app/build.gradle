@@ -3,16 +3,16 @@ plugins {
 }
 
 android {
-	compileSdk 35
-	
-	useLibrary 'org.apache.http.legacy'
+    compileSdk 36
+
+    useLibrary 'org.apache.http.legacy'
 	
 	defaultConfig {
 		applicationId "com.eas.cards2"
 		namespace "com.eas.cards2"
 		minSdkVersion 21
-		targetSdkVersion 35
-		versionCode 15
+        targetSdk 36
+        versionCode 16
 		versionName "0.15.0 alpha"
 	}
 	
