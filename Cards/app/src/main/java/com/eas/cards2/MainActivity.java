@@ -12,6 +12,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.*;
 import android.graphics.drawable.*;
+import android.media.Image;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -110,12 +111,12 @@ public class MainActivity extends AppCompatActivity {
     private static final String ROW_HEADER = "header";
     private static final String KEY_VIRTUAL = "_virtual";
     private static final String VIRTUAL_FAVORITES = "favorites";
+    private static final String VIRTUAL_FAVORITES_STACK_ID = "__favorites__";
 
     // ==================== MAPS AND LISTS ====================
     private HashMap<String, Object> cards = new HashMap<>();
     private HashMap<String, Object> colors = new HashMap<>();
     private HashMap<String, Object> settings = new HashMap<>();
-    private HashMap<String, Object> types = new HashMap<>();
     private HashMap<String, Object> pictures = new HashMap<>();
     private ArrayList<String> pendingImages = new ArrayList<>();
     private ArrayList<String> pendingDelete = new ArrayList<>();
@@ -124,7 +125,6 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<HashMap<String, Object>> cards_list = new ArrayList<>();
     private ArrayList<HashMap<String, Object>> cards_list_all = new ArrayList<>();
     private ArrayList<HashMap<String, Object>> colors_list = new ArrayList<>();
-    private ArrayList<HashMap<String, Object>> types_list = new ArrayList<>();
     private ArrayList<HashMap<String, Object>> pictures_list = new ArrayList<>();
 
     // ==================== OTHER VARIABLES ====================
@@ -133,7 +133,6 @@ public class MainActivity extends AppCompatActivity {
     private long newId;
     private Intent i = new Intent();
     private SharedPreferences card_prefs;
-    private PopupWindow p;
     private Uri pendingCameraUri = null;
     private OnImagePicked pendingPicked;
     private OnCancelled pendingCancelled;
@@ -166,21 +165,19 @@ public class MainActivity extends AppCompatActivity {
     private ImageView settings_img;
     private ImageView wallet_img;
     private ImageView code_img;
+    private ImageView edit_hint_badge;
 
     // ==================== RECYCLERS ====================
     private RecyclerView cards_rec;
     private RecyclerView colors_rec;
-    private RecyclerView items_rec;
     private RecyclerView pictures_rec;
 
     // ==================== OTHER VIEWS ====================
 	private SwipeRefreshLayout srefresh;
-    private View bottom_spacer;
 
     // ==================== ADAPTERS ====================
     private Cards_recAdapter cardsAdapter;
     private Colors_recAdapter colorsAdapter;
-    private Items_recAdapter itemsAdapter;
     private Pictures_recAdapter picturesAdapter;
 
     // ==================== LIFECYCLE ====================
@@ -262,6 +259,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 inFolder = true;
                 folderPath = joinWithSlash(folderNameStack);
+                virtualFavorites = VIRTUAL_FAVORITES_STACK_ID.equals(folderIdStack.get(0));
             }
 
             applySortFilter(
@@ -374,11 +372,13 @@ public class MainActivity extends AppCompatActivity {
 		settings_img = findViewById(R.id.settings_img);
 		cards_rec = findViewById(R.id.cards_rec);
 		wallet_img = findViewById(R.id.wallet_img);
+		edit_hint_badge = findViewById(R.id.edit_hint_badge);
 		no_items_top_txt = findViewById(R.id.no_items_top_txt);
 		no_items_bottom_txt = findViewById(R.id.no_items_bottom_txt);
 
 		card_prefs = getSharedPreferences("saveData", Activity.MODE_PRIVATE);
-		
+		setupInfoBadge(edit_hint_badge, "hint_edit_item", 1);
+
 		srefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
 			@Override
 			public void onRefresh() {
@@ -526,6 +526,7 @@ public class MainActivity extends AppCompatActivity {
                     final TextView image_txt = root.findViewById(R.id.image_txt);
                     final TextView import_txt = root.findViewById(R.id.import_txt);
                     final TextView export_txt = root.findViewById(R.id.export_txt);
+                    final TextView info_txt = root.findViewById(R.id.info_txt);
                     final TextView save = root.findViewById(R.id.save);
                     final TextView reset_to_default = root.findViewById(R.id.reset_to_default);
                     final ImageView close_img = root.findViewById(R.id.close_img);
@@ -536,6 +537,7 @@ public class MainActivity extends AppCompatActivity {
                     final ImageView image_img = root.findViewById(R.id.image_img);
                     final ImageView import_img = root.findViewById(R.id.import_img);
                     final ImageView export_img = root.findViewById(R.id.export_img);
+                    final ImageView info_img = root.findViewById(R.id.info_img);
                     final Slider column_count_sbar = root.findViewById(R.id.column_count_sbar);
                     final Slider text_size_sbar = root.findViewById(R.id.text_size_sbar);
                     final LinearLayout scan_modes = root.findViewById(R.id.scan_modes);
@@ -543,6 +545,7 @@ public class MainActivity extends AppCompatActivity {
                     final LinearLayout image = root.findViewById(R.id.image);
                     final LinearLayout import_btn = root.findViewById(R.id.import_btn);
                     final LinearLayout export_btn = root.findViewById(R.id.export_btn);
+                    final LinearLayout info_lay = root.findViewById(R.id.info_lay);
 
                     try {
                         progress = (double) settings.get("grid_amount");
@@ -575,7 +578,8 @@ public class MainActivity extends AppCompatActivity {
                             import_txt,
                             export_txt,
                             save,
-                            reset_to_default
+                            reset_to_default,
+                            info_txt
                     };
                     for (View v : views) {
                         applyTextScale((TextView) v, scale);
@@ -590,6 +594,7 @@ public class MainActivity extends AppCompatActivity {
                     pairs.add(new View[]{image_img, image_txt});
                     pairs.add(new View[]{import_img, import_txt});
                     pairs.add(new View[]{export_img, export_txt});
+                    pairs.add(new View[]{info_img, info_txt});
                     for (View[] pair : pairs) {
                         matchImageSize(pair, 1.2f, false);
                     }
@@ -685,23 +690,38 @@ public class MainActivity extends AppCompatActivity {
                         refreshToggleGroup(theme_buttons, R.id.system_default);
                         refreshSwitchGroup(mode_buttons, R.id.camera, 0);
                     });
+                    info_lay.setOnClickListener(v -> {
+                        resetAllHints();
+                        setupInfoBadge(edit_hint_badge, "hint_edit_item", 1);
+                        showTipsDialog(0);
+                    });
                     import_btn.setOnClickListener(v -> {
                         showPopup(import_btn, PopupPos.TOP_RIGHT, 0, 0, R.string.from_text, R.string.from_file, R.drawable.ic_text, R.drawable.ic_file, () -> {
                                 showDialog(R.layout.import_dialog, R.id.parent, (dlg, droot) -> {
+                                    final TextView title_txt = droot.findViewById(R.id.title_txt);
+                                    final ImageView import_close_img = droot.findViewById(R.id.close_img);
                                     final TextView message_txt = droot.findViewById(R.id.message_txt);
                                     final TextView positive_txt = droot.findViewById(R.id.positive_txt);
                                     final TextView negative_txt = droot.findViewById(R.id.negative_txt);
                                     final EditText import_etxt = droot.findViewById(R.id.import_txt);
-                                    final LinearLayout buttons_bar = droot.findViewById(R.id.buttons_bar);
-                                    float tscale = textScaleFromLevel((int) textLevel);
-                                    applyTextScale(import_etxt, tscale);
-                                    TextView[] tviews = new TextView[] { message_txt, positive_txt, negative_txt };
-                                    for (TextView tv : tviews) {
-                                        if (tv != null) applyTextScale(tv, tscale);
+                                    float iscale = textScaleFromLevel((int) textLevel);
+                                    View[] iviews = new View[]{
+                                            title_txt,
+                                            message_txt,
+                                            positive_txt,
+                                            negative_txt,
+                                            import_etxt
+                                    };
+                                    for (View iv : iviews) {
+                                        applyTextScale((TextView) iv, iscale);
                                     }
-                                    Bg.apply(positive_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
-                                    Bg.apply(negative_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
-                                    Bg.apply(buttons_bar, 0xFFD2B6DC, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+
+                                    matchImageSize(new View[]{import_close_img, title_txt}, 1.2f, false);
+                                    Bg.apply(import_etxt, color(R.color.app_surface_var), null, null, 12, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+                                    makeButton(negative_txt, 0);
+                                    makeButton(positive_txt, 1);
+                                    title_txt.setText(getString(R.string.import_title));
+                                    import_close_img.setOnClickListener(v2 -> dlg.dismiss());
                                     message_txt.setText(getString(R.string.import_warning));
                                     positive_txt.setText(getString(R.string.import_positive));
                                     negative_txt.setText(getString(R.string.cancel));
@@ -1223,6 +1243,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void displayCode(String codeType, String codeValue) {
+        if (codeType == null || codeValue == null || codeValue.isEmpty()) return;
         code_img.post(() -> {
             try {
                 BarcodeFormat format = mapFormat(codeType);
@@ -1244,22 +1265,37 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-    private void scanOrDisplayCode(boolean scan, boolean quickDisplay, String codeType, String codeValue) {
+    private void scanOrDisplayCode(boolean scan, boolean quickDisplay, String codeType, String codeValue, boolean manualEntry) {
         showDialog(R.layout.code_display_dialog, R.id.parent, (dlg, root) -> {
             final TextView save = root.findViewById(R.id.save);
             final TextView code_details_txt = root.findViewById(R.id.code_details_txt);
             final ImageView rescan = root.findViewById(R.id.rescan);
             final ImageView close_img = root.findViewById(R.id.close_img);
+            final ImageView dropdown_img = root.findViewById(R.id.dropdown_img);
             final LinearLayout code_display = root.findViewById(R.id.code_display);
             final LinearLayout buttons_bar = root.findViewById(R.id.buttons_bar);
+            final LinearLayout type_lay = root.findViewById(R.id.type_lay);
             code_hint = root.findViewById(R.id.code_hint);
             code_lay = root.findViewById(R.id.code_lay);
             code_img = root.findViewById(R.id.code_img);
             code_edit = root.findViewById(R.id.code_edit);
             type_txt = root.findViewById(R.id.type_txt);
 
+            float scale = textScaleFromLevel((int) textLevel);
+            View[] views = new View[]{
+                    save,
+                    code_details_txt,
+                    code_hint,
+                    code_edit,
+                    type_txt
+            };
+            for (View v : views) {
+                applyTextScale((TextView) v, scale);
+            }
+
             matchImageSize(new View[]{rescan, save}, 1, true);
             matchImageSize(new View[]{close_img, code_details_txt}, 1.2f, false);
+            matchImageSize(new View[]{dropdown_img, type_txt}, 1f, false);
 
             Bg.apply(code_display, color(R.color.app_surface_var), null, null, 16, null, 0, null, null);
             Bg.apply(code_lay, null, null, null, 16, null, 0, null, null);
@@ -1268,24 +1304,42 @@ public class MainActivity extends AppCompatActivity {
             makeButton(rescan, 0);
 
             if (quickDisplay) buttons_bar.setVisibility(View.GONE);
-            code_edit.setClickable(false);
-            code_edit.setFocusable(false);
-            code_edit.setFocusableInTouchMode(false);
-            code_edit.setCursorVisible(false);
-            code_edit.setKeyListener(null);
+
+            dropdown_img.setVisibility(manualEntry ? View.VISIBLE : View.GONE);
+            if (manualEntry) {
+                code_edit.setClickable(true);
+                code_edit.setFocusable(true);
+                code_edit.setFocusableInTouchMode(true);
+                code_edit.setCursorVisible(true);
+                type_lay.setClickable(true);
+                Bg.apply(type_lay, null, null, null, 8, null, 0, null, color(R.color.app_ripple));
+                type_lay.setOnClickListener(v -> showTypePicker(type_lay, type_txt));
+            } else {
+                code_edit.setClickable(false);
+                code_edit.setFocusable(false);
+                code_edit.setFocusableInTouchMode(false);
+                code_edit.setCursorVisible(false);
+                code_edit.setKeyListener(null);
+                type_lay.setClickable(false);
+                type_lay.setOnClickListener(null);
+                type_lay.setBackground(null);
+            }
             try {
                 scan_txt.setVisibility(View.GONE);
                 display_btn.setVisibility(View.VISIBLE);
                 setSize(scan_btn, ViewGroup.LayoutParams.WRAP_CONTENT, KEEP);
             } catch (Exception ignored) {}
 
-            code_edit.setText(codeValue == null || codeValue.isEmpty() ? getString(R.string.none) : codeValue);
+            boolean hasCode = codeValue != null && !codeValue.isEmpty();
+            code_edit.setText(hasCode ? codeValue : (manualEntry ? "" : getString(R.string.none)));
             type_txt.setText(codeType == null || codeType.isEmpty() ? getString(R.string.none) : codeType);
 
             save.setOnClickListener(s -> {
                 if (type_txt.getText().toString().isEmpty() || code_edit.getText().toString().isEmpty()) {
                     SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.please_scan_code));
                 } else {
+                    cardSaveType = type_txt.getText().toString();
+                    cardSaveCode = code_edit.getText().toString();
                     dlg.dismiss();
                 }
             });
@@ -1307,108 +1361,55 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-    public boolean isValidItem() {
+    private void showTypePicker(View anchor, TextView targetTypeTxt) {
+        View content = getLayoutInflater().inflate(R.layout.type_picker_popup, null);
+        final LinearLayout typePickerParent = content.findViewById(R.id.type_picker_parent);
+        final TextView[] options = new TextView[]{
+                content.findViewById(R.id.option_ean13),
+                content.findViewById(R.id.option_code128),
+                content.findViewById(R.id.option_qr)
+        };
+
+        Bg.apply(typePickerParent, color(R.color.app_surface), null, null, 12, null, 0, null, null);
+        typePickerParent.setElevation(4 * getResources().getDisplayMetrics().density);
+        typePickerParent.setClipToOutline(true);
+
+        float scale = textScaleFromLevel((int) textLevel);
+        for (TextView option : options) {
+            applyTextScale(option, scale);
+            Bg.apply(option, null, null, null, 0, null, 0, null, color(R.color.app_ripple));
+        }
+
+        PopupWindow pw = new PopupWindow(content, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        pw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+        pw.setElevation(4 * getResources().getDisplayMetrics().density);
+
+        View.OnClickListener pick = v -> {
+            targetTypeTxt.setText(((TextView) v).getText().toString());
+            pw.dismiss();
+        };
+        for (TextView option : options) {
+            option.setOnClickListener(pick);
+        }
+
+        pw.showAsDropDown(anchor, 0, (int) (4 * getResources().getDisplayMetrics().density));
+    }
+    /** Returns null if the item is valid, or the specific reason it isn't. */
+    public String getValidationError() {
         if (cardSaveName.isEmpty()) {
-            return (false);
+            return getString(R.string.err_name_empty);
         }
         if (!folder && !debug) {
             if (!cardSaveCode.isEmpty() && cardSaveType.equals(getString(R.string.none))) {
                 // Can't have a code without code type
-                return (false);
+                return getString(R.string.err_code_needs_type);
             }
             if (cardSaveCode.isEmpty() && pendingImages.isEmpty()) {
                 // Can't have no code and no images if not a folder
-                return (false);
+                return getString(R.string.err_need_code_or_photo);
             }
         }
-        return true;
-    }
-    private boolean isValidCode(String input) {
-        types_list.clear();
-        if (isValidEan13(input)) {
-            types = new HashMap<>();
-            types.put("type", "EAN_13");
-            types_list.add(types);
-            types = new HashMap<>();
-            types.put("type", getString(R.string.none));
-            types.put("label", getString(R.string.removes_code));
-            types_list.add(types);
-            return true;
-        } else if (input.matches("\\d+") && input.length() == 13 && !isValidChecksum(input)) {
-            types = new HashMap<>();
-            types.put("type", "EAN_13");
-            types.put("label", getString(R.string.invalid_checksum));
-            types_list.add(types);
-            types = new HashMap<>();
-            types.put("type", "CODE_128");
-            types_list.add(types);
-            types = new HashMap<>();
-            types.put("type", "QR_CODE");
-            types_list.add(types);
-            types = new HashMap<>();
-            types.put("type", getString(R.string.none));
-            types.put("label", getString(R.string.removes_code));
-            types_list.add(types);
-            return true;
-        } else if (isValidCode128(input)) {
-            types = new HashMap<>();
-            types.put("type", "CODE_128");
-            types.put("label", getString(R.string.recommended));
-            types_list.add(types);
-            types = new HashMap<>();
-            types.put("type", "QR_CODE");
-            types_list.add(types);
-            types = new HashMap<>();
-            types.put("type", getString(R.string.none));
-            types.put("label", getString(R.string.removes_code));
-            types_list.add(types);
-            return true;
-        } else if (input.length() > 0) {
-            types = new HashMap<>();
-            types.put("type", "QR_CODE");
-            types_list.add(types);
-            types = new HashMap<>();
-            types.put("type", getString(R.string.none));
-            types.put("label", getString(R.string.removes_code));
-            types_list.add(types);
-            return true;
-        } else if (input.length() == 0) {
-            types = new HashMap<>();
-            types.put("type", getString(R.string.none));
-            types.put("label", getString(R.string.removes_code));
-            types_list.add(types);
-            return true;
-        } else {
-            return false;
-        }
-    }
-    private boolean isValidEan13(String input) {
-        if (input.length() != 13 || !input.matches("\\d+")) {
-            return false;
-        }
-        return isValidChecksum(input);
-    }
-    private boolean isValidChecksum(String input) {
-        int sum = 0;
-        for (int i = 0; i < 12; i++) {
-            int digit = Character.getNumericValue(input.charAt(i));
-            sum += (i % 2 == 0) ? digit : digit * 3;
-        }
-        int calculatedChecksum = (10 - (sum % 10)) % 10;
-        int providedChecksum = Character.getNumericValue(input.charAt(12));
-        return calculatedChecksum == providedChecksum;
-    }
-    private boolean isValidCode128(String input) {
-        int len = input.length();
-        if (len < 1 || len > 30) {
-            return false;
-        }
-        for (char c : input.toCharArray()) {
-            if (c < 32 || c > 126) {
-                return false;
-            }
-        }
-        return true;
+        return null;
     }
     private boolean is2D(BarcodeFormat format) {
         return format == BarcodeFormat.QR_CODE || format == BarcodeFormat.AZTEC || format == BarcodeFormat.DATA_MATRIX || format == BarcodeFormat.PDF_417;
@@ -1549,11 +1550,14 @@ public class MainActivity extends AppCompatActivity {
             final LinearLayout del_btn = root.findViewById(R.id.del_btn);
             final LinearLayout picture_lay = root.findViewById(R.id.picture_lay);
             final LinearLayout code_btn_lay = root.findViewById(R.id.code_btn_lay);
+            final ImageView code_hint_badge = root.findViewById(R.id.code_hint_badge);
             scan_txt = root.findViewById(R.id.scan_txt);
             display_btn = root.findViewById(R.id.display_btn);
             scan_btn = root.findViewById(R.id.scan_btn);
             colors_rec = root.findViewById(R.id.colors_rec);
             pictures_rec = root.findViewById(R.id.pictures_rec);
+
+            setupInfoBadge(code_hint_badge, "hint_manual_code", 2);
 
             matchImageSize(new View[]{close_img, folder_txt}, 1.2f, false);
             matchImageSize(new View[]{folder_btn, card_name}, 1.2f, true);
@@ -1611,8 +1615,10 @@ public class MainActivity extends AppCompatActivity {
                 picturesAdapter = new Pictures_recAdapter(pictures_list);
                 pictures_rec.setAdapter(picturesAdapter);
 
-                scan_btn.setOnClickListener(v -> {scanOrDisplayCode(true, false, null, null);});
-                display_btn.setOnClickListener(v -> {scanOrDisplayCode(false, false, cardSaveType, cardSaveCode);});
+                scan_btn.setOnClickListener(v -> {scanOrDisplayCode(true, false, null, null, false);});
+                display_btn.setOnClickListener(v -> {scanOrDisplayCode(false, false, cardSaveType, cardSaveCode, false);});
+                scan_btn.setOnLongClickListener(v -> {scanOrDisplayCode(false, false, null, null, true); return true;});
+                display_btn.setOnLongClickListener(v -> {scanOrDisplayCode(false, false, cardSaveType, cardSaveCode, true); return true;});
             }
 
             if (newItem) {
@@ -1652,6 +1658,7 @@ public class MainActivity extends AppCompatActivity {
                 if (folder) {
                     picture_lay.setVisibility(View.GONE);
                     code_btn_lay.setVisibility(View.GONE);
+                    code_hint_badge.setVisibility(View.GONE);
                 } else {
                     if (noCode) {picture_gallery_txt.setVisibility(View.GONE);}
                 }
@@ -1667,8 +1674,9 @@ public class MainActivity extends AppCompatActivity {
             }
             save_btn.setOnClickListener(v -> {
                 cardSaveName = card_name.getText().toString();
+                String validationError = getValidationError();
 
-                if (isValidItem()) {
+                if (validationError == null) {
                     ArrayList<Integer> picked = new ArrayList<>();
                     for (HashMap<String, Object> m : colors_list) {
                         Object color = m.get("color");
@@ -1742,7 +1750,7 @@ public class MainActivity extends AppCompatActivity {
                     applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
                     bs.dismiss();
                 } else {
-                    SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.empty_err));
+                    SketchwareUtil.showMessage(getApplicationContext(), validationError);
                 }
             });
 
@@ -2037,16 +2045,15 @@ public class MainActivity extends AppCompatActivity {
     }
     private ArrayList<HashMap<String, Object>> resolveContainerList(ArrayList<HashMap<String, Object>> root, ArrayList<String> folderIdStack) {
 
-        if (folderIdStack != null && !folderIdStack.isEmpty()) {
-            String top = String.valueOf(folderIdStack.get(folderIdStack.size() - 1));
-            if (top.equals("__favorites__")) {
-                return collectFavoriteItemsRecursive(cards_list_all);
-            }
+        ArrayList<HashMap<String, Object>> curList = root;
+        int startIndex = 0;
+
+        if (folderIdStack != null && !folderIdStack.isEmpty() && VIRTUAL_FAVORITES_STACK_ID.equals(folderIdStack.get(0))) {
+            curList = collectFavoriteItemsRecursive(cards_list_all);
+            startIndex = 1;
         }
 
-        ArrayList<HashMap<String, Object>> curList = root;
-
-        for (int i = 0; i < folderIdStack.size(); i++) {
+        for (int i = startIndex; i < folderIdStack.size(); i++) {
             String targetFolderId = folderIdStack.get(i);
 
             HashMap<String, Object> folderMap = findFolderById(curList, targetFolderId);
@@ -2428,29 +2435,63 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==================== UI HELPERS ====================
-    public void showEanWarning() {
-        showDialog(R.layout.dialog, R.id.parent, (dlg, root) -> {
-            final LinearLayout parent = (LinearLayout) root.findViewById(R.id.parent);
-            final LinearLayout buttons_bar = (LinearLayout) root.findViewById(R.id.buttons_bar);
-            final TextView message_txt = (TextView) root.findViewById(R.id.message_txt);
-            final TextView positive_txt = (TextView) root.findViewById(R.id.positive_txt);
-            final TextView negative_txt = (TextView) root.findViewById(R.id.negative_txt);
-            dlg.setCancelable(false);
-            dlg.setCanceledOnTouchOutside(false);
-            Bg.apply(buttons_bar, 0xFFD2B6DC, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
-            Bg.apply(positive_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
-            negative_txt.setVisibility(View.GONE);
-            message_txt.setText(getString(R.string.invalid_checksum_desc));
-            positive_txt.setText(getString(R.string.close));
+    private boolean isHintSeen(String prefKey) {
+        return card_prefs.getBoolean(prefKey, false);
+    }
+    private void markHintSeen(String prefKey) {
+        card_prefs.edit().putBoolean(prefKey, true).apply();
+    }
+    private void resetAllHints() {
+        card_prefs.edit()
+                .putBoolean("hint_edit_item", false)
+                .putBoolean("hint_manual_code", false)
+                .putBoolean("hint_remove_color", false)
+                .putBoolean("hint_remove_picture", false)
+                .apply();
+    }
+    private void setupInfoBadge(ImageView badge, String prefKey, int tipIndex) {
+        if (badge == null) return;
+        badge.setVisibility(isHintSeen(prefKey) ? View.GONE : View.VISIBLE);
+        badge.setOnClickListener(v -> {
+            markHintSeen(prefKey);
+            badge.setVisibility(View.GONE);
+            showTipsDialog(tipIndex);
+        });
+    }
+    private void showTipsDialog(int onlyIndex) {
+        showDialog(R.layout.tips_dialog, R.id.parent, (dlg, root) -> {
+            final TextView title_txt = root.findViewById(R.id.title_txt);
+            final ImageView close_img = root.findViewById(R.id.close_img);
+            final TextView got_it_txt = root.findViewById(R.id.got_it_txt);
+            final View[] blocks = new View[]{
+                    root.findViewById(R.id.tip1_block),
+                    root.findViewById(R.id.tip2_block),
+                    root.findViewById(R.id.tip3_block),
+                    root.findViewById(R.id.tip4_block)
+            };
+            final TextView[] titles = new TextView[]{
+                    root.findViewById(R.id.tip1_title), root.findViewById(R.id.tip2_title),
+                    root.findViewById(R.id.tip3_title), root.findViewById(R.id.tip4_title)
+            };
+            final TextView[] descs = new TextView[]{
+                    root.findViewById(R.id.tip1_desc), root.findViewById(R.id.tip2_desc),
+                    root.findViewById(R.id.tip3_desc), root.findViewById(R.id.tip4_desc)
+            };
+
             float scale = textScaleFromLevel((int) textLevel);
-            applyTextScale(message_txt, scale);
-            applyTextScale(positive_txt, scale);
-            positive_txt.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View _view) {
-                    dlg.dismiss();
-                }
-            });
+            applyTextScale(title_txt, scale);
+            applyTextScale(got_it_txt, scale);
+            for (int i = 0; i < 4; i++) {
+                applyTextScale(titles[i], scale);
+                applyTextScale(descs[i], scale);
+                blocks[i].setVisibility(onlyIndex == 0 || onlyIndex == i + 1 ? View.VISIBLE : View.GONE);
+            }
+
+            matchImageSize(new View[]{close_img, title_txt}, 1.2f, false);
+            makeButton(got_it_txt, 1);
+
+            close_img.setOnClickListener(v -> dlg.dismiss());
+            got_it_txt.setOnClickListener(v -> dlg.dismiss());
         });
     }
     public void displayImage(final String _image) {
@@ -2484,15 +2525,6 @@ public class MainActivity extends AppCompatActivity {
         Bg.apply(top_bar, color(R.color.app_icon_disabled), null, null, 360, null, 0, null, null);
     }
     private void makeButton(View button, int style) {
-//        if (style == 0) {
-//            Bg.apply(button, color(R.color.app_surface), null, null, 16, null, 1, color(R.color.app_stroke), color(R.color.app_ripple));
-//        } else if (style == 1) {
-//            Bg.apply(button, null, new int[]{color(R.color.app_accent), color(R.color.app_accent_light)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
-//        } else if (style == 2) {
-//            Bg.apply(button, null, new int[]{color(R.color.app_accent_light), color(R.color.app_accent)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
-//        } else if (style == 3) {
-//            Bg.apply(button, color(R.color.app_accent_caution), null, null, 16, null, 0, null, color(R.color.app_ripple));
-//        }
         if (style == 0) Bg.apply(button, color(R.color.app_surface), null, null, 16, null, 1, color(R.color.app_stroke), color(R.color.app_ripple));
         else if (style == 1) Bg.apply(button, null, new int[]{color(R.color.app_accent), color(R.color.app_accent_light)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
         else if (style == 2) Bg.apply(button, null, new int[]{color(R.color.app_accent_light), color(R.color.app_accent)}, GradientDrawable.Orientation.LEFT_RIGHT, 16, null, 0, null, color(R.color.app_ripple));
@@ -2638,12 +2670,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (changed) v.setLayoutParams(lp);
-    }
-    private static void setSizeDp(View v, float widthDp, float heightDp) {
-        float d = v.getResources().getDisplayMetrics().density;
-        int w = (widthDp == KEEP ? KEEP : Math.round(widthDp * d));
-        int h = (heightDp == KEEP ? KEEP : Math.round(heightDp * d));
-        setSize(v, w, h);
     }
     private static float textScaleFromLevel(int level) {
         int clamped = Math.max(1, Math.min(5, level));
@@ -3165,16 +3191,16 @@ public class MainActivity extends AppCompatActivity {
                     } catch (Exception ignore) {}
                     if ((boolean) m.get("folder")) {
                         inFolder = true;
-                        virtualFavorites = isVirtualFavorites(m);
 
-                        if (virtualFavorites) {
+                        if (isVirtualFavorites(m)) {
                             folderIdStack.clear();
                             folderNameStack.clear();
 
-                            folderIdStack.add("__favorites__");
+                            folderIdStack.add(VIRTUAL_FAVORITES_STACK_ID);
                             folderNameStack.add(getString(R.string.favorites));
 
                             folderPath = joinWithSlash(folderNameStack);
+                            virtualFavorites = true;
 
                             applySortFilter(
                                     search_txt.getText().toString(),
@@ -3191,6 +3217,7 @@ public class MainActivity extends AppCompatActivity {
                         folderNameStack.add(clickedName);
 
                         folderPath = joinWithSlash(folderNameStack);
+                        virtualFavorites = !folderIdStack.isEmpty() && VIRTUAL_FAVORITES_STACK_ID.equals(folderIdStack.get(0));
                         applySortFilter(
                                 search_txt.getText().toString(),
                                 loadSortTypeId(),
@@ -3198,7 +3225,7 @@ public class MainActivity extends AppCompatActivity {
                                 loadFilterId()
                         );
                     } else if (m.containsKey("type") && m.containsKey("code")) {
-                        scanOrDisplayCode(false, true, (String) m.get("type"), (String) m.get("code"));
+                        scanOrDisplayCode(false, true, (String) m.get("type"), (String) m.get("code"), false);
                     } else {
                         displayInfo(m, false);
                     }
@@ -3269,6 +3296,13 @@ public class MainActivity extends AppCompatActivity {
             final LinearLayout color = _view.findViewById(R.id.color);
             final LinearLayout plus_lay = _view.findViewById(R.id.plus_lay);
             final LinearLayout parent = _view.findViewById(R.id.parent);
+            final ImageView colorItemHintBadge = _view.findViewById(R.id.color_item_hint_badge);
+            if (_position == 0) {
+                setupInfoBadge(colorItemHintBadge, "hint_remove_color", 3);
+            } else {
+                colorItemHintBadge.setVisibility(View.GONE);
+                colorItemHintBadge.setOnClickListener(null);
+            }
             if (_data.get(_position).get("color").toString().equals("plus")) {
                 makeDashedButton(parent, color(R.color.app_bg), 360, color(R.color.app_stroke), 2, 8, 4);
                 parent.setElevation(0);
@@ -3288,18 +3322,23 @@ public class MainActivity extends AppCompatActivity {
                     if (pos == RecyclerView.NO_POSITION) return;
                     boolean isNew = "plus".equals(_data.get(pos).get("color").toString());
                     showDialog(R.layout.color_picker_dialog, R.id.parent, (dlg, root) -> {
+                            final TextView title_txt = (TextView) root.findViewById(R.id.title_txt);
+                            final ImageView close_img = (ImageView) root.findViewById(R.id.close_img);
                             final HsvColorPickerView color_picker = (HsvColorPickerView) root.findViewById(R.id.color_picker);
-                            final LinearLayout button_bar = (LinearLayout) root.findViewById(R.id.button_bar);
                             final TextView add_txt = (TextView) root.findViewById(R.id.add_txt);
                             final TextView close_txt = (TextView) root.findViewById(R.id.close_txt);
-                            applyTextScale(add_txt, textScaleFromLevel((int) textLevel));
-                            applyTextScale(close_txt, textScaleFromLevel((int) textLevel));
+                            float scale = textScaleFromLevel((int) textLevel);
+                            applyTextScale(title_txt, scale);
+                            applyTextScale(add_txt, scale);
+                            applyTextScale(close_txt, scale);
+                            matchImageSize(new View[]{close_img, title_txt}, 1.2f, false);
+                            title_txt.setText(getString(isNew ? R.string.add_title : R.string.edit_title));
+                            close_img.setOnClickListener(v2 -> dlg.dismiss());
                             if (!isNew) {
                                 add_txt.setText(getString(R.string.change));
                             }
-                            Bg.apply(add_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
-                            Bg.apply(close_txt, 0xFFD2B6DC, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFF2EAF5);
-                            Bg.apply(button_bar, 0xFFD2B6DC, null, null, 0, new float[]{0, 0, 12, 12}, 0, Color.TRANSPARENT, Color.TRANSPARENT);
+                            makeButton(close_txt, 0);
+                            makeButton(add_txt, 1);
                             add_txt.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View _view) {
@@ -3373,6 +3412,13 @@ public class MainActivity extends AppCompatActivity {
             View _view = _holder.itemView;
             final LinearLayout parent = _view.findViewById(R.id.parent);
             final ImageView picture = _view.findViewById(R.id.picture);
+            final ImageView pictureItemHintBadge = _view.findViewById(R.id.picture_item_hint_badge);
+            if (_position == 0) {
+                setupInfoBadge(pictureItemHintBadge, "hint_remove_picture", 4);
+            } else {
+                pictureItemHintBadge.setVisibility(View.GONE);
+                pictureItemHintBadge.setOnClickListener(null);
+            }
             String v = String.valueOf(_data.get(_position).get("image"));
             if (v.equals("plus")) {
                 picture.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -3454,75 +3500,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    public class Items_recAdapter extends RecyclerView.Adapter<Items_recAdapter.ViewHolder> {
-
-        ArrayList<HashMap<String, Object>> _data;
-
-        public Items_recAdapter(ArrayList<HashMap<String, Object>> _arr) {
-            _data = _arr;
-        }
-
-        @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.dropdown_recycler, parent, false);
-            RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            v.setLayoutParams(lp);
-            return new ViewHolder(v);
-        }
-
-        @Override
-        public void onBindViewHolder(ViewHolder _holder, final int _position) {
-            View _view = _holder.itemView;
-            final LinearLayout item = _view.findViewById(R.id.item);
-            final LinearLayout div = _view.findViewById(R.id.div);
-            final TextView item_txt = _view.findViewById(R.id.item_txt);
-            final TextView label_txt = _view.findViewById(R.id.label_txt);
-            item_txt.setText(_data.get((int)(_position)).get("type").toString());
-            Bg.apply(item, 0xFFFFFFFF, null, null, 12, null, 0, Color.TRANSPARENT, 0xFFD2B6DC);
-            applyTextScale(item_txt, textScaleFromLevel((int) textLevel));
-            if (_data.get((int)(_position)).containsKey("label")) {
-                label_txt.setVisibility(View.VISIBLE);
-                applyTextScale(label_txt, textScaleFromLevel((int) textLevel));
-                String label = _data.get(_position).get("label").toString();
-                label_txt.setText(label);
-            } else {
-                label_txt.setVisibility(View.GONE);
-            }
-            if (_position == (_data.size() - 1)) {
-                div.setVisibility(View.GONE);
-            } else {
-                div.setVisibility(View.VISIBLE);
-            }
-            item.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View _view) {
-                    if (_data.get((int)(_position)).containsKey("label") && _data.get((int)(_position)).get("label").toString().equals(getString(R.string.invalid_checksum))) {
-                        showEanWarning();
-                    } else {
-                        String type = _data.get(_position).get("type").toString();
-                        if (type.equals(getString(R.string.none))) {
-                            code_edit.setText("");
-                        }
-                        cardSaveType = type;
-                        type_txt.setText(type);
-                        p.dismiss();
-                    }
-                }
-            });
-        }
-
-        @Override
-        public int getItemCount() {
-            return _data.size();
-        }
-
-        public class ViewHolder extends RecyclerView.ViewHolder {
-            public ViewHolder(View v) {
-                super(v);
-            }
-        }
-    }
-
     // ==================== OTHER ====================
     private int getInt(HashMap<String, Object> m, String k, int def) {
         Object v = m.get(k);

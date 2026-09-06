@@ -461,6 +461,35 @@
 
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/info_lay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/info_img"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_info_outlined"
+                    android:scaleType="fitCenter"/>
+
+                <TextView
+                    android:id="@+id/info_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/tips_title"
+                    android:textColor="@color/app_icon_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:singleLine="true"
+                    android:ellipsize="end"/>
+
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/save"
                 android:layout_width="match_parent"

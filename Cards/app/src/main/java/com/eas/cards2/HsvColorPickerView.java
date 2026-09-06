@@ -7,6 +7,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 
+import androidx.core.content.ContextCompat;
+
 import java.util.Locale;
 
 public class HsvColorPickerView extends LinearLayout {
@@ -143,12 +145,13 @@ public class HsvColorPickerView extends LinearLayout {
             thumbPaint.setStrokeWidth(4f);
             thumbPaint.setColor(Color.WHITE);
             setFocusable(true);
+            int accentColor = ContextCompat.getColor(getContext(), R.color.app_accent);
             previewFill.setStyle(Paint.Style.FILL);
             previewStroke.setStyle(Paint.Style.STROKE);
-            previewStroke.setColor(0xFF424242);
+            previewStroke.setColor(accentColor);
             previewStroke.setStrokeWidth(2f * getResources().getDisplayMetrics().density);
             wheelStroke.setStyle(Paint.Style.STROKE);
-            wheelStroke.setColor(0xFF424242);
+            wheelStroke.setColor(accentColor);
             wheelStroke.setStrokeWidth(2f * getResources().getDisplayMetrics().density);
         }
 
