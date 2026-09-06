@@ -6,8 +6,6 @@ The app focuses on simplicity, speed, and user control. Data is currently stored
 
 Cards is designed to stay predictable, responsive, ad-free, and comfortable to use even with larger collections, while offering just enough flexibility to adapt to different wallets and memberships.
 
-The Cards app is developed using **Sketchware Pro v7.0.0**. Because Sketchware uses **local library management instead of Gradle**, importing this project directly into **Android Studio** may be difficult and will require manual adjustments. To make working with the source easier, a **.swb project file** is also provided. This file can be imported and opened directly in **Sketchware Pro v7.0.0**, allowing the project to run and be edited with minimal additional setup.
-
 ---
 
 ## Features
@@ -28,8 +26,10 @@ The Cards app is developed using **Sketchware Pro v7.0.0**. Because Sketchware u
 
 ---
 
-## What's new: v0.14.4-alpha
-- Various UI tweaks and visual polish
+## What's new: v0.15.0-alpha
+- UI Overhaul and modernization
+- Dark theme
+- Full migration to Android Studio
 - Performance and stability improvements
 - Minor bug fixes across the app
 - General quality-of-life improvements
