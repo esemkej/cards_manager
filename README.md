@@ -26,10 +26,6 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 
 ---
 
-## What's new: v0.15.0-alpha
-- UI Overhaul and modernization
-- Dark theme
-- Full migration to Android Studio
-- Performance and stability improvements
-- Minor bug fixes across the app
-- General quality-of-life improvements
+## What's new: v0.15.1-alpha
+- Bugs and fixes
+- As per usual
