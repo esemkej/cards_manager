@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.15.1-alpha
+- Bugs and fixes
+- As per usual
+
+## v0.15.0-alpha
+- UI Overhaul and modernization
+- Dark theme
+- Full migration to Android Studio
+- Performance and stability improvements
+- Minor bug fixes across the app
+- General quality-of-life improvements
+
+---
+
 ## v0.14.4-alpha
 - Various UI tweaks and visual polish
 - Performance and stability improvements
