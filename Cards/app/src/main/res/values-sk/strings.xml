@@ -102,4 +102,5 @@
 		<item quantity="many">%d položiek</item>
 		<item quantity="other">%d položiek</item>
 	</plurals>
+    <string name="quick_photo_description">Otvoriť fotku %1$d z %2$d</string>
 </resources>

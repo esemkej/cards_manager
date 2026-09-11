@@ -1374,6 +1374,123 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+    private void showCardQuickView(HashMap<String, Object> card) {
+        final String cardId = String.valueOf(card.get("id"));
+        final String value = card.get("code") == null ? "" : String.valueOf(card.get("code"));
+        final String type = card.get("type") == null ? "" : String.valueOf(card.get("type"));
+        final boolean hasCode = !value.isEmpty() && !type.isEmpty();
+        final ArrayList<String> photos = new ArrayList<>();
+        if (card.get("images") instanceof List<?>) {
+            for (Object photo : (List<?>) card.get("images")) {
+                if (photo instanceof String && !((String) photo).isEmpty()) photos.add((String) photo);
+            }
+        }
+        if (!hasCode && photos.isEmpty()) {
+            displayInfo(card, false);
+            return;
+        }
+        Binder<Dialog> bindQuickView = (dlg, root) -> {
+            TextView title = root.findViewById(R.id.code_details_txt);
+            title.setText(getString(R.string.code_details));
+            ImageView close = root.findViewById(R.id.close_img);
+            root.findViewById(R.id.code_hint).setVisibility(View.GONE);
+            View codeSection = root.findViewById(R.id.code_display);
+            View photoSection = root.findViewById(R.id.quick_photos_section);
+            View codeIsland = root.findViewById(R.id.quick_code_island);
+            codeIsland.setVisibility(hasCode ? View.VISIBLE : View.GONE);
+            Bg.apply(codeIsland, color(R.color.app_bg), null, null, 16, null, 0, null, null);
+            codeIsland.setClipToOutline(true);
+            photoSection.setVisibility(photos.isEmpty() ? View.GONE : View.VISIBLE);
+            Bg.apply(codeSection, color(R.color.app_surface_var), null, null, 16, null, 0, null, null);
+            Bg.apply(photoSection, color(R.color.app_bg), null, null, 16, null, 0, null, null);
+            if (!hasCode) ((ViewGroup.MarginLayoutParams) photoSection.getLayoutParams()).topMargin = 0;
+            TextView typeText = root.findViewById(R.id.type_txt);
+            EditText raw = root.findViewById(R.id.code_edit);
+            typeText.setText(type);
+            raw.setText(value);
+            raw.setKeyListener(null);
+            raw.setFocusable(false);
+            raw.setClickable(false);
+            raw.setCursorVisible(false);
+            float scale = textScaleFromLevel((int) textLevel);
+            for (TextView text : new TextView[]{title, typeText, raw}) {
+                applyTextScale(text, scale);
+            }
+            matchImageSize(new View[]{close, title}, 1.2f, false);
+            close.setOnClickListener(v -> dlg.dismiss());
+            ImageView barcode = root.findViewById(R.id.code_img);
+            View barcodeFrame = root.findViewById(R.id.code_lay);
+            Bg.apply(barcodeFrame, null, null, null, 16, null, 0, null, null);
+            barcodeFrame.setClipToOutline(true);
+            if (hasCode) barcode.post(() -> {
+                int width = Math.max(1, barcode.getWidth());
+                BarcodeFormat format = mapFormat(type);
+                int height = is2D(format) ? width : Math.max(1, (int) (width * 0.4f));
+                android.graphics.Rect available = new android.graphics.Rect();
+                root.getWindowVisibleDisplayFrame(available);
+                int maxHeight = Math.max(1, (int) (available.height() * (photos.isEmpty() ? 0.6f : 0.4f)));
+                height = Math.min(height, maxHeight);
+                if (is2D(format)) width = Math.min(width, height);
+                try {
+                    Map<EncodeHintType, Object> hints = new HashMap<>();
+                    hints.put(EncodeHintType.MARGIN, 1);
+                    barcode.setImageBitmap(toBitmap(new MultiFormatWriter().encode(value, format, width, height, hints)));
+                    setSize(barcode, ViewGroup.LayoutParams.MATCH_PARENT, height);
+                } catch (WriterException | IllegalArgumentException e) {
+                    barcode.setImageResource(R.drawable.ic_broken_image);
+                    setSize(barcode, ViewGroup.LayoutParams.MATCH_PARENT, Math.round(64 * getResources().getDisplayMetrics().density));
+                }
+            });
+            RecyclerView gallery = root.findViewById(R.id.quick_photos);
+            gallery.post(() -> {
+                android.graphics.Rect available = new android.graphics.Rect();
+                root.getWindowVisibleDisplayFrame(available);
+                int height = Math.min(Math.round(184 * getResources().getDisplayMetrics().density),
+                        Math.max(1, (int) (available.height() * 0.25f)));
+                setSize(photoSection, KEEP, height);
+            });
+            gallery.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            gallery.setNestedScrollingEnabled(false);
+            View fadeLeft = root.findViewById(R.id.photo_fade_left);
+            View fadeRight = root.findViewById(R.id.photo_fade_right);
+            int fadeColor = color(R.color.app_bg);
+            int transparentFadeColor = fadeColor & 0x00FFFFFF;
+            fadeLeft.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                    new int[]{fadeColor, transparentFadeColor}));
+            fadeRight.setBackground(new GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT,
+                    new int[]{fadeColor, transparentFadeColor}));
+            gallery.setAdapter(new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+                @Override public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                    ImageView photo = new ImageView(parent.getContext());
+                    float density = getResources().getDisplayMetrics().density;
+                    RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(Math.round(220 * density), ViewGroup.LayoutParams.MATCH_PARENT);
+                    photo.setLayoutParams(lp);
+                    photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                    Bg.apply(photo, color(R.color.app_surface_var), null, null, 12, null, 0, null, null);
+                    photo.setClipToOutline(true);
+                    return new RecyclerView.ViewHolder(photo) {};
+                }
+                @Override public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+                    ImageView photo = (ImageView) holder.itemView;
+                    String filename = photos.get(position);
+                    RecyclerView.LayoutParams lp = (RecyclerView.LayoutParams) photo.getLayoutParams();
+                    // The RecyclerView supplies both outer insets; margins only separate photos.
+                    lp.setMarginEnd(position == photos.size() - 1 ? 0
+                            : Math.round(12 * getResources().getDisplayMetrics().density));
+                    photo.setLayoutParams(lp);
+                    photo.setContentDescription(getString(R.string.quick_photo_description, position + 1, photos.size()));
+                    Picasso.get().load(new File(getFilesDir(), "card_images/" + cardId + "/" + filename))
+                            .fit().centerInside().placeholder(R.drawable.ic_image).error(R.drawable.ic_broken_image).into(photo);
+                    photo.setOnClickListener(v -> displayImage(cardId, filename));
+                }
+                @Override public int getItemCount() { return photos.size(); }
+                @Override public void onViewRecycled(RecyclerView.ViewHolder holder) {
+                    Picasso.get().cancelRequest((ImageView) holder.itemView);
+                }
+            });
+        };
+        showDialog(R.layout.card_quick_dialog, 0, bindQuickView);
+    }
     private void showTypePicker(View anchor, TextView targetTypeTxt) {
         View content = getLayoutInflater().inflate(R.layout.type_picker_popup, null);
         final LinearLayout typePickerParent = content.findViewById(R.id.type_picker_parent);
@@ -2507,6 +2624,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
     public void displayImage(final String _image) {
+        displayImage(id, _image);
+    }
+    private void displayImage(String cardId, String _image) {
         showDialog(R.layout.image_display_dialog, R.id.parent, (dlg, root) -> {
             final FrameLayout parent = (FrameLayout) root.findViewById(R.id.parent);
             final ImageView display_img = (ImageView) root.findViewById(R.id.display_img);
@@ -2514,7 +2634,7 @@ public class MainActivity extends AppCompatActivity {
             Bg.apply(parent, 0xFF000000, null, null, 12, null, 0, Color.TRANSPARENT, Color.TRANSPARENT);
             int w = (int) (SketchwareUtil.getDisplayWidthPixels(getApplicationContext()) * 0.8);
             parent.setClipToOutline(true);
-            File f = new File(getFilesDir(), "card_images/" + id + "/" + _image);
+            File f = new File(getFilesDir(), "card_images/" + cardId + "/" + _image);
 
             if (f.exists() && f.length() > 0) {
                 Picasso.get()
@@ -3237,8 +3357,8 @@ public class MainActivity extends AppCompatActivity {
                                 loadOrderId(),
                                 loadFilterId()
                         );
-                    } else if (m.containsKey("type") && m.containsKey("code")) {
-                        scanOrDisplayCode(false, true, (String) m.get("type"), (String) m.get("code"), false);
+                    } else if (m.containsKey("code") || m.containsKey("images")) {
+                        showCardQuickView(m);
                     } else {
                         displayInfo(m, false);
                     }
