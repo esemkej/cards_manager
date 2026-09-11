@@ -646,8 +646,12 @@ public class MainActivity extends AppCompatActivity {
                     image.setOnClickListener(v -> {scanImage = true; refreshSwitchGroup(mode_buttons, R.id.image, 0);});
                     save.setOnClickListener(v -> {
                         applyTextScale(search_txt, textScaleFromLevel((int) textLevel));
-                        applyTheme(theme);
+                        settings.put("grid_amount", progress);
+                        settings.put("text_level", textLevel);
+                        settings.put("scan_image", scanImage);
+                        saveSettings();
                         saveTheme(theme);
+                        applyTheme(loadTheme());
                         ViewGroup.LayoutParams sbarLP = search_bar.getLayoutParams();
                         sbarLP.height = ViewGroup.LayoutParams.WRAP_CONTENT;
                         search_bar.setLayoutParams(sbarLP);
@@ -869,8 +873,10 @@ public class MainActivity extends AppCompatActivity {
         debug = false;
         applyTheme(loadTheme());
 
-        if (card_prefs.contains("settings")) {
-            settings = new Gson().fromJson(card_prefs.getString("settings", ""), new TypeToken<HashMap<String, Object>>(){}.getType());
+        loadSortTypeId();
+        loadOrderId();
+        loadFilterId();
+        loadSettingsWithDefaults();
             final GridLayoutManager cards_rec_layoutManager =
                     new GridLayoutManager(cards_rec.getContext(), ((Double) settings.get("grid_amount")).intValue(), RecyclerView.VERTICAL, false);
 
@@ -885,30 +891,6 @@ public class MainActivity extends AppCompatActivity {
             });
 
             cards_rec.setLayoutManager(cards_rec_layoutManager);
-        } else {
-            settings = new HashMap<>();
-            settings.put("grid_amount", (double)(2));
-            settings.put("text_level", (double)(3));
-            settings.put("scan_image", false);
-            settings.put("main_tutorial", true);
-            settings.put("colors_tutorial", true);
-            settings.put("settings_tutorial", true);
-            saveSettings();
-            final GridLayoutManager cards_rec_layoutManager =
-                    new GridLayoutManager(cards_rec.getContext(), 2, RecyclerView.VERTICAL, false);
-
-            cards_rec_layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-                @Override
-                public int getSpanSize(int position) {
-                    RecyclerView.Adapter a = cards_rec.getAdapter();
-                    if (a == null) return cards_rec_layoutManager.getSpanCount();
-                    int t = a.getItemViewType(position);
-                    return (t == Cards_recAdapter.TYPE_HEADER) ? cards_rec_layoutManager.getSpanCount() : 1;
-                }
-            });
-
-            cards_rec.setLayoutManager(cards_rec_layoutManager);
-        }
         try{
             textLevel = (double)settings.get("text_level");
             scanImage = (boolean)settings.get("scan_image");
@@ -977,15 +959,24 @@ public class MainActivity extends AppCompatActivity {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         } else if (theme == R.id.dark) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-        } else if (theme == R.id.system_default) {
+        } else {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         }
     }
+    private int readChoice(String key, int[] ids, String[] names) {
+        Object saved = card_prefs.getAll().get(key);
+        int index = SavedChoice.index(saved, ids, names);
+        if (!names[index].equals(saved)) card_prefs.edit().putString(key, names[index]).apply();
+        return ids[index];
+    }
     private void saveTheme(int theme) {
-        card_prefs.edit().putInt("theme", theme).apply();
+        String[] names = {"system", "light", "dark"};
+        int index = SavedChoice.index(theme, new int[]{R.id.system_default, R.id.light, R.id.dark}, names);
+        card_prefs.edit().putString("theme", names[index]).apply();
     }
     private int loadTheme() {
-        return card_prefs.getInt("theme", R.id.system_default);
+        return readChoice("theme", new int[]{R.id.system_default, R.id.light, R.id.dark},
+                new String[]{"system", "light", "dark"});
     }
 
     // ==================== SORT / FILTER ====================
@@ -1008,7 +999,7 @@ public class MainActivity extends AppCompatActivity {
 
         ArrayList<HashMap<String, Object>> filtered = new ArrayList<>();
 
-        if (atRoot) {
+        if (atRoot && !onlyFav) {
             injectVirtualFavoritesIntoFiltered(filtered);
         }
 
@@ -1127,20 +1118,28 @@ public class MainActivity extends AppCompatActivity {
         });
     }
     private void saveSortPrefs(int sortTypeId, int orderId, int filterId) {
+        String[] sorts = {"name", "date", "uses"};
+        String[] orders = {"ascending", "descending"};
+        String[] filters = {"all", "favorites"};
         card_prefs.edit()
-                .putInt(PREF_SORT_TYPE, sortTypeId)
-                .putInt(PREF_SORT_ORDER, orderId)
-                .putInt(PREF_SORT_FILTER, filterId)
+                .putString(PREF_SORT_TYPE, sorts[SavedChoice.index(sortTypeId,
+                        new int[]{R.id.by_name, R.id.by_date_created, R.id.by_use_count}, sorts)])
+                .putString(PREF_SORT_ORDER, orders[SavedChoice.index(orderId,
+                        new int[]{R.id.ascending, R.id.descending}, orders)])
+                .putString(PREF_SORT_FILTER, filters[SavedChoice.index(filterId,
+                        new int[]{R.id.all, R.id.favorites}, filters)])
                 .apply();
     }
     private int loadSortTypeId() {
-        return card_prefs.getInt(PREF_SORT_TYPE, R.id.by_name);
+        return readChoice(PREF_SORT_TYPE, new int[]{R.id.by_name, R.id.by_date_created, R.id.by_use_count},
+                new String[]{"name", "date", "uses"});
     }
     private int loadOrderId() {
-        return card_prefs.getInt(PREF_SORT_ORDER, R.id.ascending);
+        return readChoice(PREF_SORT_ORDER, new int[]{R.id.ascending, R.id.descending},
+                new String[]{"ascending", "descending"});
     }
     private int loadFilterId() {
-        return card_prefs.getInt(PREF_SORT_FILTER, R.id.all);
+        return readChoice(PREF_SORT_FILTER, new int[]{R.id.all, R.id.favorites}, new String[]{"all", "favorites"});
     }
 
     // ==================== CARD DATA ====================
@@ -1150,6 +1149,28 @@ public class MainActivity extends AppCompatActivity {
         } else {
             card_prefs.edit().putString("cards", _value).commit();
         }
+    }
+    private void loadSettingsWithDefaults() {
+        try {
+            Object saved = card_prefs.getAll().get("settings");
+            settings = saved instanceof String ? new Gson().fromJson((String) saved,
+                    new TypeToken<HashMap<String, Object>>(){}.getType()) : null;
+        } catch (RuntimeException invalidSettings) {
+            settings = null;
+        }
+        if (settings == null) settings = new HashMap<>();
+        Object columns = settings.get("grid_amount");
+        if (!(columns instanceof Number) || Double.isNaN(((Number) columns).doubleValue())
+                || ((Number) columns).doubleValue() < 1 || ((Number) columns).doubleValue() > 5) {
+            settings.put("grid_amount", 2d);
+        } else settings.put("grid_amount", (double) ((Number) columns).intValue());
+        Object text = settings.get("text_level");
+        if (!(text instanceof Number) || Double.isNaN(((Number) text).doubleValue())
+                || ((Number) text).doubleValue() < 1 || ((Number) text).doubleValue() > 5) {
+            settings.put("text_level", 3d);
+        } else settings.put("text_level", (double) ((Number) text).intValue());
+        if (!(settings.get("scan_image") instanceof Boolean)) settings.put("scan_image", false);
+        saveSettings();
     }
     public void saveSettings() {
         card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
@@ -1391,7 +1412,7 @@ public class MainActivity extends AppCompatActivity {
         }
         Binder<Dialog> bindQuickView = (dlg, root) -> {
             TextView title = root.findViewById(R.id.code_details_txt);
-            title.setText(getString(R.string.code_details));
+            title.setText(getString(hasCode ? R.string.code_details : R.string.images));
             ImageView close = root.findViewById(R.id.close_img);
             root.findViewById(R.id.code_hint).setVisibility(View.GONE);
             View codeSection = root.findViewById(R.id.code_display);
@@ -1400,6 +1421,16 @@ public class MainActivity extends AppCompatActivity {
             codeIsland.setVisibility(hasCode ? View.VISIBLE : View.GONE);
             Bg.apply(codeIsland, color(R.color.app_bg), null, null, 16, null, 0, null, null);
             codeIsland.setClipToOutline(true);
+            if (!hasCode) {
+                View header = root.findViewById(R.id.quick_header);
+                ((ViewGroup) header.getParent()).removeView(header);
+                LinearLayout.LayoutParams headerParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                int inset = Math.round(12 * getResources().getDisplayMetrics().density);
+                headerParams.setMargins(inset, inset, inset, 0);
+                header.setPadding(0, 0, 0, 0);
+                ((LinearLayout) root.findViewById(R.id.quick_photo_content)).addView(header, 0, headerParams);
+            }
             photoSection.setVisibility(photos.isEmpty() ? View.GONE : View.VISIBLE);
             Bg.apply(codeSection, color(R.color.app_surface_var), null, null, 16, null, 0, null, null);
             Bg.apply(photoSection, color(R.color.app_bg), null, null, 16, null, 0, null, null);
@@ -1445,9 +1476,11 @@ public class MainActivity extends AppCompatActivity {
             gallery.post(() -> {
                 android.graphics.Rect available = new android.graphics.Rect();
                 root.getWindowVisibleDisplayFrame(available);
-                int height = Math.min(Math.round(184 * getResources().getDisplayMetrics().density),
-                        Math.max(1, (int) (available.height() * 0.25f)));
-                setSize(photoSection, KEEP, height);
+                boolean singlePhotoOnly = !hasCode && photos.size() == 1;
+                int height = Math.min(Math.round((singlePhotoOnly ? 360 : 184) * getResources().getDisplayMetrics().density),
+                        Math.max(1, (int) (available.height() * (singlePhotoOnly ? 0.6f : 0.25f))));
+                setSize(root.findViewById(R.id.quick_photo_viewport), KEEP, height);
+                if (photos.size() == 1 && gallery.getAdapter() != null) gallery.getAdapter().notifyItemChanged(0);
             });
             gallery.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
             gallery.setNestedScrollingEnabled(false);
@@ -1474,6 +1507,9 @@ public class MainActivity extends AppCompatActivity {
                     ImageView photo = (ImageView) holder.itemView;
                     String filename = photos.get(position);
                     RecyclerView.LayoutParams lp = (RecyclerView.LayoutParams) photo.getLayoutParams();
+                    if (photos.size() == 1 && gallery.getWidth() > 0) {
+                        lp.width = Math.max(1, gallery.getWidth() - gallery.getPaddingLeft() - gallery.getPaddingRight());
+                    }
                     // The RecyclerView supplies both outer insets; margins only separate photos.
                     lp.setMarginEnd(position == photos.size() - 1 ? 0
                             : Math.round(12 * getResources().getDisplayMetrics().density));
@@ -1626,6 +1662,8 @@ public class MainActivity extends AppCompatActivity {
         pendingImages.clear();
         pictures_list.clear();
         noCode = false;
+        cardSaveType = getString(R.string.none);
+        cardSaveCode = "";
         if (newItem) {
             newId = card_prefs.getLong("lastId", -1) + 1;
             cardSaveName = "";
@@ -1642,7 +1680,10 @@ public class MainActivity extends AppCompatActivity {
             id = data.get("id").toString();
             favorite = (boolean) data.get("favorite");
             folder = (boolean) data.get("folder");
-            if (!folder && (data.containsKey("type") && data.containsKey("code"))) {
+            if (!folder && data.get("type") != null && data.get("code") != null
+                    && !data.get("type").toString().isEmpty()
+                    && !data.get("type").toString().equals(getString(R.string.none))
+                    && !data.get("code").toString().isEmpty()) {
                 cardSaveType = data.get("type").toString();
                 cardSaveCode = data.get("code").toString();
             } else {
@@ -1817,7 +1858,8 @@ public class MainActivity extends AppCompatActivity {
                     cards.put("name", cardSaveName);
 
                     if (!folder) {
-                        if (!cardSaveType.equals(getString(R.string.none))) {
+                        if (!cardSaveCode.isEmpty() && !cardSaveType.isEmpty()
+                                && !cardSaveType.equals(getString(R.string.none))) {
                             cards.put("type", cardSaveType);
                             cards.put("code", cardSaveCode);
                         }
@@ -2677,6 +2719,7 @@ public class MainActivity extends AppCompatActivity {
         final LinearLayout parent = (LinearLayout) views[0];
         final ImageView image = (ImageView) views[1];
         final TextView text = (TextView) views[2];
+        parent.setSelected(toggled);
         if (toggled) {
             Bg.apply(parent, style == 0 ? color(R.color.app_surface) : color(R.color.app_surface_var), null, null, 16, null, style == 0 ? 0 : 2, style == 0 ? null : color(R.color.app_accent), color(R.color.app_ripple));
             parent.setElevation(style == 0 ? 1 * getResources().getDisplayMetrics().density : 0);
@@ -2690,6 +2733,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void makeToggleButton(View v, boolean toggled) {
+        v.setSelected(toggled);
         if (toggled) {
             Bg.apply(v, color(R.color.app_accent), null, null, 16, null, 0, null, color(R.color.app_ripple));
             v.setElevation(1 * getResources().getDisplayMetrics().density);
@@ -2705,15 +2749,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void refreshSwitchGroup(List<View[]> views_list, int selectedId, int style) {
+        View[] buttons = new View[views_list.size()];
+        for (int i = 0; i < buttons.length; i++) buttons[i] = views_list.get(i)[0];
+        selectedId = validGroupSelection(buttons, selectedId);
         for (View[] views : views_list) {
             boolean toggled = views[0].getId() == selectedId;
             makeSwitchButton(views, toggled, style);
         }
     }
     private void refreshToggleGroup(View[] views, int selectedId) {
+        selectedId = validGroupSelection(views, selectedId);
         for (View v : views) {
             makeToggleButton(v, v.getId() == selectedId);
         }
+    }
+    private int validGroupSelection(View[] views, int selectedId) {
+        for (View view : views) if (view.getId() == selectedId) return selectedId;
+        for (int fallback : new int[]{R.id.system_default, R.id.camera, R.id.by_name, R.id.ascending, R.id.all}) {
+            for (View view : views) if (view.getId() == fallback) return fallback;
+        }
+        return views.length == 0 ? View.NO_ID : views[0].getId();
     }
     private void matchImageSize(View[] pair, float multiplier, boolean matchWidth) {
         final ImageView image = (ImageView) pair[0];
@@ -3226,6 +3281,7 @@ public class MainActivity extends AppCompatActivity {
             final TextView card_label = _view.findViewById(R.id.card_label);
 
             type_img.setVisibility(View.VISIBLE);
+            parent.setTag(m);
             Object nameObj = m.get("name");
             card_name.setText(nameObj == null ? "" : String.valueOf(nameObj));
 
@@ -3269,6 +3325,8 @@ public class MainActivity extends AppCompatActivity {
             applyTextScale(card_label, scale);
 
             parent.post(() -> {
+                if (parent.getTag() != m) return;
+                type_img.setVisibility(View.VISIBLE);
                 int w = parent.getWidth();
                 int type_w = (int) Math.round(w * 0.15);
                 int type_m = (int) Math.round(w * 0.05);
@@ -3299,12 +3357,15 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     card_name.setAllCaps(true);
                     card_label.setVisibility(View.GONE);
-                    if (m.containsKey("type")) {
+                    if (m.get("type") != null && m.get("code") != null
+                            && !String.valueOf(m.get("code")).isEmpty()) {
                         String type = String.valueOf(m.get("type"));
                         if (type.equals("QR_CODE")) {
                             type_img.setImageResource(R.drawable.ic_qr_soft);
                         } else if (type.equals("CODE_128") || type.equals("CODE_39") || type.equals("CODE_93") || type.equals("EAN_13") || type.equals("EAN13") || type.equals("EAN_8") || type.equals("EAN8") || type.equals("UPC_A") || type.equals("UPCA") || type.equals("UPC_E") || type.equals("UPCE") || type.equals("ITF") || type.equals("CODABAR")) {
                             type_img.setImageResource(R.drawable.ic_bar_soft);
+                        } else if (m.get("images") instanceof List<?> && !((List<?>) m.get("images")).isEmpty()) {
+                            type_img.setImageResource(R.drawable.ic_img_soft);
                         } else {
                             type_img.setVisibility(View.GONE);
                         }
@@ -3548,13 +3609,13 @@ public class MainActivity extends AppCompatActivity {
             final LinearLayout parent = _view.findViewById(R.id.parent);
             final ImageView picture = _view.findViewById(R.id.picture);
             final ImageView pictureItemHintBadge = _view.findViewById(R.id.picture_item_hint_badge);
-            if (_position == 0) {
+            String v = String.valueOf(_data.get(_position).get("image"));
+            if (v.equals("plus")) {
                 setupInfoBadge(pictureItemHintBadge, "hint_remove_picture", 4);
             } else {
                 pictureItemHintBadge.setVisibility(View.GONE);
                 pictureItemHintBadge.setOnClickListener(null);
             }
-            String v = String.valueOf(_data.get(_position).get("image"));
             if (v.equals("plus")) {
                 picture.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 picture.setImageResource(R.drawable.ic_add_photo);

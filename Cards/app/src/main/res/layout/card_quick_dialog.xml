@@ -11,6 +11,7 @@
     android:padding="12dp">
 
     <LinearLayout
+        android:id="@+id/quick_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -148,8 +149,12 @@
 </LinearLayout>
 
 <FrameLayout android:id="@+id/quick_photos_section"
- android:layout_width="match_parent" android:layout_height="184dp"
+ android:layout_width="match_parent" android:layout_height="wrap_content"
  android:layout_marginTop="12dp" android:clipToOutline="true">
+ <LinearLayout android:id="@+id/quick_photo_content"
+  android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+ <FrameLayout android:id="@+id/quick_photo_viewport"
+  android:layout_width="match_parent" android:layout_height="184dp">
  <androidx.recyclerview.widget.RecyclerView android:id="@+id/quick_photos"
   android:layout_width="match_parent" android:layout_height="match_parent"
   android:padding="12dp" android:clipToPadding="false"
@@ -162,5 +167,7 @@
   android:layout_width="10dp" android:layout_height="match_parent"
   android:layout_gravity="right"
   android:importantForAccessibility="no"/>
+</FrameLayout>
+ </LinearLayout>
 </FrameLayout>
 </LinearLayout>
