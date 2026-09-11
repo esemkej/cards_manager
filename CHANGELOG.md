@@ -1,9 +1,17 @@
 # Changelog
 
+## v0.15.2-alpha
+- Improved UI for cards that contain images
+- Found bugs fixed
+
+---
+
 ## v0.15.1-alpha
 - Bugs and fixes
 - As per usual
 
+---
+  
 ## v0.15.0-alpha
 - UI Overhaul and modernization
 - Dark theme
