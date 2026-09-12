@@ -264,13 +264,14 @@ public class MainActivity extends AppCompatActivity {
     public void onResume() {
         super.onResume();
         if (card_prefs.contains("code") && card_prefs.contains("type")) {
-            if (code_edit != null) {
+            if (code_edit != null && hasUsableCode(card_prefs.getString("type", ""), card_prefs.getString("code", ""))) {
                 code_edit.setText(card_prefs.getString("code", ""));
                 type_txt.setText(card_prefs.getString("type", ""));
                 cardSaveCode = card_prefs.getString("code", "");
                 cardSaveType = card_prefs.getString("type", "");
                 code_hint.setVisibility(View.GONE);
                 displayCode(cardSaveType, cardSaveCode);
+                updateCodeButtons();
                 card_prefs.edit().remove("code").commit();
                 card_prefs.edit().remove("type").commit();
             } else {
@@ -1176,29 +1177,54 @@ public class MainActivity extends AppCompatActivity {
         card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
     }
     public void loadLastId() {
-        long new_id = card_prefs.getLong("lastId", -1) + 1;
-        java.util.ArrayDeque<HashMap<String, Object>> stack = new java.util.ArrayDeque<>();
-        for (HashMap<String, Object> m : cards_list_all) {
-            stack.push(m);
+        long highest = -1;
+        for (HashMap<String, Object> item : CardIdCompactor.orderedItems(cards_list_all)) {
+            highest = Math.max(highest, new java.math.BigDecimal(String.valueOf(item.get("id"))).longValueExact());
         }
-        while(!stack.isEmpty()) {
-            HashMap<String, Object> map = stack.pop();
-            String id_string = map.get("id").toString();
-            long id_long = Long.valueOf(id_string);
-            if (new_id < id_long) {
-                new_id = id_long;
+        card_prefs.edit().putLong("lastId", highest).commit();
+    }
+    private CardIdCompactor cardIdCompactor() {
+        return new CardIdCompactor(getFilesDir(), new CardIdCompactor.Store() {
+            public boolean pending() { return card_prefs.getBoolean("reindex_pending", false); }
+            public void begin() throws java.io.IOException {
+                if (!card_prefs.edit().putBoolean("reindex_pending", true)
+                        .putString("reindex_cards", card_prefs.getString("cards", "[]"))
+                        .putLong("reindex_last_id", card_prefs.getLong("lastId", -1)).commit())
+                    throw new java.io.IOException("Cannot start ID migration");
             }
-            Boolean isFolder = (Boolean) map.get("folder");
-            if (isFolder) {
-                ArrayList<HashMap<String, Object>> folder_data = (ArrayList<HashMap<String, Object>>) map.get("data");
-                for (HashMap<String, Object> child : folder_data) {
-                    stack.push(child);
+            public void finish(List<HashMap<String, Object>> cards, long lastId) throws java.io.IOException {
+                String json = new Gson().toJson(cards);
+                if (!pending() && json.equals(card_prefs.getString("cards", "[]"))
+                        && lastId == card_prefs.getLong("lastId", -1)) return;
+                boolean wasPending = pending();
+                String previous = card_prefs.getString("cards", "[]");
+                long previousId = card_prefs.getLong("lastId", -1);
+                String backup = card_prefs.getString("reindex_cards", previous);
+                long backupId = card_prefs.getLong("reindex_last_id", previousId);
+                if (!card_prefs.edit().putString("cards", json).putLong("lastId", lastId)
+                        .remove("reindex_pending").remove("reindex_cards").remove("reindex_last_id").commit()) {
+                    SharedPreferences.Editor restore = card_prefs.edit().putString("cards", previous).putLong("lastId", previousId);
+                    if (wasPending) restore.putBoolean("reindex_pending", true)
+                            .putString("reindex_cards", backup).putLong("reindex_last_id", backupId);
+                    restore.commit();
+                    throw new java.io.IOException("Cannot save compacted IDs");
                 }
             }
-        }
-        card_prefs.edit().putLong("lastId", new_id).commit();
+            public void rollback() throws java.io.IOException {
+                if (!card_prefs.edit().putString("cards", card_prefs.getString("reindex_cards", "[]"))
+                        .putLong("lastId", card_prefs.getLong("reindex_last_id", -1))
+                        .remove("reindex_pending").remove("reindex_cards").remove("reindex_last_id").commit())
+                    throw new java.io.IOException("Cannot restore IDs");
+            }
+        });
     }
     public void refreshList() {
+        CardIdCompactor compactor = cardIdCompactor();
+        try {
+            compactor.recover();
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("Cannot recover card images", e);
+        }
         ArrayList<HashMap<String, Object>> tmp = new ArrayList<>();
 
         if (card_prefs.contains("cards")) {
@@ -1210,6 +1236,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tmp = sanitizeTree(tmp);
+        try {
+            if (compactor.compact(tmp)) invalidateCardImageCache(new File(getFilesDir(), "card_images"));
+        } catch (java.io.IOException | IllegalArgumentException e) {
+            Log.e("CardIds", "Keeping original IDs because compaction failed", e);
+        }
 
         folderIdStack.clear();
         folderNameStack.clear();
@@ -1224,6 +1255,14 @@ public class MainActivity extends AppCompatActivity {
             cards_rec.setAdapter(cardsAdapter);
         } else {
             cardsAdapter.notifyDataSetChanged();
+        }
+    }
+    private void invalidateCardImageCache(File file) {
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) for (File child : children) invalidateCardImageCache(child);
+        } else {
+            Picasso.get().invalidate(file);
         }
     }
     private void scanCode(boolean scanImg) {
@@ -1245,12 +1284,14 @@ public class MainActivity extends AppCompatActivity {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
+                                        if (!hasUsableCode(type, text)) return;
                                         code_edit.setText(text);
                                         type_txt.setText(type);
                                         cardSaveCode = text;
                                         cardSaveType = type;
                                         code_hint.setVisibility(View.GONE);
                                         displayCode(cardSaveType, cardSaveCode);
+                                        updateCodeButtons();
                                     }
                                 });
 
@@ -1276,8 +1317,30 @@ public class MainActivity extends AppCompatActivity {
             openScannerOrRequestPermission();
         }
     }
+    private boolean hasUsableCode(String type, String value) {
+        if (type == null || value == null || value.trim().isEmpty()) return false;
+        type = type.toUpperCase(Locale.ROOT).replace("-", "_").replace(" ", "_");
+        switch (type) {
+            case "QR": case "PDF417":
+            case "EAN13": case "EAN8": case "UPCA": case "UPCE":
+                return true;
+        }
+        try {
+            BarcodeFormat.valueOf(type);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+    private void updateCodeButtons() {
+        if (scan_txt == null || display_btn == null || scan_btn == null) return;
+        boolean hasCode = hasUsableCode(cardSaveType, cardSaveCode);
+        scan_txt.setVisibility(hasCode ? View.GONE : View.VISIBLE);
+        display_btn.setVisibility(hasCode ? View.VISIBLE : View.GONE);
+        setSize(scan_btn, hasCode ? ViewGroup.LayoutParams.WRAP_CONTENT : ViewGroup.LayoutParams.MATCH_PARENT, KEEP);
+    }
     private void displayCode(String codeType, String codeValue) {
-        if (codeType == null || codeValue == null || codeValue.isEmpty()) return;
+        if (!hasUsableCode(codeType, codeValue)) return;
         code_img.post(() -> {
             try {
                 BarcodeFormat format = mapFormat(codeType);
@@ -1358,41 +1421,28 @@ public class MainActivity extends AppCompatActivity {
                 type_lay.setOnClickListener(null);
                 type_lay.setBackground(null);
             }
-            try {
-                scan_txt.setVisibility(View.GONE);
-                display_btn.setVisibility(View.VISIBLE);
-                setSize(scan_btn, ViewGroup.LayoutParams.WRAP_CONTENT, KEEP);
-            } catch (Exception ignored) {}
-
-            boolean hasCode = codeValue != null && !codeValue.isEmpty();
-            code_edit.setText(hasCode ? codeValue : (manualEntry ? "" : getString(R.string.none)));
-            type_txt.setText(codeType == null || codeType.isEmpty() ? getString(R.string.none) : codeType);
+            boolean hasCode = hasUsableCode(codeType, codeValue);
+            code_edit.setText(hasCode ? codeValue : "");
+            code_edit.setHint(manualEntry ? R.string.enter_code : R.string.none);
+            type_txt.setText(hasCode ? codeType : getString(R.string.none));
+            code_hint.setVisibility(hasCode ? View.GONE : View.VISIBLE);
+            if (hasCode) displayCode(codeType, codeValue);
 
             save.setOnClickListener(s -> {
-                if (type_txt.getText().toString().isEmpty() || code_edit.getText().toString().isEmpty()) {
+                if (!hasUsableCode(type_txt.getText().toString(), code_edit.getText().toString())) {
                     SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.please_scan_code));
                 } else {
                     cardSaveType = type_txt.getText().toString();
                     cardSaveCode = code_edit.getText().toString();
+                    updateCodeButtons();
                     dlg.dismiss();
                 }
             });
             rescan.setOnClickListener(r -> {scanCode(scanImage);});
-            close_img.setOnClickListener(c -> {
-                if (cardSaveType.equals(getString(R.string.none)) && cardSaveCode.isEmpty()) {
-                    scan_txt.setVisibility(View.VISIBLE);
-                    display_btn.setVisibility(View.GONE);
-                    setSize(scan_btn, ViewGroup.LayoutParams.MATCH_PARENT, KEEP);
-                }
-                dlg.dismiss();
-            });
+            close_img.setOnClickListener(c -> dlg.dismiss());
+            dlg.setOnDismissListener(d -> updateCodeButtons());
 
-            if (scan) {
-                scanCode(scanImage);
-            } else {
-                displayCode(codeType, codeValue);
-                code_hint.setVisibility(View.GONE);
-            }
+            if (scan) scanCode(scanImage);
         });
     }
     private void showCardQuickView(HashMap<String, Object> card) {
@@ -1565,7 +1615,7 @@ public class MainActivity extends AppCompatActivity {
             return getString(R.string.err_name_empty);
         }
         if (!folder && !debug) {
-            if (!cardSaveCode.isEmpty() && cardSaveType.equals(getString(R.string.none))) {
+            if (!cardSaveCode.isEmpty() && !hasUsableCode(cardSaveType, cardSaveCode)) {
                 // Can't have a code without code type
                 return getString(R.string.err_code_needs_type);
             }
@@ -1785,7 +1835,7 @@ public class MainActivity extends AppCompatActivity {
                 picturesAdapter = new Pictures_recAdapter(pictures_list);
                 pictures_rec.setAdapter(picturesAdapter);
 
-                scan_btn.setOnClickListener(v -> {scanOrDisplayCode(true, false, null, null, false);});
+                scan_btn.setOnClickListener(v -> {scanOrDisplayCode(true, false, cardSaveType, cardSaveCode, false);});
                 display_btn.setOnClickListener(v -> {scanOrDisplayCode(false, false, cardSaveType, cardSaveCode, false);});
                 scan_btn.setOnLongClickListener(v -> {scanOrDisplayCode(false, false, null, null, true); return true;});
                 display_btn.setOnLongClickListener(v -> {scanOrDisplayCode(false, false, cardSaveType, cardSaveCode, true); return true;});

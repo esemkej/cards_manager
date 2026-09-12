@@ -2,7 +2,7 @@
     <!-- App neutrals -->
     <color name="app_bg">#F7F7F7</color>
     <color name="app_surface">#FFFFFF</color>
-    <color name="app_surface_var">#eceff5</color>
+    <color name="app_surface_var">#dde3ed</color>
     <color name="app_stroke">#C6CACF</color>
     
     <!-- Text / icons -->
