@@ -25,12 +25,8 @@ import java.util.Locale;
 
 /** A hue field with native keyboard/accessibility support and direct hex entry. */
 public class HsvColorPickerView extends LinearLayout {
-    public interface OnColorChangedListener {
-        void onColorChanged(int argb, boolean fromUser);
-    }
     private final float[] hsv = {0f, 1f, 1f};
     private int alpha = 255;
-    private OnColorChangedListener listener;
     private EditText preview;
     private TextView randomize;
     private boolean editingHex;
@@ -74,7 +70,7 @@ public class HsvColorPickerView extends LinearLayout {
             presets.addView(swatch, new LayoutParams(0, -1, 1));
             swatch.setOnClickListener(v -> {
                 Color.colorToHSV(color, hsv);
-                update(true);
+                update();
                 swatch.animate().cancel();
                 swatch.setScaleX(.88f); swatch.setScaleY(.88f);
                 swatch.animate().scaleX(1).scaleY(1).setDuration(180).start();
@@ -119,7 +115,7 @@ public class HsvColorPickerView extends LinearLayout {
             @Override public void afterTextChanged(Editable text) { }
         });
         preview.setOnFocusChangeListener((v, focused) -> {
-            if (!focused) update(false);
+            if (!focused) update();
         });
         setColor(randomColor());
     }
@@ -133,7 +129,7 @@ public class HsvColorPickerView extends LinearLayout {
         return Color.HSVToColor(new float[]{java.util.concurrent.ThreadLocalRandom.current().nextFloat() * 360f, 1f, 1f});
     }
 
-    private void update(boolean fromUser) {
+    private void update() {
         updating = true;
         int color = getColor();
         preview.setBackground(shape(new int[]{color, color}, 20, true));
@@ -144,7 +140,6 @@ public class HsvColorPickerView extends LinearLayout {
         preview.setContentDescription(getResources().getString(R.string.color_preview, hex));
         hueField.invalidate();
         updating = false;
-        if (listener != null) listener.onColorChanged(color, fromUser);
     }
 
     private final class HueField extends View {
@@ -189,7 +184,7 @@ public class HsvColorPickerView extends LinearLayout {
                     getParent().requestDisallowInterceptTouchEvent(true);
                     hsv[0] = Math.max(0, Math.min(1, (event.getX() - field.left) / Math.max(1, field.width()))) * 360;
                     hsv[2] = 1 - Math.max(0, Math.min(1, (event.getY() - field.top) / Math.max(1, field.height())));
-                    hsv[1] = 1; alpha = 255; update(true);
+                    hsv[1] = 1; alpha = 255; update();
                     return true;
                 case MotionEvent.ACTION_UP:
                     performClick();
@@ -205,7 +200,7 @@ public class HsvColorPickerView extends LinearLayout {
         private boolean adjust(float hue, float brightness) {
             hsv[0] = Math.max(0, Math.min(360, hsv[0] + hue));
             hsv[2] = Math.max(0, Math.min(1, hsv[2] + brightness));
-            hsv[1] = 1; alpha = 255; update(true); return true;
+            hsv[1] = 1; alpha = 255; update(); return true;
         }
         @Override public boolean onKeyDown(int key, KeyEvent event) {
             if (key == KeyEvent.KEYCODE_DPAD_LEFT) return adjust(-3, 0);
@@ -236,11 +231,10 @@ public class HsvColorPickerView extends LinearLayout {
     }
     private int theme(int id) { return ContextCompat.getColor(getContext(), id); }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
-    public void setOnColorChangedListener(OnColorChangedListener l) { listener = l; }
     public void setColor(int color) {
         alpha = Color.alpha(color);
         Color.colorToHSV(color, hsv);
-        update(false);
+        update();
     }
     public int getColor() { return Color.HSVToColor(alpha, hsv); }
     public String getHex() { return String.format(Locale.US, "#%08X", getColor()); }

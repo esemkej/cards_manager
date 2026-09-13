@@ -12,9 +12,7 @@
     <color name="app_text_hint">#7A797F</color>
 
     <color name="app_icon_primary">#276bf1</color>
-    <color name="app_icon_secondary">#C6CACF</color>
     <color name="app_icon_disabled">#8A8F96</color>
-    <color name="app_icon_reversed">#FFFFFF</color>
     <color name="app_icon_dashed">#949AA6</color>
 
     <!-- Accent -->
@@ -27,7 +25,6 @@
 
     <!-- Sketchware -->
     <color name="colorPrimary">@color/app_accent</color>
-    <color name="colorPrimaryDark">@color/app_bg</color>
     <color name="colorAccent">@color/app_accent</color>
     <color name="colorControlHighlight">@color/app_ripple</color>
     <color name="colorControlNormal">@color/app_icon_primary</color>

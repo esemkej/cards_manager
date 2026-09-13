@@ -67,7 +67,6 @@ import java.io.OutputStream;
 import java.util.UUID;
 import com.squareup.picasso.Picasso;
 
-import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import com.google.android.material.slider.Slider;
 
 public class MainActivity extends AppCompatActivity {
@@ -88,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean favorite = false;
     private boolean folder = false;
     private boolean inFolder = false;
-    private boolean debug = false;
     private boolean pickInProgress = false;
     private boolean scanImage = false;
     private boolean scan = false;
@@ -535,15 +533,16 @@ public class MainActivity extends AppCompatActivity {
 			@Override
 			public void onClick(View _view) {
                 showBottomSheet(R.layout.settings_dialog, 0, (bs, root) -> {
+                    final View experimentalContent = getLayoutInflater().inflate(R.layout.experimental_settings_popup, null);
                     final View top_bar = root.findViewById(R.id.top_bar);
                     final TextView settings_txt = root.findViewById(R.id.settings_txt);
                     final TextView visual_settings_txt = root.findViewById(R.id.visual_settings_txt);
                     final TextView ux_txt = root.findViewById(R.id.ux_txt);
                     final TextView data_txt = root.findViewById(R.id.data_txt);
-                    final TextView column_count_txt = root.findViewById(R.id.column_count_txt);
-                    final TextView text_size_txt = root.findViewById(R.id.text_size_txt);
-                    final TextView column_count = root.findViewById(R.id.column_count);
-                    final TextView text_size = root.findViewById(R.id.text_size);
+                    final TextView column_count_txt = experimentalContent.findViewById(R.id.column_count_txt);
+                    final TextView text_size_txt = experimentalContent.findViewById(R.id.text_size_txt);
+                    final TextView column_count = experimentalContent.findViewById(R.id.column_count);
+                    final TextView text_size = experimentalContent.findViewById(R.id.text_size);
                     final TextView theme_txt = root.findViewById(R.id.theme_txt);
                     final TextView scan_mode_txt = root.findViewById(R.id.scan_mode_txt);
                     final TextView light = root.findViewById(R.id.light);
@@ -565,8 +564,8 @@ public class MainActivity extends AppCompatActivity {
                     final ImageView import_img = root.findViewById(R.id.import_img);
                     final ImageView export_img = root.findViewById(R.id.export_img);
                     final ImageView info_img = root.findViewById(R.id.info_img);
-                    final Slider column_count_sbar = root.findViewById(R.id.column_count_sbar);
-                    final Slider text_size_sbar = root.findViewById(R.id.text_size_sbar);
+                    final Slider column_count_sbar = experimentalContent.findViewById(R.id.column_count_sbar);
+                    final Slider text_size_sbar = experimentalContent.findViewById(R.id.text_size_sbar);
                     final LinearLayout scan_modes = root.findViewById(R.id.scan_modes);
                     final LinearLayout camera = root.findViewById(R.id.camera);
                     final LinearLayout image = root.findViewById(R.id.image);
@@ -585,7 +584,26 @@ public class MainActivity extends AppCompatActivity {
                     }
                     View experimentalHeader = root.findViewById(R.id.experimental_header);
                     Bg.apply(experimentalHeader, null, null, null, 16, null, 0, null, color(R.color.app_ripple));
-                    new SettingsDisclosure(experimentalHeader, root.findViewById(R.id.experimental_controls), visual_img);
+                    float popupDensity = getResources().getDisplayMetrics().density;
+                    int surface = color(R.color.app_surface) & 0x00FFFFFF;
+                    GradientDrawable popupGlass = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                            new int[]{surface | 0xF5000000, surface | 0xE8000000});
+                    popupGlass.setCornerRadius(16 * popupDensity);
+                    popupGlass.setStroke(Math.max(1, Math.round(popupDensity)), color(R.color.app_stroke));
+                    experimentalContent.setBackground(popupGlass);
+                    experimentalContent.setClipToOutline(true);
+                    PopupWindow experimentalPopup = new PopupWindow(experimentalContent,
+                            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+                    experimentalPopup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                    experimentalPopup.setElevation(8 * popupDensity);
+                    experimentalPopup.setOutsideTouchable(true);
+                    experimentalPopup.setOnDismissListener(() -> visual_img.setRotation(0));
+                    bs.setOnDismissListener(d -> experimentalPopup.dismiss());
+                    experimentalHeader.setOnClickListener(v -> {
+                        experimentalPopup.setWidth(experimentalHeader.getWidth());
+                        experimentalPopup.showAsDropDown(experimentalHeader, 0, Math.round(4 * popupDensity));
+                        visual_img.setRotation(180);
+                    });
                     theme = loadTheme();
 
                     float scale = textScaleFromLevel((int) textLevel);
@@ -618,6 +636,7 @@ public class MainActivity extends AppCompatActivity {
                     List<View[]> pairs = new ArrayList<>();
                     pairs.add(new View[]{close_img, settings_txt});
                     pairs.add(new View[]{visual_img, visual_settings_txt});
+                    pairs.add(new View[]{root.findViewById(R.id.experimental_img), visual_settings_txt});
                     pairs.add(new View[]{ux_img, ux_txt});
                     pairs.add(new View[]{data_img, data_txt});
                     pairs.add(new View[]{camera_img, camera_txt});
@@ -852,7 +871,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeLogic() {
-        debug = false;
         applyTheme(loadTheme());
 
         loadSortTypeId();
@@ -1074,16 +1092,20 @@ public class MainActivity extends AppCompatActivity {
         cards_list.clear();
         cards_list.addAll(sectioned);
 
+        if (cardInteractions != null) cardInteractions.preparePath(folderIdStack);
         cardsAdapter.submitRows(sectioned);
-        if (cardInteractions != null) cardInteractions.reconcile();
+        if (cardInteractions != null) {
+            cardInteractions.reconcile();
+            cardInteractions.setPath(folderIdStack, folderNameStack, this::navigateToFolderDepth);
+        }
         srefresh.setRefreshing(false);
         float scale = textScaleFromLevel((int) textLevel);
         applyTextScale(no_items_top_txt, scale);
         applyTextScale(no_items_bottom_txt, scale);
 
         boolean empty = sectioned.isEmpty();
-        no_items_top_txt.setText(cards_list_all.isEmpty() ? R.string.no_cards_added : R.string.selection_empty);
-        no_items_bottom_txt.setText(cards_list_all.isEmpty() ? R.string.get_started : R.string.selection_empty_hint);
+        no_items_top_txt.setText(!q.isEmpty() ? R.string.search_no_matches : cards_list_all.isEmpty() ? R.string.no_cards_added : R.string.selection_empty);
+        no_items_bottom_txt.setText(!q.isEmpty() ? R.string.search_no_matches_hint : cards_list_all.isEmpty() ? R.string.get_started : R.string.selection_empty_hint);
         no_items_lay.animate().cancel();
         if (empty) {
             if (no_items_lay.getVisibility() != View.VISIBLE) {
@@ -1100,6 +1122,56 @@ public class MainActivity extends AppCompatActivity {
         cards_rec.setPadding(cards_rec.getPaddingLeft(), cards_rec.getPaddingTop(), cards_rec.getPaddingRight(), Math.round(120 * dens));
 
     }
+    private void scrollToCreatedItem(String createdId) {
+        final ArrayList<String> createdPath = new ArrayList<>(folderIdStack);
+        cards_rec.post(new Runnable() {
+            @Override public void run() {
+                if (!cards_rec.isAttachedToWindow() || !createdPath.equals(folderIdStack)) return;
+                // DiffUtil dispatches immediately, but attached holders still belong to the old
+                // layout until the next frame. Let that layout settle before starting the scroll.
+                if (cards_rec.hasPendingAdapterUpdates() || cards_rec.isComputingLayout()) {
+                    cards_rec.postOnAnimation(this);
+                    return;
+                }
+                int position = RecyclerView.NO_POSITION;
+                int firstItem = RecyclerView.NO_POSITION;
+                for (int i = 0; i < cardsAdapter._data.size(); i++) {
+                    HashMap<String, Object> row = cardsAdapter._data.get(i);
+                    if (row.containsKey(KEY_ROW_TYPE) || isVirtualFavorites(row)) continue;
+                    if (firstItem == RecyclerView.NO_POSITION) firstItem = i;
+                    if (createdId.equals(getStr(row, "id"))) position = i;
+                }
+                // A search or favorites filter may intentionally hide the new item.
+                if (position == RecyclerView.NO_POSITION) return;
+                final boolean atStart = position == firstItem;
+                final boolean atEnd = position == cardsAdapter.getItemCount() - 1;
+                LinearSmoothScroller scroller = new LinearSmoothScroller(MainActivity.this) {
+                    @Override protected int getVerticalSnapPreference() {
+                        return atStart ? SNAP_TO_START : atEnd ? SNAP_TO_END : SNAP_TO_ANY;
+                    }
+                };
+                // Include the heading and virtual favorites folder when returning to the top.
+                scroller.setTargetPosition(atStart ? 0 : position);
+                RecyclerView.LayoutManager manager = cards_rec.getLayoutManager();
+                if (manager != null) manager.startSmoothScroll(scroller);
+            }
+        });
+    }
+
+    private void navigateToFolderDepth(int depth) {
+        if (depth < 0 || depth >= folderIdStack.size()) return;
+        if (cardInteractions != null) cardInteractions.clear();
+        while (folderIdStack.size() > depth) {
+            folderIdStack.remove(folderIdStack.size() - 1);
+            folderNameStack.remove(folderNameStack.size() - 1);
+        }
+        inFolder = !folderIdStack.isEmpty();
+        virtualFavorites = inFolder && VIRTUAL_FAVORITES_STACK_ID.equals(folderIdStack.get(0));
+        folderPath = joinWithSlash(folderNameStack);
+        applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
+        cards_rec.scrollToPosition(0);
+    }
+
     private void saveSortPrefs(int sortTypeId, int orderId, int filterId) {
         String[] sorts = {"name", "date", "uses", "manual"};
         String[] orders = {"ascending", "descending"};
@@ -1161,13 +1233,6 @@ public class MainActivity extends AppCompatActivity {
     }
     public void saveSettings() {
         card_prefs.edit().putString("settings", new Gson().toJson(settings)).commit();
-    }
-    public void loadLastId() {
-        long highest = -1;
-        for (HashMap<String, Object> item : CardIdCompactor.orderedItems(cards_list_all)) {
-            highest = Math.max(highest, new java.math.BigDecimal(String.valueOf(item.get("id"))).longValueExact());
-        }
-        card_prefs.edit().putLong("lastId", highest).commit();
     }
     private CardIdCompactor cardIdCompactor() {
         return new CardIdCompactor(getFilesDir(), new CardIdCompactor.Store() {
@@ -1418,9 +1483,14 @@ public class MainActivity extends AppCompatActivity {
                 code_edit.setFocusable(true);
                 code_edit.setFocusableInTouchMode(true);
                 code_edit.setCursorVisible(true);
+                final EditText manualCode = code_edit;
+                manualCode.setOnClickListener(v -> showCodeKeyboard(manualCode));
+                manualCode.setOnFocusChangeListener((v, focused) -> {
+                    if (focused) showCodeKeyboard(manualCode);
+                });
                 type_lay.setClickable(true);
                 Bg.apply(type_lay, null, null, null, 8, null, 0, null, color(R.color.app_ripple));
-                type_lay.setOnClickListener(v -> showTypePicker(type_lay, type_txt, code_edit.getText().toString()));
+                type_lay.setOnClickListener(v -> showTypePicker(type_lay, type_txt, code_edit));
             } else {
                 code_edit.setClickable(false);
                 code_edit.setFocusable(false);
@@ -1437,6 +1507,24 @@ public class MainActivity extends AppCompatActivity {
             type_txt.setText(hasCode ? codeType : getString(R.string.none));
             code_hint.setVisibility(hasCode ? View.GONE : View.VISIBLE);
             if (hasCode) displayCode(codeType, codeValue);
+            View deleteCode = root.findViewById(R.id.del_btn);
+            TextView deleteText = root.findViewById(R.id.del_txt);
+            ImageView deleteIcon = root.findViewById(R.id.del_img);
+            applyCurrentTextScale(deleteText);
+            matchImageSize(new View[]{deleteIcon, deleteText}, 1.1f, false);
+            deleteCode.setVisibility(!quickDisplay && hasCode ? View.VISIBLE : View.GONE);
+            Bg.apply(deleteCode, null, null, null, 16, null, 0, null, color(R.color.app_ripple));
+            deleteCode.setOnClickListener(v -> {
+                cardSaveCode = "";
+                cardSaveType = getString(R.string.none);
+                updateCodeButtons();
+                dlg.dismiss();
+            });
+            if (manualEntry && hasCode) {
+                type_lay.setFocusableInTouchMode(true);
+                type_lay.requestFocus();
+                dlg.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED);
+            }
 
             save.setOnClickListener(s -> {
                 if (Ean13.isType(type_txt.getText().toString())
@@ -1592,7 +1680,33 @@ public class MainActivity extends AppCompatActivity {
         };
         showDialog(R.layout.card_quick_dialog, 0, bindQuickView);
     }
-    private void showTypePicker(View anchor, TextView targetTypeTxt, String code) {
+    private void showCodeKeyboard(EditText editor) {
+        editor.requestFocus();
+        editor.post(() -> {
+            if (!editor.isAttachedToWindow() || !editor.hasFocus()) return;
+            if (editor.hasWindowFocus()) {
+                androidx.core.view.WindowInsetsControllerCompat controller = ViewCompat.getWindowInsetsController(editor);
+                if (controller != null) controller.show(WindowInsetsCompat.Type.ime());
+            } else {
+                editor.getViewTreeObserver().addOnWindowFocusChangeListener(new android.view.ViewTreeObserver.OnWindowFocusChangeListener() {
+                    @Override public void onWindowFocusChanged(boolean focused) {
+                        if (!focused) return;
+                        if (editor.getViewTreeObserver().isAlive()) editor.getViewTreeObserver().removeOnWindowFocusChangeListener(this);
+                        if (editor.hasFocus()) showCodeKeyboard(editor);
+                    }
+                });
+            }
+        });
+    }
+
+    private void showTypePicker(View anchor, TextView targetTypeTxt, EditText editor) {
+        String code = editor.getText().toString();
+        anchor.setFocusableInTouchMode(true);
+        if (!code.isEmpty()) {
+            anchor.requestFocus();
+            ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
+                    .hideSoftInputFromWindow(editor.getWindowToken(), 0);
+        }
         View content = getLayoutInflater().inflate(R.layout.type_picker_popup, null);
         final LinearLayout typePickerParent = content.findViewById(R.id.type_picker_parent);
         final TextView[] options = new TextView[]{
@@ -1620,6 +1734,16 @@ public class MainActivity extends AppCompatActivity {
         View.OnClickListener pick = v -> {
             targetTypeTxt.setText(((TextView) v).getText().toString());
             pw.dismiss();
+            editor.post(() -> {
+                android.view.inputmethod.InputMethodManager keyboard =
+                        (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                if (editor.getText().length() == 0) {
+                    showCodeKeyboard(editor);
+                } else {
+                    anchor.requestFocus();
+                    keyboard.hideSoftInputFromWindow(editor.getWindowToken(), 0);
+                }
+            });
         };
         for (TextView option : options) {
             option.setOnClickListener(pick);
@@ -1631,7 +1755,7 @@ public class MainActivity extends AppCompatActivity {
         if (cardSaveName.isEmpty()) {
             return getString(R.string.err_name_empty);
         }
-        if (!folder && !debug) {
+        if (!folder) {
             if (!cardSaveCode.isEmpty() && !hasUsableCode(cardSaveType, cardSaveCode)) {
                 // Can't have a code without code type
                 return getString(R.string.err_code_needs_type);
@@ -1989,6 +2113,7 @@ public class MainActivity extends AppCompatActivity {
                     saveCards(null);
                     applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
                     bs.dismiss();
+                    if (newItem) scrollToCreatedItem(getStr(cards, "id"));
                 } else {
                     if (card_name.getText().toString().trim().isEmpty()) {
                         card_name.setError(validationError); card_name.requestFocus();
@@ -2099,13 +2224,17 @@ public class MainActivity extends AppCompatActivity {
             if (CardTreeOperations.reorder(ordered, ids, destination, "reorder_after".equals(action))) {
                 saveSortPrefs(R.id.by_manual, R.id.ascending, loadFilterId()); finishSelectionChange();
             } else messages.show(R.string.selection_reorder_section, true);
-        } else if ("move".equals(action)) {
-            if (destination != null) { moveSelection(items, destination); return; }
+        } else if ("move".equals(action) || "copy".equals(action)) {
+            boolean copy = "copy".equals(action);
+            if (destination != null) {
+                if (copy) copySelection(items, destination, null); else moveSelection(items, destination);
+                return;
+            }
             ArrayList<String> labels = new ArrayList<>();
             ArrayList<String> targets = new ArrayList<>();
             labels.add(getString(R.string.selection_root)); targets.add("");
-            collectMoveTargets(cards_list_all, "", ids, labels, targets);
-            showMoveFolderDialog(items, labels, targets);
+            collectMoveTargets(cards_list_all, "", copy ? Collections.emptySet() : ids, labels, targets);
+            showMoveFolderDialog(items, labels, targets, copy);
         } else {
             // Favorites apply to every explicitly selected item, even when its parent is selected.
             for (String selectedId : ids) {
@@ -2132,9 +2261,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showMoveFolderDialog(ArrayList<HashMap<String, Object>> items,
-                                      ArrayList<String> labels, ArrayList<String> targets) {
+                                      ArrayList<String> labels, ArrayList<String> targets, boolean copy) {
         showDialog(R.layout.dialog, R.id.parent, (dialog, root) -> {
-            bindMoveDialog(dialog, root, R.string.selection_move, R.string.selection_new_folder);
+            bindMoveDialog(dialog, root, copy ? R.string.selection_copy : R.string.selection_move, R.string.selection_new_folder);
             float density = getResources().getDisplayMetrics().density;
             ScrollView scroll = new ScrollView(this);
             scroll.setFillViewport(false);
@@ -2165,17 +2294,20 @@ public class MainActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
                 lp.bottomMargin = Math.round(8 * density);
                 destinations.addView(row, lp);
-                row.setOnClickListener(v -> { moveSelection(items, target); dialog.dismiss(); });
+                row.setOnClickListener(v -> {
+                    if (copy) copySelection(items, target, null); else moveSelection(items, target);
+                    dialog.dismiss();
+                });
             }
             root.findViewById(R.id.positive_txt).setOnClickListener(v -> {
-                dialog.dismiss(); createSelectionFolder(items);
+                dialog.dismiss(); createSelectionFolder(items, copy);
             });
         });
     }
 
-    private void createSelectionFolder(ArrayList<HashMap<String, Object>> items) {
+    private void createSelectionFolder(ArrayList<HashMap<String, Object>> items, boolean copy) {
         showDialog(R.layout.dialog, R.id.parent, (dialog, root) -> {
-            bindMoveDialog(dialog, root, R.string.selection_new_folder, R.string.selection_move);
+            bindMoveDialog(dialog, root, R.string.selection_new_folder, copy ? R.string.selection_copy : R.string.selection_move);
             EditText name = new EditText(this);
             name.setSingleLine(true); name.setHint(R.string.folder_name); applyCurrentTextScale(name);
             name.setTextColor(color(R.color.app_text_dark));
@@ -2197,6 +2329,10 @@ public class MainActivity extends AppCompatActivity {
                 created.put("grad_style", "tl_br"); created.put("data", new ArrayList<HashMap<String, Object>>());
                 ArrayList<HashMap<String, Object>> container = inFolder && !virtualFavorites
                         ? resolveContainerList(cards_list_all, folderIdStack) : cards_list_all;
+                if (copy) {
+                    String parentId = inFolder && !virtualFavorites ? folderIdStack.get(folderIdStack.size() - 1) : "";
+                    copySelection(items, parentId, created); dialog.dismiss(); return;
+                }
                 container.add(created); card_prefs.edit().putLong("lastId", nextId).apply();
                 moveSelection(items, String.valueOf(nextId)); dialog.dismiss();
             });
@@ -2216,6 +2352,48 @@ public class MainActivity extends AppCompatActivity {
         for (HashMap<String, Object> item : items) ids.add(getStr(item, "id"));
         if (CardTreeOperations.move(cards_list_all, ids, targetId)) finishSelectionChange();
         else messages.show(R.string.selection_invalid_move, true);
+    }
+
+    private boolean copyingCards;
+    private void copySelection(ArrayList<HashMap<String, Object>> items, String target,
+                               HashMap<String, Object> newFolder) {
+        if (copyingCards) return;
+        copyingCards = true;
+        String before = new Gson().toJson(cards_list_all);
+        ArrayList<HashMap<String, Object>> snapshot = CardCopies.snapshot(cards_list_all);
+        Set<String> ids = new LinkedHashSet<>();
+        for (HashMap<String, Object> item : items) ids.add(getStr(item, "id"));
+        long lastId = card_prefs.getLong("lastId", -1);
+        File images = new File(getFilesDir(), "card_images");
+        new Thread(() -> {
+            try {
+                CardCopies.Result result = CardCopies.prepare(snapshot, ids, target, newFolder, lastId, images);
+                runOnUiThread(() -> {
+                    copyingCards = false;
+                    // Never replace concurrent edits with the snapshot used by the worker.
+                    if (isDestroyed() || !before.equals(new Gson().toJson(cards_list_all))
+                            || lastId != card_prefs.getLong("lastId", -1)) {
+                        result.rollback();
+                        if (!isDestroyed()) messages.show(R.string.selection_copy_failed, true);
+                        return;
+                    }
+                    try { result.publish(); } catch (java.io.IOException failure) {
+                        result.rollback(); messages.show(R.string.selection_copy_failed, true); return;
+                    }
+                    if (!card_prefs.edit().putString("cards", new Gson().toJson(result.tree)).putLong("lastId", result.lastId).commit()) {
+                        card_prefs.edit().putString("cards", before).putLong("lastId", lastId).commit();
+                        result.rollback(); messages.show(R.string.selection_copy_failed, true); return;
+                    }
+                    result.finish();
+                    cards_list_all.clear(); cards_list_all.addAll(result.tree);
+                    cardInteractions.clear();
+                    applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
+                });
+            } catch (Exception failure) {
+                android.util.Log.e("CardCopies", "Copy failed", failure);
+                runOnUiThread(() -> { copyingCards = false; if (!isDestroyed()) messages.show(R.string.selection_copy_failed, true); });
+            }
+        }, "card-copy").start();
     }
 
     private void deleteItemImages(HashMap<String, Object> item) {
@@ -3362,6 +3540,13 @@ public class MainActivity extends AppCompatActivity {
 
         if (onDismiss != null) bs.setOnDismissListener(onDismiss);
         if (onBind != null) onBind.bind(bs, content);
+        int surface = color(R.color.app_surface);
+        int softAccent = androidx.core.graphics.ColorUtils.blendARGB(surface, color(R.color.app_accent), .04f);
+        GradientDrawable sheetBackground = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{surface, softAccent});
+        float radius = 16 * getResources().getDisplayMetrics().density;
+        sheetBackground.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+        content.setBackground(sheetBackground);
 
         bs.show();
         messages.track(bs);
@@ -3542,6 +3727,7 @@ public class MainActivity extends AppCompatActivity {
                 glass.setCornerRadius(14 * density);
                 glass.setStroke(Math.max(1, Math.round(density)), 0x40FFFFFF);
                 caption.setBackground(glass);
+                caption.setGravity(Gravity.CENTER);
                 caption.setTextColor(Color.WHITE);
                 caption.setShadowLayer(2 * density, 0, density, 0x80000000);
                 caption.setAlpha(1f);
@@ -3558,7 +3744,7 @@ public class MainActivity extends AppCompatActivity {
                 int titleHeight = card_name.getLineHeight() * 2 + card_name.getPaddingTop() + card_name.getPaddingBottom();
                 int labelHeight = getBool(m, "folder", false) ? card_label.getLineHeight() + card_label.getPaddingTop() + card_label.getPaddingBottom() : 0;
                 int reserved = type_w + type_m;
-                _view.findViewById(R.id.vertical_layout).setPadding(0, 0, 0, reserved);
+                _view.findViewById(R.id.vertical_layout).setPadding(0, reserved / 2, 0, reserved / 2);
                 setSize(parent, KEEP, Math.max((int) Math.round(w * 0.7), titleHeight + labelHeight + reserved + 4 * type_m));
                 ViewGroup.LayoutParams t_lp = type_img.getLayoutParams();
                 t_lp.width = type_w;

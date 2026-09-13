@@ -115,11 +115,4 @@ public final class Bg {
         };
     }
 
-    private static float[] dpArrayToPx(View v, float[] dpRadii) {
-        float[] px = new float[dpRadii.length];
-        for (int i = 0; i < dpRadii.length; i++) {
-            px[i] = dpToPx(v, dpRadii[i]);
-        }
-        return px;
-    }
 }

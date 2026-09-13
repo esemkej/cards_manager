@@ -67,6 +67,7 @@ final class CardInteractions extends RecyclerView.SimpleOnItemTouchListener {
         count.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         button(actions, list.getContext().getString(R.string.selection_close), this::clear);
         edit = button(actions, list.getContext().getString(R.string.selection_edit), () -> act("edit"));
+        button(actions, list.getContext().getString(R.string.selection_copy), () -> act("copy"));
         button(actions, list.getContext().getString(R.string.selection_move), () -> act("move"));
         favorite = button(actions, list.getContext().getString(R.string.selection_favorite),
                 () -> act(allFavorites() ? "unfavorite" : "favorite"));
@@ -126,6 +127,10 @@ final class CardInteractions extends RecyclerView.SimpleOnItemTouchListener {
         row.addView(v, new LinearLayout.LayoutParams(-2, dp(48))); return v;
     }
     private void act(String action) { host.action(action, new LinkedHashSet<>(selected), null); }
+    void preparePath(java.util.List<String> ids) { toolbar.preparePath(ids); }
+    void setPath(java.util.List<String> ids, java.util.List<String> names, FloatingCardBar.PathNavigation navigate) {
+        toolbar.setPath(ids, names, navigate);
+    }
     void setStatusBarInset(int top) { toolbar.setStatusBarInset(top); }
     boolean active() { return !selected.isEmpty(); }
     boolean tap(String id) {
@@ -151,12 +156,7 @@ final class CardInteractions extends RecyclerView.SimpleOnItemTouchListener {
             ((MainActivity) list.getContext()).applyCurrentTextScale((TextView) actions.getChildAt(i));
         }
         boolean show = active();
-        browsingControls.setVisibility(show ? View.INVISIBLE : View.VISIBLE);
-        if (show && bar.getVisibility() != View.VISIBLE) {
-            toolbar.animateSelectionEntry();
-            bar.setVisibility(View.VISIBLE); bar.setAlpha(0); bar.setTranslationY(-dp(12));
-            bar.animate().alpha(1).translationY(0).setDuration(180).start();
-        } else if (!show) { bar.animate().cancel(); bar.setVisibility(View.GONE); }
+        toolbar.setSelectionVisible(show);
         count.setText(list.getResources().getQuantityString(R.plurals.selection_count, selected.size(), selected.size()));
         edit.setVisibility(selected.size() == 1 ? View.VISIBLE : View.GONE);
         ((androidx.swiperefreshlayout.widget.SwipeRefreshLayout) list.getParent()).setEnabled(!show);
