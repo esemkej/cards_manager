@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.15.3-alpha
+- Improved UI behavior when scrolling and navigating folders
+- Overhauled the color picker
+- General UX and fluidity improvements
+- Found bugs fixed
+
+---
+
 ## v0.15.2-alpha
 - Improved UI for cards that contain images
 - Found bugs fixed
