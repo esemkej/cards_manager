@@ -242,6 +242,14 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (search_txt != null && search_txt.length() > 0) {
+                    // The text watcher restores the current folder with its saved sort/filter.
+                    search_txt.setText("");
+                    search_txt.clearFocus();
+                    androidx.core.view.WindowCompat.getInsetsController(getWindow(), search_txt)
+                            .hide(WindowInsetsCompat.Type.ime());
+                    return;
+                }
                 if (cardInteractions != null && cardInteractions.active()) { cardInteractions.clear(); return; }
                 if (inFolder && !folderIdStack.isEmpty()) {
 

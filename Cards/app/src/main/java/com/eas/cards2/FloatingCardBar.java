@@ -26,6 +26,17 @@ final class FloatingCardBar extends FrameLayout {
     private float entryProgress;
     private boolean selectionWanted;
     private float reveal;
+    private ValueAnimator contentReveal;
+    private float contentRevealTarget;
+    private boolean contentChangePending;
+    private final RecyclerView.OnScrollListener directScroll = new RecyclerView.OnScrollListener() {
+        @Override public void onScrollStateChanged(RecyclerView recycler, int state) {
+            if (state == RecyclerView.SCROLL_STATE_DRAGGING) {
+                contentChangePending = false;
+                cancelContentReveal();
+            }
+        }
+    };
     private boolean navigating;
     private float navigationReveal;
     private android.widget.HorizontalScrollView pathStrip;
@@ -66,8 +77,12 @@ final class FloatingCardBar extends FrameLayout {
                         ? list.getPaddingTop() - dp(8) - layout.getDecoratedTop(first) : null;
                 int firstVisible = layout instanceof androidx.recyclerview.widget.LinearLayoutManager
                         ? ((androidx.recyclerview.widget.LinearLayoutManager) layout).findFirstVisibleItemPosition() : RecyclerView.NO_POSITION;
-                setReveal(HeaderScrollState.fromRows(reveal, offset, list.canScrollVertically(-1), firstVisible,
-                        list.getItemAnimator() != null && list.getItemAnimator().isRunning(), dp(72)));
+                float target = HeaderScrollState.fromRows(reveal, offset, list.canScrollVertically(-1), firstVisible,
+                        list.getItemAnimator() != null && list.getItemAnimator().isRunning(), dp(72));
+                if (contentChangePending || contentReveal != null) {
+                    contentChangePending = list.getItemAnimator() != null && list.getItemAnimator().isRunning();
+                    animateContentReveal(target);
+                } else setReveal(target);
             }
             updatePathTransition();
             layoutPath();
@@ -81,7 +96,14 @@ final class FloatingCardBar extends FrameLayout {
     }
 
     void preparePath(java.util.List<String> ids) {
-        if (pathIds.equals(ids)) return;
+        if (pathIds.equals(ids)) {
+            // Called before replacing the rows. Filtering can clamp the list's scroll
+            // position without a gesture; ease that layout change through the same reveal.
+            contentChangePending = true;
+            return;
+        }
+        contentChangePending = false;
+        cancelContentReveal();
         navigationReveal = reveal;
         navigating = true;
         list.stopScroll();
@@ -316,10 +338,14 @@ final class FloatingCardBar extends FrameLayout {
     @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         getViewTreeObserver().addOnPreDrawListener(observeOverlap);
+        list.addOnScrollListener(directScroll);
     }
 
     @Override protected void onDetachedFromWindow() {
         getViewTreeObserver().removeOnPreDrawListener(observeOverlap);
+        list.removeOnScrollListener(directScroll);
+        contentChangePending = false;
+        cancelContentReveal();
         if (selectionEntry != null) selectionEntry.cancel();
         super.onDetachedFromWindow();
     }
@@ -363,6 +389,33 @@ final class FloatingCardBar extends FrameLayout {
             layout.leftMargin = margin; layout.rightMargin = margin;
             selection.setLayoutParams(layout);
         }
+    }
+
+    private void cancelContentReveal() {
+        if (contentReveal == null) return;
+        contentReveal.removeAllListeners();
+        contentReveal.cancel();
+        contentReveal = null;
+    }
+
+    private void animateContentReveal(float target) {
+        if (contentReveal != null && Math.abs(contentRevealTarget - target) < .001f) return;
+        cancelContentReveal();
+        if (Math.abs(reveal - target) < .001f) {
+            setReveal(target);
+            return;
+        }
+        contentRevealTarget = target;
+        contentReveal = ValueAnimator.ofFloat(reveal, target);
+        contentReveal.setDuration(220);
+        contentReveal.setInterpolator(new DecelerateInterpolator());
+        contentReveal.addUpdateListener(animation -> setReveal((float) animation.getAnimatedValue()));
+        contentReveal.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(android.animation.Animator animation) {
+                contentReveal = null;
+            }
+        });
+        contentReveal.start();
     }
 
     private void setReveal(float value) {

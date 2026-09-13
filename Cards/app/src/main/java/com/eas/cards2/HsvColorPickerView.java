@@ -92,7 +92,10 @@ public class HsvColorPickerView extends LinearLayout {
         LayoutParams randomLp = new LayoutParams(-1, -2);
         randomLp.topMargin = dp(12);
         addView(randomize, randomLp);
-        randomize.setOnClickListener(v -> setColor(randomColor()));
+        randomize.setOnClickListener(v -> {
+            java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+            setColor(Color.HSVToColor(new float[]{random.nextFloat() * 360f, 1f, random.nextFloat()}));
+        });
         preview.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
