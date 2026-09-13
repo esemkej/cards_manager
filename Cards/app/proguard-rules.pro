@@ -1,8 +1,3 @@
-####################################
-# Keep R8 light (Sketchware-friendly)
-####################################
-
--dontoptimize
 -dontpreverify
 
 # Keep useful debug info for crashes
@@ -17,8 +12,10 @@
 # YOUR APP (this is the important one)
 ####################################
 
-# Keep all your app code and member names so reflection/JSON won't break.
--keep class com.eas.cards2.** { *; }
+# Keep app entry points and custom views that Android may instantiate by name.
+-keep public class com.eas.cards2.MainActivity
+-keep public class com.eas.cards2.ScannerActivity
+-keep public class com.eas.cards2.HsvColorPickerView { public <init>(...); }
 
 
 ####################################
@@ -29,4 +26,7 @@
 -dontwarn com.google.zxing.**
 -dontwarn com.google.android.material.**
 -dontwarn androidx.**
+-dontwarn javax.annotation.Nullable
 -dontwarn kotlin.**
+-dontwarn org.conscrypt.Conscrypt
+-dontwarn org.conscrypt.OpenSSLProvider
