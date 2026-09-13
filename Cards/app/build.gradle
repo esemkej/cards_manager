@@ -36,3 +36,32 @@ dependencies {
 	implementation 'jp.wasabeef:picasso-transformations:2.4.0'
 	implementation 'com.google.zxing:core:3.5.4'
 }
+
+// Keep English and Slovak resources aligned and sorted as the catalog grows.
+def localizedStrings = [file('src/main/res/values/strings.xml'), file('src/main/res/values-sk/strings.xml')]
+tasks.register('verifyLocalizedStrings') {
+    inputs.files(localizedStrings)
+    doLast {
+        def catalogs = localizedStrings.collect { resourceFile ->
+            def entries = new groovy.xml.XmlParser(false, false).parse(resourceFile).children()
+            def names = entries.collect { it.attribute('name').toString() }
+            if (names != names.toSorted() || names.size() != names.toSet().size()) {
+                throw new GradleException("${resourceFile}: resource names must be unique and alphabetical")
+            }
+            entries.collectEntries { [(it.attribute('name').toString()): it] }
+        }
+        if (catalogs[0].keySet() != catalogs[1].keySet()) {
+            throw new GradleException('English and Slovak string resources must have identical keys')
+        }
+        catalogs[0].each { name, english ->
+            def slovak = catalogs[1][name]
+            if (english.name() != slovak.name()) throw new GradleException("${name}: mismatched resource types")
+            def placeholders = { text -> (text =~ /(?<!%)%(?:\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z]/).findAll().toSet() }
+            if (placeholders(english.text()) != placeholders(slovak.text())) {
+                throw new GradleException("${name}: English and Slovak format placeholders differ")
+            }
+            if (!english.text().trim() || !slovak.text().trim()) throw new GradleException("${name}: empty translation")
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn('verifyLocalizedStrings') }

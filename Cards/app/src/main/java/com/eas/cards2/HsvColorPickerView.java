@@ -1,371 +1,247 @@
 package com.eas.cards2;
 
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.util.AttributeSet;
-import android.view.MotionEvent;
-import android.view.View;
+import android.view.Gravity;
 import android.widget.LinearLayout;
-
+import android.view.View;
+import android.view.MotionEvent;
+import android.view.KeyEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
+import android.widget.TextView;
+import android.widget.EditText;
+import android.text.Editable;
+import android.text.TextWatcher;
 import androidx.core.content.ContextCompat;
-
+import androidx.core.graphics.ColorUtils;
 import java.util.Locale;
 
+/** A hue field with native keyboard/accessibility support and direct hex entry. */
 public class HsvColorPickerView extends LinearLayout {
-
     public interface OnColorChangedListener {
         void onColorChanged(int argb, boolean fromUser);
     }
-
-    private final float[] hsv = new float[] { 0f, 1f, 1f }; // h,s,v
+    private final float[] hsv = {0f, 1f, 1f};
     private int alpha = 255;
-    private int argb = 0xFFFF0000;
-
     private OnColorChangedListener listener;
+    private EditText preview;
+    private TextView randomize;
+    private boolean editingHex;
+    private HueField hueField;
+    private boolean updating;
 
-    private ColorWheelView wheel;
-    private ValueSliderView valueSlider;
-
-    public HsvColorPickerView(Context context) {
-        super(context);
-        init(context, null);
-    }
-
-    public HsvColorPickerView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        init(context, attrs);
-    }
-
-    public HsvColorPickerView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        init(context, attrs);
-    }
-
-    private void init(Context ctx, AttributeSet attrs) {
+    public HsvColorPickerView(Context c) { this(c, null); }
+    public HsvColorPickerView(Context c, AttributeSet a) { this(c, a, 0); }
+    public HsvColorPickerView(Context c, AttributeSet a, int style) {
+        super(c, a, style);
         setOrientation(VERTICAL);
+        setClipChildren(false);
+        preview = new EditText(c);
+        preview.setSingleLine(true);
+        preview.setSelectAllOnFocus(true);
+        preview.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        preview.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(9)});
+        preview.setGravity(Gravity.CENTER);
+        preview.setTextSize(18);
+        preview.setTypeface(android.graphics.Typeface.MONOSPACE);
+        addView(preview, new LayoutParams(-1, dp(64)));
 
-        wheel = new ColorWheelView(ctx);
-        valueSlider = new ValueSliderView(ctx);
-        wheel.setElevation(dp(2));
-        valueSlider.setElevation(dp(2));
-
-        LayoutParams wheelLp = new LayoutParams(LayoutParams.MATCH_PARENT, 0);
-        wheelLp.gravity = android.view.Gravity.CENTER_HORIZONTAL;
-        wheelLp.weight = 1f;
-        addView(wheel, wheelLp);
-
-        int barH = dp(28);
-        LayoutParams barLp = new LayoutParams(LayoutParams.MATCH_PARENT, barH);
-        barLp.topMargin = dp(10);
-        addView(valueSlider, barLp);
-
-        wheel.setOnHueSatChangedListener(new ColorWheelView.OnHueSatChangedListener() {
-            @Override public void onHueSatChanged(float h, float s, boolean fromUser) {
-                hsv[0] = h;
-                hsv[1] = s;
-                update(fromUser);
+        LinearLayout presets = new LinearLayout(c);
+        presets.setGravity(Gravity.CENTER_VERTICAL);
+        LayoutParams row = new LayoutParams(-1, dp(56));
+        row.topMargin = dp(8);
+        addView(presets, row);
+        int[] colors = new int[6];
+        for (int i = 0; i < colors.length; i++) colors[i] = randomColor();
+        for (int i = 0; i < colors.length; i++) {
+            final int color = colors[i];
+            android.widget.ImageButton swatch = new android.widget.ImageButton(c);
+            swatch.setContentDescription(c.getString(R.string.color_preview, String.format(Locale.US, "#%06X", color & 0xFFFFFF)));
+            swatch.setBackgroundResource(android.R.color.transparent);
+            GradientDrawable circle = shape(new int[]{color, color}, 0, true);
+            circle.setShape(GradientDrawable.OVAL);
+            circle.setSize(dp(32), dp(32));
+            swatch.setImageDrawable(circle);
+            swatch.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+            swatch.setPadding(dp(4), dp(8), dp(4), dp(8));
+            presets.addView(swatch, new LayoutParams(0, -1, 1));
+            swatch.setOnClickListener(v -> {
+                Color.colorToHSV(color, hsv);
+                update(true);
+                swatch.animate().cancel();
+                swatch.setScaleX(.88f); swatch.setScaleY(.88f);
+                swatch.animate().scaleX(1).scaleY(1).setDuration(180).start();
+            });
+        }
+        hueField = new HueField(c);
+        LayoutParams fieldLp = new LayoutParams(-1, dp(180));
+        fieldLp.topMargin = dp(8);
+        addView(hueField, fieldLp);
+        randomize = new TextView(c);
+        randomize.setText(R.string.color_randomize);
+        randomize.setTextSize(14);
+        randomize.setGravity(Gravity.CENTER);
+        randomize.setTextColor(theme(R.color.app_text_dark));
+        randomize.setMinHeight(dp(48));
+        randomize.setPadding(dp(12), dp(8), dp(12), dp(8));
+        randomize.setBackground(Bg.build(randomize, theme(R.color.app_surface_var), null, null,
+                16, null, 1, theme(R.color.app_stroke), theme(R.color.app_ripple)));
+        LayoutParams randomLp = new LayoutParams(-1, -2);
+        randomLp.topMargin = dp(12);
+        addView(randomize, randomLp);
+        randomize.setOnClickListener(v -> setColor(randomColor()));
+        preview.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (updating) return;
+                String raw = s.toString();
+                if (raw.indexOf('#') >= 0) {
+                    String normalized = "#" + raw.replace("#", "");
+                    if (!normalized.equals(raw)) {
+                        preview.setText(normalized);
+                        preview.setSelection(normalized.length());
+                        return;
+                    }
+                }
+                Integer parsed = HexColor.parse(raw);
+                if (parsed == null) return;
+                editingHex = true;
+                setColor(parsed);
+                editingHex = false;
             }
+            @Override public void afterTextChanged(Editable text) { }
         });
-
-        valueSlider.setOnValueChangedListener(new ValueSliderView.OnValueChangedListener() {
-            @Override public void onValueChanged(float v, boolean fromUser) {
-                hsv[2] = v;
-                update(fromUser);
-            }
+        preview.setOnFocusChangeListener((v, focused) -> {
+            if (!focused) update(false);
         });
+        setColor(randomColor());
+    }
 
-        update(false);
+    public void applyTextScale(float scale) {
+        MainActivity.applyTextScale(preview, scale);
+        MainActivity.applyTextScale(randomize, scale);
+    }
+
+    public static int randomColor() {
+        return Color.HSVToColor(new float[]{java.util.concurrent.ThreadLocalRandom.current().nextFloat() * 360f, 1f, 1f});
     }
 
     private void update(boolean fromUser) {
-        argb = Color.HSVToColor(alpha, hsv);
-        wheel.setPreviewColor(argb);
-
-        int fullBrightRgb = Color.HSVToColor(255, new float[]{ hsv[0], hsv[1], 1f });
-        valueSlider.setBaseColor(fullBrightRgb);
-        valueSlider.setValue(hsv[2]);
-
-        wheel.setHueSat(hsv[0], hsv[1]);
-
-        if (listener != null) listener.onColorChanged(argb, fromUser);
+        updating = true;
+        int color = getColor();
+        preview.setBackground(shape(new int[]{color, color}, 20, true));
+        int visibleColor = ColorUtils.compositeColors(color, theme(R.color.app_surface));
+        preview.setTextColor(ColorUtils.calculateLuminance(visibleColor) > .4 ? Color.BLACK : Color.WHITE);
+        String hex = alpha == 255 ? String.format(Locale.US, "#%06X", color & 0xFFFFFF) : getHex();
+        if (!editingHex) preview.setText(hex);
+        preview.setContentDescription(getResources().getString(R.string.color_preview, hex));
+        hueField.invalidate();
+        updating = false;
+        if (listener != null) listener.onColorChanged(color, fromUser);
     }
 
-    public void setOnColorChangedListener(OnColorChangedListener l) {
-        listener = l;
+    private final class HueField extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF field = new RectF();
+        private Shader rainbow, shade;
+        HueField(Context context) {
+            super(context);
+            setFocusable(true); setClickable(true);
+            setContentDescription(context.getString(R.string.color_field));
+            androidx.core.view.ViewCompat.addAccessibilityAction(this, context.getString(R.string.color_brighter),
+                    (view, args) -> adjust(0, .05f));
+            androidx.core.view.ViewCompat.addAccessibilityAction(this, context.getString(R.string.color_darker),
+                    (view, args) -> adjust(0, -.05f));
+        }
+        @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            field.set(dp(16), dp(16), w - dp(16), h - dp(16));
+            rainbow = new LinearGradient(field.left, 0, field.right, 0,
+                    new int[]{Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA, Color.RED},
+                    null, Shader.TileMode.CLAMP);
+            shade = new LinearGradient(0, field.top, 0, field.bottom, Color.TRANSPARENT, Color.BLACK, Shader.TileMode.CLAMP);
+        }
+        @Override protected void onDraw(Canvas canvas) {
+            paint.setStyle(Paint.Style.FILL); paint.setShader(rainbow);
+            canvas.drawRoundRect(field, dp(16), dp(16), paint);
+            paint.setShader(shade);
+            canvas.drawRoundRect(field, dp(16), dp(16), paint);
+            paint.setShader(null);
+            float x = field.left + hsv[0] / 360f * field.width();
+            float y = field.top + (1 - hsv[2]) * field.height();
+            paint.setColor(0x55000000);
+            canvas.drawCircle(x, y, dp(13), paint);
+            paint.setColor(getColor());
+            canvas.drawCircle(x, y, dp(10), paint);
+            paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(3)); paint.setColor(Color.WHITE);
+            canvas.drawCircle(x, y, dp(10), paint);
+        }
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_MOVE:
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                    hsv[0] = Math.max(0, Math.min(1, (event.getX() - field.left) / Math.max(1, field.width()))) * 360;
+                    hsv[2] = 1 - Math.max(0, Math.min(1, (event.getY() - field.top) / Math.max(1, field.height())));
+                    hsv[1] = 1; alpha = 255; update(true);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    performClick();
+                    getParent().requestDisallowInterceptTouchEvent(false);
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                    getParent().requestDisallowInterceptTouchEvent(false);
+                    return true;
+            }
+            return super.onTouchEvent(event);
+        }
+        @Override public boolean performClick() { super.performClick(); return true; }
+        private boolean adjust(float hue, float brightness) {
+            hsv[0] = Math.max(0, Math.min(360, hsv[0] + hue));
+            hsv[2] = Math.max(0, Math.min(1, hsv[2] + brightness));
+            hsv[1] = 1; alpha = 255; update(true); return true;
+        }
+        @Override public boolean onKeyDown(int key, KeyEvent event) {
+            if (key == KeyEvent.KEYCODE_DPAD_LEFT) return adjust(-3, 0);
+            if (key == KeyEvent.KEYCODE_DPAD_RIGHT) return adjust(3, 0);
+            if (key == KeyEvent.KEYCODE_DPAD_UP) return adjust(0, .05f);
+            if (key == KeyEvent.KEYCODE_DPAD_DOWN) return adjust(0, -.05f);
+            return super.onKeyDown(key, event);
+        }
+        @Override public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            info.setClassName(android.widget.SeekBar.class.getName());
+            info.setRangeInfo(AccessibilityNodeInfo.RangeInfo.obtain(AccessibilityNodeInfo.RangeInfo.RANGE_TYPE_FLOAT, 0, 360, hsv[0]));
+            info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_FORWARD);
+            info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_BACKWARD);
+        }
+        @Override public boolean performAccessibilityAction(int action, android.os.Bundle args) {
+            if (action == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) return adjust(3, 0);
+            if (action == AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD) return adjust(-3, 0);
+            return super.performAccessibilityAction(action, args);
+        }
     }
 
-    /** Set current color (ARGB int: 0xAARRGGBB). */
+    private GradientDrawable shape(int[] colors, int radius, boolean outline) {
+        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, colors);
+        d.setCornerRadius(dp(radius));
+        if (outline) d.setStroke(dp(1), theme(R.color.app_stroke));
+        return d;
+    }
+    private int theme(int id) { return ContextCompat.getColor(getContext(), id); }
+    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+    public void setOnColorChangedListener(OnColorChangedListener l) { listener = l; }
     public void setColor(int color) {
         alpha = Color.alpha(color);
         Color.colorToHSV(color, hsv);
         update(false);
     }
-
-    /** Get current color as ARGB int (0xAARRGGBB). */
-    public int getColor() {
-        return argb;
-    }
-
-    /** Get current color as hex string: #AARRGGBB */
-    public String getHex() {
-        return String.format(Locale.US, "#%08X", argb);
-    }
-
-    private int dp(int dp) {
-        return (int)(dp * getResources().getDisplayMetrics().density + 0.5f);
-    }
-
-    // -------------------- Color Wheel --------------------
-
-    public static class ColorWheelView extends View {
-        public interface OnHueSatChangedListener {
-            void onHueSatChanged(float hue, float sat, boolean fromUser);
-        }
-
-        private OnHueSatChangedListener listener;
-
-        private Bitmap wheelBitmap;
-        private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint thumbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint previewFill = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint previewStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint wheelStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private int previewColor = 0xFFFFFFFF;
-
-        private float hue = 0f;    // 0..360
-        private float sat = 1f;    // 0..1
-
-        private float cx, cy, radius;
-
-        public ColorWheelView(Context c) { super(c); init(); }
-        public ColorWheelView(Context c, AttributeSet a) { super(c, a); init(); }
-
-        private void init() {
-            thumbPaint.setStyle(Paint.Style.STROKE);
-            thumbPaint.setStrokeWidth(4f);
-            thumbPaint.setColor(Color.WHITE);
-            setFocusable(true);
-            int accentColor = ContextCompat.getColor(getContext(), R.color.app_accent);
-            previewFill.setStyle(Paint.Style.FILL);
-            previewStroke.setStyle(Paint.Style.STROKE);
-            previewStroke.setColor(accentColor);
-            previewStroke.setStrokeWidth(2f * getResources().getDisplayMetrics().density);
-            wheelStroke.setStyle(Paint.Style.STROKE);
-            wheelStroke.setColor(accentColor);
-            wheelStroke.setStrokeWidth(2f * getResources().getDisplayMetrics().density);
-        }
-
-        public void setOnHueSatChangedListener(OnHueSatChangedListener l) {
-            listener = l;
-        }
-
-        public void setHueSat(float h, float s) {
-            hue = clamp(h, 0f, 360f);
-            sat = clamp(s, 0f, 1f);
-            invalidate();
-        }
-
-        public void setPreviewColor(int argb) {
-            previewColor = argb;
-            invalidate();
-        }
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            int w = MeasureSpec.getSize(widthMeasureSpec);
-            int h = MeasureSpec.getSize(heightMeasureSpec);
-
-            if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED) {
-                h = w;
-            }
-            int size = Math.min(w, h);
-            setMeasuredDimension(size, size);
-        }
-
-        @Override
-        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-            int size = Math.min(w, h);
-            cx = size / 2f;
-            cy = size / 2f;
-            radius = size / 2f;
-
-            wheelBitmap = makeWheelBitmap(size);
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (wheelBitmap != null) {
-                canvas.drawBitmap(wheelBitmap, 0, 0, bitmapPaint);
-            }
-
-            float ang = (float) Math.toRadians(hue);
-            float r = sat * radius;
-            float x = cx + (float) Math.cos(ang) * r;
-            float y = cy + (float) Math.sin(ang) * r;
-            float strokeInset = wheelStroke.getStrokeWidth() * 0.5f;
-
-            canvas.drawCircle(cx, cy, radius - strokeInset, wheelStroke);
-
-            float previewRadius = (radius * 0.22f) - (previewStroke.getStrokeWidth() * 0.5f) - (4f *  getResources().getDisplayMetrics().density);
-
-            previewFill.setColor(previewColor);
-            previewFill.setAlpha(240);
-            canvas.drawCircle(cx, cy, previewRadius, previewFill);
-            canvas.drawCircle(cx, cy, previewRadius, previewStroke);
-
-            canvas.drawCircle(x, y, 14f, thumbPaint);
-        }
-
-        @Override
-        public boolean onTouchEvent(MotionEvent e) {
-            float x = e.getX() - cx;
-            float y = e.getY() - cy;
-            float dist = (float) Math.hypot(x, y);
-
-            float s = clamp(dist / radius, 0f, 1f);
-            float ang = (float) Math.atan2(y, x);
-            float h = (float) Math.toDegrees(ang);
-            if (h < 0) h += 360f;
-
-            switch (e.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                case MotionEvent.ACTION_MOVE:
-                    hue = h;
-                    sat = s;
-                    if (listener != null) listener.onHueSatChanged(hue, sat, true);
-                    invalidate();
-                    getParent().requestDisallowInterceptTouchEvent(true);
-                    return true;
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    getParent().requestDisallowInterceptTouchEvent(false);
-                    return true;
-            }
-            return super.onTouchEvent(e);
-        }
-
-        private Bitmap makeWheelBitmap(int size) {
-            Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-            int[] px = new int[size * size];
-
-            float r = size / 2f;
-            float cx = r;
-            float cy = r;
-
-            float[] hsv = new float[] { 0f, 0f, 1f };
-
-            for (int yy = 0; yy < size; yy++) {
-                float dy = yy - cy;
-                for (int xx = 0; xx < size; xx++) {
-                    float dx = xx - cx;
-                    float dist = (float) Math.hypot(dx, dy);
-
-                    if (dist <= r) {
-                        float sat = dist / r;
-                        float ang = (float) Math.atan2(dy, dx);
-                        float hue = (float) Math.toDegrees(ang);
-                        if (hue < 0) hue += 360f;
-
-                        hsv[0] = hue;
-                        hsv[1] = sat;
-                        hsv[2] = 1f;
-
-                        px[yy * size + xx] = Color.HSVToColor(hsv);
-                    } else {
-                        px[yy * size + xx] = 0x00000000;
-                    }
-                }
-            }
-            bmp.setPixels(px, 0, size, 0, 0, size, size);
-            return bmp;
-        }
-
-        private static float clamp(float v, float lo, float hi) {
-            return Math.max(lo, Math.min(hi, v));
-        }
-    }
-
-    // -------------------- Value Slider --------------------
-
-    public static class ValueSliderView extends View {
-        public interface OnValueChangedListener {
-            void onValueChanged(float value, boolean fromUser);
-        }
-
-        private OnValueChangedListener listener;
-
-        private final Paint barPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint thumbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-        private int baseColor = Color.RED; // RGB at V=1
-        private float value = 1f;          // 0..1
-
-        public ValueSliderView(Context c) { super(c); init(); }
-        public ValueSliderView(Context c, AttributeSet a) { super(c, a); init(); }
-
-        private void init() {
-            thumbPaint.setStyle(Paint.Style.STROKE);
-            thumbPaint.setStrokeWidth(4f);
-            thumbPaint.setColor(Color.WHITE);
-        }
-
-        public void setOnValueChangedListener(OnValueChangedListener l) {
-            listener = l;
-        }
-
-        public void setBaseColor(int rgb) {
-            baseColor = (rgb | 0xFF000000);
-            invalidate();
-        }
-
-        public void setValue(float v) {
-            value = clamp(v, 0f, 1f);
-            invalidate();
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            int w = getWidth();
-            int h = getHeight();
-
-            Shader sh = new LinearGradient(
-                    0, 0, w, 0,
-                    new int[]{ Color.BLACK, baseColor },
-                    null,
-                    Shader.TileMode.CLAMP
-            );
-            barPaint.setShader(sh);
-
-            RectF r = new RectF(0, 0, w, h);
-            canvas.drawRoundRect(r, h/2f, h/2f, barPaint);
-
-            float x = value * w;
-            canvas.drawCircle(x, h/2f, h/2f - 3f, thumbPaint);
-        }
-
-        @Override
-        public boolean onTouchEvent(MotionEvent e) {
-            if (e.getActionMasked() == MotionEvent.ACTION_DOWN ||
-                    e.getActionMasked() == MotionEvent.ACTION_MOVE) {
-
-                float v = e.getX() / Math.max(1f, getWidth());
-                value = clamp(v, 0f, 1f);
-
-                if (listener != null) listener.onValueChanged(value, true);
-                invalidate();
-                getParent().requestDisallowInterceptTouchEvent(true);
-                return true;
-            }
-            if (e.getActionMasked() == MotionEvent.ACTION_UP ||
-                    e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-                getParent().requestDisallowInterceptTouchEvent(false);
-                return true;
-            }
-            return super.onTouchEvent(e);
-        }
-
-        private static float clamp(float v, float lo, float hi) {
-            return Math.max(lo, Math.min(hi, v));
-        }
-    }
+    public int getColor() { return Color.HSVToColor(alpha, hsv); }
+    public String getHex() { return String.format(Locale.US, "#%08X", getColor()); }
 }

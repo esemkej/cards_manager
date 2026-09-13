@@ -3,18 +3,76 @@
 	xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:tools="http://schemas.android.com/tools"
 	android:id="@+id/_coordinator"
+    android:clipChildren="false"
+    android:clipToPadding="false"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent">
 	<LinearLayout
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"
 		android:orientation="vertical">
-		<LinearLayout
+		<FrameLayout
 			android:id="@+id/parent"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent"
-			android:background="@color/app_bg"
-			android:orientation="vertical">
+			android:background="@color/app_bg">
+			<FrameLayout
+				android:layout_width="match_parent"
+				android:layout_height="match_parent">
+
+				<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+					android:id="@+id/srefresh"
+					android:layout_width="match_parent"
+					android:layout_height="match_parent">
+					<androidx.recyclerview.widget.RecyclerView
+						android:id="@+id/cards_rec"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:paddingLeft="8dp"
+						android:paddingRight="8dp"
+						android:clipChildren="false"
+						android:clipToPadding="false"
+						tools:listitem="@layout/cards_recycler" />
+				</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+
+
+            <LinearLayout
+                android:id="@+id/no_items_lay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_horizontal|center_vertical"
+                android:orientation="vertical">
+            <ImageView
+                android:id="@+id/wallet_img"
+                android:layout_width="match_parent"
+                android:layout_height="175dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_wallet"
+                app:tint="@color/app_stroke" />
+
+                <TextView
+                    android:id="@+id/no_items_top_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:gravity="center_horizontal"
+                    android:text="@string/no_cards_added"
+                    android:textSize="25sp"
+                    android:textColor="@color/app_text_dark" />
+                <TextView
+                    android:id="@+id/no_items_bottom_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:paddingBottom="8dp"
+                    android:gravity="center"
+                    android:text="@string/get_started"
+                    android:textSize="20sp"
+                    android:textColor="@color/app_text_secondary" />
+            </LinearLayout>
+            </FrameLayout>
 			<LinearLayout
 				android:id="@+id/filter_parent"
 				android:layout_width="match_parent"
@@ -87,70 +145,17 @@
 						android:scaleType="fitCenter" />
 				</LinearLayout>
 			</LinearLayout>
-			<FrameLayout
-				android:layout_width="match_parent"
-				android:layout_height="match_parent">
-
-				<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-					android:id="@+id/srefresh"
-					android:layout_width="match_parent"
-					android:layout_height="match_parent">
-					<androidx.recyclerview.widget.RecyclerView
-						android:id="@+id/cards_rec"
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:paddingLeft="8dp"
-						android:paddingRight="8dp"
-						android:clipToPadding="false"
-						tools:listitem="@layout/cards_recycler" />
-				</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-			</FrameLayout>
-
-            <ImageView
-                android:id="@+id/wallet_img"
-                android:layout_width="match_parent"
-                android:layout_height="175dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_wallet"
-                app:tint="@color/app_stroke" />
-
-            <LinearLayout
-                android:id="@+id/no_items_lay"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_horizontal|center_vertical"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/no_items_top_txt"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    android:gravity="center_horizontal"
-                    android:text="@string/no_cards_added"
-                    android:textSize="25sp"
-                    android:textColor="@color/app_text_dark" />
-                <TextView
-                    android:id="@+id/no_items_bottom_txt"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingLeft="8dp"
-                    android:paddingRight="8dp"
-                    android:paddingBottom="8dp"
-                    android:gravity="center"
-                    android:text="@string/get_started"
-                    android:textSize="20sp"
-                    android:textColor="@color/app_text_secondary" />
-            </LinearLayout>
-		</LinearLayout>
+		</FrameLayout>
 	</LinearLayout>
     <LinearLayout
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal|bottom"
-        android:layout_margin="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="36dp"
         android:padding="8dp"
         android:elevation="6dp"
         android:gravity="center"

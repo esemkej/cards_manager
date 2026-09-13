@@ -102,7 +102,6 @@ public class MainActivity extends AppCompatActivity {
     private String cardSaveCode = "";
     private String selectedGradStyle = "";
     private String folderPath = "";
-    private String backup = "";
     private String id = "";
     private String pendingCameraInternalPath = null;
     private static final String PREF_SORT_TYPE = "pref_sort_type";
@@ -142,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
     // ==================== LINEARLAYOUTS ====================
     private LinearLayout fab;
-    private LinearLayout parent;
+    private ViewGroup parent;
     private LinearLayout filter_parent;
     private LinearLayout no_items_lay;
     private LinearLayout search_bar;
@@ -178,6 +177,8 @@ public class MainActivity extends AppCompatActivity {
 
     // ==================== ADAPTERS ====================
     private Cards_recAdapter cardsAdapter;
+    private CardInteractions cardInteractions;
+    private AppMessages messages;
     private Colors_recAdapter colorsAdapter;
     private Pictures_recAdapter picturesAdapter;
 
@@ -185,7 +186,20 @@ public class MainActivity extends AppCompatActivity {
 	@Override
 	protected void onCreate(Bundle _savedInstanceState) {
 		super.onCreate(_savedInstanceState);
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= 29) getWindow().setStatusBarContrastEnforced(false);
+        if (Build.VERSION.SDK_INT >= 28) {
+            WindowManager.LayoutParams windowLayout = getWindow().getAttributes();
+            windowLayout.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            getWindow().setAttributes(windowLayout);
+        }
+        boolean night = (getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(!night);
 		setContentView(R.layout.main);
+        messages = new AppMessages(this);
         final View root = findViewById(R.id._coordinator);
         final View parent = findViewById(R.id.parent);
         final View fab = findViewById(R.id.fab);
@@ -203,15 +217,18 @@ public class MainActivity extends AppCompatActivity {
         final int mB = fabLp.bottomMargin;
 
         ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             systemBarInsets = bars;
 
             parent.setPadding(
                     pL + bars.left,
-                    pT + bars.top,
+                    pT,
                     pR + bars.right,
                     pB + bars.bottom
             );
+
+            // The glass owns the top inset; the scrolling content extends behind it.
+            if (cardInteractions != null) cardInteractions.setStatusBarInset(bars.top);
 
             ViewGroup.MarginLayoutParams lp =
                     (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
@@ -227,6 +244,7 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (cardInteractions != null && cardInteractions.active()) { cardInteractions.clear(); return; }
                 if (inFolder && !folderIdStack.isEmpty()) {
 
                     folderIdStack.remove(folderIdStack.size() - 1);
@@ -275,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
                 card_prefs.edit().remove("code").commit();
                 card_prefs.edit().remove("type").commit();
             } else {
-                SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.failed_scan));
+                messages.show(R.string.failed_scan, true);
                 card_prefs.edit().remove("code").commit();
                 card_prefs.edit().remove("type").commit();
             }
@@ -308,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
                 picturesAdapter.notifyItemInserted(insertPos);
             } else {
                 if (f.exists()) f.delete();
-                SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.photo_save_error));
+                messages.show(R.string.photo_save_error, true);
             }
 
             pendingCameraUri = null;
@@ -331,7 +349,8 @@ public class MainActivity extends AppCompatActivity {
                 pictures_list.add(insertPos, m);
                 picturesAdapter.notifyItemInserted(insertPos);
             } catch (Exception e) {
-                SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.photo_import_error) + " " + e.getMessage());
+                Log.w("Cards", "photo_import_error", e);
+                messages.show(R.string.photo_import_error, true);
             }
             return;
         }
@@ -409,6 +428,7 @@ public class MainActivity extends AppCompatActivity {
                     final TextView by_name = root.findViewById(R.id.by_name);
                     final TextView by_date_created = root.findViewById(R.id.by_date_created);
                     final TextView by_use_count = root.findViewById(R.id.by_use_count);
+                    final TextView by_manual = root.findViewById(R.id.by_manual);
                     final TextView ascending_txt = root.findViewById(R.id.ascending_txt);
                     final TextView descending_txt = root.findViewById(R.id.descending_txt);
                     final TextView all_txt = root.findViewById(R.id.all_txt);
@@ -442,6 +462,7 @@ public class MainActivity extends AppCompatActivity {
 							by_name,
 							by_date_created,
 							by_use_count,
+                            by_manual,
                             ascending_txt,
                             descending_txt,
                             all_txt,
@@ -470,7 +491,7 @@ public class MainActivity extends AppCompatActivity {
                     makeTopBar(top_bar);
                     makeButton(apply_filters, 1);
 
-                    TextView[] sort_buttons = new TextView[] {by_name, by_date_created, by_use_count};
+                    TextView[] sort_buttons = new TextView[] {by_name, by_date_created, by_use_count, by_manual};
                     refreshToggleGroup(sort_buttons, sort);
                     for (TextView t : sort_buttons) {
                         t.setOnClickListener(v -> {int selectedId = t.getId(); sort = selectedId; refreshToggleGroup(sort_buttons, selectedId);});
@@ -562,6 +583,9 @@ public class MainActivity extends AppCompatActivity {
                         textLevel = 3;
                         scanImage = false;
                     }
+                    View experimentalHeader = root.findViewById(R.id.experimental_header);
+                    Bg.apply(experimentalHeader, null, null, null, 16, null, 0, null, color(R.color.app_ripple));
+                    new SettingsDisclosure(experimentalHeader, root.findViewById(R.id.experimental_controls), visual_img);
                     theme = loadTheme();
 
                     float scale = textScaleFromLevel((int) textLevel);
@@ -622,14 +646,14 @@ public class MainActivity extends AppCompatActivity {
                     makeButton(export_btn, 0);
                     makeButton(save, 1);
 
-                    column_count.setText(String.valueOf((int) progress));
+                    column_count.setText(progress == 0 ? getString(R.string.automatic) : String.valueOf((int) progress));
                     text_size.setText(String.valueOf((int) textLevel));
                     column_count_sbar.setValue((float) progress);
                     text_size_sbar.setValue((float) textLevel);
 
                     column_count_sbar.addOnChangeListener((s, value, fromUser) -> {
                         progress = value;
-                        column_count.setText(String.valueOf((int) value));
+                        column_count.setText(value == 0 ? getString(R.string.automatic) : String.valueOf((int) value));
                     });
                     text_size_sbar.addOnChangeListener((s, value, fromUser) -> {
                         float text_scale = textScaleFromLevel((int) value);
@@ -678,7 +702,7 @@ public class MainActivity extends AppCompatActivity {
                         settings.put("text_level", textLevel);
                         settings.put("scan_image", scanImage);
                         saveSettings();
-                        final GridLayoutManager cards_rec_layoutManager = new GridLayoutManager(cards_rec.getContext(), ((Double) progress).intValue(), RecyclerView.VERTICAL, false);
+                        final GridLayoutManager cards_rec_layoutManager = new GridLayoutManager(cards_rec.getContext(), resolvedColumnCount(), RecyclerView.VERTICAL, false);
 
                         cards_rec_layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
                             @Override
@@ -693,7 +717,7 @@ public class MainActivity extends AppCompatActivity {
                         bs.dismiss();
                     });
                     reset_to_default.setOnClickListener(v -> {
-                        column_count_sbar.setValue(2);
+                        column_count_sbar.setValue(0);
                         text_size_sbar.setValue(3);
                         theme = R.id.system_default;
                         scanImage = false;
@@ -735,67 +759,15 @@ public class MainActivity extends AppCompatActivity {
                                     message_txt.setText(getString(R.string.import_warning));
                                     positive_txt.setText(getString(R.string.import_positive));
                                     negative_txt.setText(getString(R.string.cancel));
-                                    positive_txt.setOnClickListener(new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View _view) {
-                                            backup = new Gson().toJson(cards_list_all);
-                                            try {
-                                                saveCards(import_etxt.getText().toString());
-                                                ArrayList<HashMap<String, Object>> tmp = new ArrayList<>();
-
-                                                if (card_prefs.contains("cards")) {
-                                                    tmp = new Gson().fromJson(
-                                                            card_prefs.getString("cards", ""),
-                                                            new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType()
-                                                    );
-                                                    if (tmp == null) tmp = new ArrayList<>();
-                                                }
-
-                                                tmp = sanitizeTree(tmp);
-
-                                                folderIdStack.clear();
-                                                folderNameStack.clear();
-                                                inFolder = false;
-                                                folderPath = "";
-
-                                                cards_list.clear();
-                                                cards_list_all.clear();
-                                                cards_list.addAll(tmp);
-                                                cards_list_all.addAll(tmp);
-                                                SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_success));
-                                            } catch(Exception e){
-                                                saveCards(backup);
-                                                ArrayList<HashMap<String, Object>> tmp = new ArrayList<>();
-
-                                                if (card_prefs.contains("cards")) {
-                                                    tmp = new Gson().fromJson(
-                                                            card_prefs.getString("cards", ""),
-                                                            new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType()
-                                                    );
-                                                    if (tmp == null) tmp = new ArrayList<>();
-                                                }
-
-                                                tmp = sanitizeTree(tmp);
-
-                                                folderIdStack.clear();
-                                                folderNameStack.clear();
-                                                inFolder = false;
-                                                folderPath = "";
-
-                                                cards_list.clear();
-                                                cards_list_all.clear();
-                                                cards_list.addAll(tmp);
-                                                cards_list_all.addAll(tmp);
-                                                SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_fail).concat(" ".concat(e.getMessage())));
-                                            }
-                                            loadLastId();
-                                            applySortFilter(
-                                                    search_txt.getText().toString(),
-                                                    loadSortTypeId(),
-                                                    loadOrderId(),
-                                                    loadFilterId()
-                                            );
+                                    positive_txt.setOnClickListener(v2 -> {
+                                        try {
+                                            replaceImportedCards(import_etxt.getText().toString());
                                             dlg.dismiss();
+                                            messages.show(R.string.import_success, false);
+                                        } catch (Exception failure) {
+                                            Log.w("CardImport", "Text import failed", failure);
+                                            import_etxt.setError(getString(R.string.import_fail));
+                                            import_etxt.requestFocus();
                                         }
                                     });
                                     negative_txt.setOnClickListener(new View.OnClickListener() {
@@ -816,8 +788,8 @@ public class MainActivity extends AppCompatActivity {
                     });
                     export_btn.setOnClickListener(v -> {
                         showPopup(export_btn, PopupPos.TOP_RIGHT, 0, 0, R.string.copy_as_text, R.string.save_as_file, R.drawable.ic_copy, R.drawable.ic_to_file, () -> {
-                                    ((ClipboardManager) getSystemService(getApplicationContext().CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("clipboard", new Gson().toJson(cards_list_all)));
-                                    SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.text_copied));
+                                    ((ClipboardManager) getSystemService(getApplicationContext().CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText(getString(R.string.app_name), new Gson().toJson(cards_list_all)));
+                                    if (Build.VERSION.SDK_INT < 33) messages.show(R.string.text_copied, false);
                                 }, () -> {
                                     String fileName = "cards_backup_" + System.currentTimeMillis() + ".json";
                                     i.setAction(Intent.ACTION_CREATE_DOCUMENT);
@@ -870,6 +842,15 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 	}
+    private int resolvedColumnCount() {
+        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int width = cards_rec.getWidth() > 0 ? cards_rec.getWidth() : metrics.widthPixels;
+        width -= cards_rec.getPaddingLeft() + cards_rec.getPaddingRight();
+        int requested = ((Number) settings.get("grid_amount")).intValue();
+        float scale = textScaleFromLevel(((Number) settings.get("text_level")).intValue());
+        return CardGridSizing.columns(width / metrics.density, scale * metrics.scaledDensity / metrics.density, requested);
+    }
+
     private void initializeLogic() {
         debug = false;
         applyTheme(loadTheme());
@@ -878,8 +859,17 @@ public class MainActivity extends AppCompatActivity {
         loadOrderId();
         loadFilterId();
         loadSettingsWithDefaults();
+        cards_rec.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left == oldRight - oldLeft) return;
+            cards_rec.post(() -> {
+                if (!(cards_rec.getLayoutManager() instanceof GridLayoutManager)) return;
+                GridLayoutManager grid = (GridLayoutManager) cards_rec.getLayoutManager();
+                int count = resolvedColumnCount();
+                if (grid.getSpanCount() != count) grid.setSpanCount(count);
+            });
+        });
             final GridLayoutManager cards_rec_layoutManager =
-                    new GridLayoutManager(cards_rec.getContext(), ((Double) settings.get("grid_amount")).intValue(), RecyclerView.VERTICAL, false);
+                    new GridLayoutManager(cards_rec.getContext(), resolvedColumnCount(), RecyclerView.VERTICAL, false);
 
             cards_rec_layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
                 @Override
@@ -1036,7 +1026,11 @@ public class MainActivity extends AppCompatActivity {
 
                 int res = 0;
 
-                if (sortTypeCheckedId == R.id.by_name) {
+                if (sortTypeCheckedId == R.id.by_manual) {
+                    double ai = a.get("manual_order") instanceof Number ? ((Number)a.get("manual_order")).doubleValue() : Double.MAX_VALUE;
+                    double bi = b.get("manual_order") instanceof Number ? ((Number)b.get("manual_order")).doubleValue() : Double.MAX_VALUE;
+                    res = Double.compare(ai, bi);
+                } else if (sortTypeCheckedId == R.id.by_name) {
 
                     String an = getStr(a, "name");
                     String bn = getStr(b, "name");
@@ -1080,51 +1074,39 @@ public class MainActivity extends AppCompatActivity {
         cards_list.clear();
         cards_list.addAll(sectioned);
 
-        cardsAdapter.notifyDataSetChanged();
+        cardsAdapter.submitRows(sectioned);
+        if (cardInteractions != null) cardInteractions.reconcile();
         srefresh.setRefreshing(false);
         float scale = textScaleFromLevel((int) textLevel);
         applyTextScale(no_items_top_txt, scale);
         applyTextScale(no_items_bottom_txt, scale);
 
-        float dens = getResources().getDisplayMetrics().density;
-        parent.post(() -> {
-            int w = parent.getWidth();
-            CoordinatorLayout.LayoutParams flp = (CoordinatorLayout.LayoutParams) fab.getLayoutParams();
-
-            if (cards_list_all.isEmpty()) {
-                srefresh.setVisibility(View.GONE);
-                no_items_lay.setVisibility(View.VISIBLE);
-
-                flp.bottomMargin = Math.round(125 * dens) + systemBarInsets.bottom;
-                int fab_size = (int) Math.round(w * 0.25);
-                setSize(fab, fab_size, fab_size);
-            } else {
-                srefresh.setVisibility(View.VISIBLE);
-                no_items_lay.setVisibility(View.GONE);
-
-                flp.bottomMargin = Math.round(16 * dens) + systemBarInsets.bottom;
-                flp.rightMargin = Math.round(16 * dens) + systemBarInsets.right;
-                int fab_size = (int) Math.round(w * 0.18);
-                setSize(fab, fab_size, fab_size);
-
-                int listBottomSpace = flp.bottomMargin + fab_size + Math.round(16 * dens);
-                cards_rec.setPadding(
-                        cards_rec.getPaddingLeft(),
-                        cards_rec.getPaddingTop(),
-                        cards_rec.getPaddingRight(),
-                        listBottomSpace
-                );
+        boolean empty = sectioned.isEmpty();
+        no_items_top_txt.setText(cards_list_all.isEmpty() ? R.string.no_cards_added : R.string.selection_empty);
+        no_items_bottom_txt.setText(cards_list_all.isEmpty() ? R.string.get_started : R.string.selection_empty_hint);
+        no_items_lay.animate().cancel();
+        if (empty) {
+            if (no_items_lay.getVisibility() != View.VISIBLE) {
+                no_items_lay.setAlpha(0); no_items_lay.setVisibility(View.VISIBLE);
             }
-            fab.setLayoutParams(flp);
-        });
+            no_items_lay.animate().alpha(1).setStartDelay(180).setDuration(180).start();
+        } else {
+            no_items_lay.animate().alpha(0).setStartDelay(0).setDuration(140)
+                    .withEndAction(() -> no_items_lay.setVisibility(View.GONE)).start();
+        }
+        srefresh.setVisibility(View.VISIBLE);
+        float dens = getResources().getDisplayMetrics().density;
+        setSize(fab, Math.round(64 * dens), Math.round(64 * dens));
+        cards_rec.setPadding(cards_rec.getPaddingLeft(), cards_rec.getPaddingTop(), cards_rec.getPaddingRight(), Math.round(120 * dens));
+
     }
     private void saveSortPrefs(int sortTypeId, int orderId, int filterId) {
-        String[] sorts = {"name", "date", "uses"};
+        String[] sorts = {"name", "date", "uses", "manual"};
         String[] orders = {"ascending", "descending"};
         String[] filters = {"all", "favorites"};
         card_prefs.edit()
                 .putString(PREF_SORT_TYPE, sorts[SavedChoice.index(sortTypeId,
-                        new int[]{R.id.by_name, R.id.by_date_created, R.id.by_use_count}, sorts)])
+                        new int[]{R.id.by_name, R.id.by_date_created, R.id.by_use_count, R.id.by_manual}, sorts)])
                 .putString(PREF_SORT_ORDER, orders[SavedChoice.index(orderId,
                         new int[]{R.id.ascending, R.id.descending}, orders)])
                 .putString(PREF_SORT_FILTER, filters[SavedChoice.index(filterId,
@@ -1132,8 +1114,8 @@ public class MainActivity extends AppCompatActivity {
                 .apply();
     }
     private int loadSortTypeId() {
-        return readChoice(PREF_SORT_TYPE, new int[]{R.id.by_name, R.id.by_date_created, R.id.by_use_count},
-                new String[]{"name", "date", "uses"});
+        return readChoice(PREF_SORT_TYPE, new int[]{R.id.by_name, R.id.by_date_created, R.id.by_use_count, R.id.by_manual},
+                new String[]{"name", "date", "uses", "manual"});
     }
     private int loadOrderId() {
         return readChoice(PREF_SORT_ORDER, new int[]{R.id.ascending, R.id.descending},
@@ -1160,10 +1142,14 @@ public class MainActivity extends AppCompatActivity {
             settings = null;
         }
         if (settings == null) settings = new HashMap<>();
+        if (!settings.containsKey("adaptive_grid")) {
+            settings.put("grid_amount", 0d);
+            settings.put("adaptive_grid", true);
+        }
         Object columns = settings.get("grid_amount");
         if (!(columns instanceof Number) || Double.isNaN(((Number) columns).doubleValue())
-                || ((Number) columns).doubleValue() < 1 || ((Number) columns).doubleValue() > 5) {
-            settings.put("grid_amount", 2d);
+                || ((Number) columns).doubleValue() < 0 || ((Number) columns).doubleValue() > 5) {
+            settings.put("grid_amount", 0d);
         } else settings.put("grid_amount", (double) ((Number) columns).intValue());
         Object text = settings.get("text_level");
         if (!(text instanceof Number) || Double.isNaN(((Number) text).doubleValue())
@@ -1253,8 +1239,31 @@ public class MainActivity extends AppCompatActivity {
         if (cards_rec.getAdapter() == null) {
             cardsAdapter = new Cards_recAdapter(cards_list);
             cards_rec.setAdapter(cardsAdapter);
+            DefaultItemAnimator animator = new DefaultItemAnimator();
+            animator.setSupportsChangeAnimations(false);
+            animator.setAddDuration(220); animator.setRemoveDuration(180); animator.setMoveDuration(260);
+            cards_rec.setItemAnimator(animator);
+            cardInteractions = new CardInteractions(cards_rec, findViewById(R.id._coordinator), fab, parent,
+                    new CardInteractions.Host() {
+                        public String idAt(int position) {
+                            if (position < 0 || position >= cardsAdapter._data.size()) return null;
+                            HashMap<String, Object> row = cardsAdapter._data.get(position);
+                            return row.containsKey(KEY_ROW_TYPE) || isVirtualFavorites(row) ? null : getStr(row, "id");
+                        }
+                        public boolean folderAt(int position) {
+                            return idAt(position) != null && getBool(cardsAdapter._data.get(position), "folder", false);
+                        }
+                        public boolean favorite(String id) {
+                            HashMap<String, Object> item = findByIdRecursive(cards_list_all, id);
+                            return item != null && getBool(item, "favorite", false);
+                        }
+                        public void action(String action, Set<String> ids, String destination) {
+                            selectionAction(action, ids, destination);
+                        }
+                    });
+            cardInteractions.setStatusBarInset(systemBarInsets.top);
         } else {
-            cardsAdapter.notifyDataSetChanged();
+            cardInteractions.clear();
         }
     }
     private void invalidateCardImageCache(File file) {
@@ -1299,7 +1308,8 @@ public class MainActivity extends AppCompatActivity {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        SketchwareUtil.showMessage(getApplicationContext(), e.toString());
+                                        Log.w("Cards", "Image scan failed", e);
+                                        messages.show(R.string.failed_scan, true);
                                     }
                                 });
                             }
@@ -1410,7 +1420,7 @@ public class MainActivity extends AppCompatActivity {
                 code_edit.setCursorVisible(true);
                 type_lay.setClickable(true);
                 Bg.apply(type_lay, null, null, null, 8, null, 0, null, color(R.color.app_ripple));
-                type_lay.setOnClickListener(v -> showTypePicker(type_lay, type_txt));
+                type_lay.setOnClickListener(v -> showTypePicker(type_lay, type_txt, code_edit.getText().toString()));
             } else {
                 code_edit.setClickable(false);
                 code_edit.setFocusable(false);
@@ -1429,8 +1439,13 @@ public class MainActivity extends AppCompatActivity {
             if (hasCode) displayCode(codeType, codeValue);
 
             save.setOnClickListener(s -> {
+                if (Ean13.isType(type_txt.getText().toString())
+                        && !Ean13.isValid(code_edit.getText().toString())) {
+                    messages.show(R.string.err_ean13_invalid, true);
+                    return;
+                }
                 if (!hasUsableCode(type_txt.getText().toString(), code_edit.getText().toString())) {
-                    SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.please_scan_code));
+                    messages.show(R.string.please_scan_code, true);
                 } else {
                     cardSaveType = type_txt.getText().toString();
                     cardSaveCode = code_edit.getText().toString();
@@ -1457,7 +1472,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         if (!hasCode && photos.isEmpty()) {
-            displayInfo(card, false);
+            cardInteractions.selected.add(cardId); cardInteractions.reconcile();
             return;
         }
         Binder<Dialog> bindQuickView = (dlg, root) -> {
@@ -1548,7 +1563,7 @@ public class MainActivity extends AppCompatActivity {
                     float density = getResources().getDisplayMetrics().density;
                     RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(Math.round(220 * density), ViewGroup.LayoutParams.MATCH_PARENT);
                     photo.setLayoutParams(lp);
-                    photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                    photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
                     Bg.apply(photo, color(R.color.app_surface_var), null, null, 12, null, 0, null, null);
                     photo.setClipToOutline(true);
                     return new RecyclerView.ViewHolder(photo) {};
@@ -1566,7 +1581,7 @@ public class MainActivity extends AppCompatActivity {
                     photo.setLayoutParams(lp);
                     photo.setContentDescription(getString(R.string.quick_photo_description, position + 1, photos.size()));
                     Picasso.get().load(new File(getFilesDir(), "card_images/" + cardId + "/" + filename))
-                            .fit().centerInside().placeholder(R.drawable.ic_image).error(R.drawable.ic_broken_image).into(photo);
+                            .fit().centerCrop().placeholder(R.drawable.ic_image).error(R.drawable.ic_broken_image).into(photo);
                     photo.setOnClickListener(v -> displayImage(cardId, filename));
                 }
                 @Override public int getItemCount() { return photos.size(); }
@@ -1577,7 +1592,7 @@ public class MainActivity extends AppCompatActivity {
         };
         showDialog(R.layout.card_quick_dialog, 0, bindQuickView);
     }
-    private void showTypePicker(View anchor, TextView targetTypeTxt) {
+    private void showTypePicker(View anchor, TextView targetTypeTxt, String code) {
         View content = getLayoutInflater().inflate(R.layout.type_picker_popup, null);
         final LinearLayout typePickerParent = content.findViewById(R.id.type_picker_parent);
         final TextView[] options = new TextView[]{
@@ -1585,6 +1600,8 @@ public class MainActivity extends AppCompatActivity {
                 content.findViewById(R.id.option_code128),
                 content.findViewById(R.id.option_qr)
         };
+
+        options[0].setVisibility(code.isEmpty() || Ean13.isValid(code) ? View.VISIBLE : View.GONE);
 
         Bg.apply(typePickerParent, color(R.color.app_surface), null, null, 12, null, 0, null, null);
         typePickerParent.setElevation(4 * getResources().getDisplayMetrics().density);
@@ -1845,7 +1862,7 @@ public class MainActivity extends AppCompatActivity {
                 del_btn.setVisibility(View.GONE);
 
                 colors = new HashMap<>();
-                colors.put("color", color(R.color.app_accent));
+                colors.put("color", HsvColorPickerView.randomColor());
                 colors_list.add(colors);
 
 
@@ -1873,7 +1890,8 @@ public class MainActivity extends AppCompatActivity {
                     colors = new HashMap<>();
                     colors.put("color", 0xFF008DCD);
                     colors_list.add(colors);
-                    SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.color_fail) + " " + e.getMessage());
+                    Log.w("Cards", "color_fail", e);
+                    messages.show(R.string.color_fail, true);
                 }
                 if (folder) {
                     picture_lay.setVisibility(View.GONE);
@@ -1951,6 +1969,7 @@ public class MainActivity extends AppCompatActivity {
                             cards.put("data", data.get("data"));
                         }
                         cards.put("used", data.get("used"));
+                        if (data.containsKey("manual_order")) cards.put("manual_order", data.get("manual_order"));
                         int listIdx = indexOfCardById(cards_list, id);
                         if (listIdx >= 0) cards_list.set(listIdx, cards);
 
@@ -1971,7 +1990,9 @@ public class MainActivity extends AppCompatActivity {
                     applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
                     bs.dismiss();
                 } else {
-                    SketchwareUtil.showMessage(getApplicationContext(), validationError);
+                    if (card_name.getText().toString().trim().isEmpty()) {
+                        card_name.setError(validationError); card_name.requestFocus();
+                    } else messages.show(validationError, true);
                 }
             });
 
@@ -1983,11 +2004,9 @@ public class MainActivity extends AppCompatActivity {
                 boolean removed = removeByIdInList(container, id);
                 if (!removed) removed = removeByIdRecursive(cards_list_all, id);
 
-                File dir = new File(getFilesDir(), "card_images/" + id);
-                if (dir.exists()) deleteRecursive(dir);
+                deleteItemImages(data);
 
                 saveCards(null);
-                SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.del_msg));
                 applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
                 bs.dismiss();
             }, null, null, true);});
@@ -2044,6 +2063,170 @@ public class MainActivity extends AppCompatActivity {
             applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
         }
     }
+    @Override protected void onStop() {
+        if (cardInteractions != null) cardInteractions.cancel();
+        if (messages != null) messages.dismiss();
+        super.onStop();
+    }
+
+    private void selectionAction(String action, Set<String> ids, String destination) {
+        final ArrayList<HashMap<String, Object>> items = CardTreeOperations.roots(cards_list_all, ids);
+        if (items.isEmpty()) return;
+        if ("edit".equals(action)) {
+            if (ids.size() == 1) { cardInteractions.clear(); displayInfo(items.get(0), false); }
+        } else if ("delete".equals(action)) {
+            showDefaultDialog(
+                    getResources().getQuantityString(R.plurals.selection_delete_count, items.size(), items.size()),
+                    getString(R.string.selection_delete_message),
+                    getString(R.string.delete), getString(R.string.cancel), () -> {
+                        for (HashMap<String, Object> item : items) {
+                            removeByIdRecursive(cards_list_all, getStr(item, "id"));
+                            deleteItemImages(item);
+                        }
+                        finishSelectionChange();
+                    }, null, null, true);
+        } else if (("reorder".equals(action) || "reorder_after".equals(action))) {
+            if (virtualFavorites || !search_txt.getText().toString().trim().isEmpty() || loadFilterId() == R.id.favorites) {
+                messages.show(R.string.selection_reorder_full, true); return;
+            }
+            ArrayList<HashMap<String, Object>> source = inFolder ? resolveContainerList(cards_list_all, folderIdStack) : cards_list_all;
+            ArrayList<HashMap<String, Object>> ordered = new ArrayList<>();
+            for (HashMap<String, Object> row : cardsAdapter._data) {
+                if (row.containsKey(KEY_ROW_TYPE) || isVirtualFavorites(row)) continue;
+                HashMap<String, Object> real = findByIdRecursive(source, getStr(row, "id"));
+                if (real != null) ordered.add(real);
+            }
+            if (CardTreeOperations.reorder(ordered, ids, destination, "reorder_after".equals(action))) {
+                saveSortPrefs(R.id.by_manual, R.id.ascending, loadFilterId()); finishSelectionChange();
+            } else messages.show(R.string.selection_reorder_section, true);
+        } else if ("move".equals(action)) {
+            if (destination != null) { moveSelection(items, destination); return; }
+            ArrayList<String> labels = new ArrayList<>();
+            ArrayList<String> targets = new ArrayList<>();
+            labels.add(getString(R.string.selection_root)); targets.add("");
+            collectMoveTargets(cards_list_all, "", ids, labels, targets);
+            showMoveFolderDialog(items, labels, targets);
+        } else {
+            // Favorites apply to every explicitly selected item, even when its parent is selected.
+            for (String selectedId : ids) {
+                HashMap<String, Object> item = findByIdRecursive(cards_list_all, selectedId);
+                if (item != null) item.put("favorite", "favorite".equals(action));
+            }
+            finishSelectionChange();
+        }
+    }
+    private void bindMoveDialog(Dialog dialog, View root, int title, int positive) {
+        TextView heading = root.findViewById(R.id.title_txt);
+        TextView confirm = root.findViewById(R.id.positive_txt);
+        TextView cancel = root.findViewById(R.id.negative_txt);
+        ImageView close = root.findViewById(R.id.close_img);
+        heading.setText(title); confirm.setText(positive); cancel.setText(R.string.cancel);
+        root.findViewById(R.id.message_txt).setVisibility(View.GONE);
+        for (TextView text : new TextView[]{heading, confirm, cancel}) applyCurrentTextScale(text);
+        matchImageSize(new View[]{close, heading}, 1.2f, false);
+        close.setContentDescription(getString(R.string.close));
+        close.setOnClickListener(v -> dialog.dismiss());
+        cancel.setOnClickListener(v -> dialog.dismiss());
+        makeButton(cancel, 0); makeButton(confirm, 1);
+        confirm.setTextColor(Color.WHITE);
+    }
+
+    private void showMoveFolderDialog(ArrayList<HashMap<String, Object>> items,
+                                      ArrayList<String> labels, ArrayList<String> targets) {
+        showDialog(R.layout.dialog, R.id.parent, (dialog, root) -> {
+            bindMoveDialog(dialog, root, R.string.selection_move, R.string.selection_new_folder);
+            float density = getResources().getDisplayMetrics().density;
+            ScrollView scroll = new ScrollView(this);
+            scroll.setFillViewport(false);
+            LinearLayout destinations = new LinearLayout(this);
+            destinations.setOrientation(LinearLayout.VERTICAL);
+            scroll.addView(destinations);
+            int maxHeight = Math.round(getResources().getDisplayMetrics().heightPixels * .4f);
+            LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1,
+                    Math.min(maxHeight, Math.round(labels.size() * 64 * density)));
+            scrollLp.topMargin = Math.round(12 * density);
+            ((LinearLayout) root).addView(scroll, 2, scrollLp);
+            for (int i = 0; i < labels.size(); i++) {
+                final String target = targets.get(i);
+                TextView row = new TextView(this);
+                row.setText(labels.get(i)); row.setTextSize(16); applyCurrentTextScale(row);
+                row.setTextColor(color(R.color.app_text_dark));
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setMinHeight(Math.round(56 * density));
+                row.setPadding(Math.round(16 * density), Math.round(12 * density),
+                        Math.round(16 * density), Math.round(12 * density));
+                Drawable icon = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.ic_folder).mutate();
+                icon.setTint(color(R.color.app_icon_primary));
+                int iconSize = Math.round(row.getTextSize() * 1.2f);
+                icon.setBounds(0, 0, iconSize, iconSize);
+                row.setCompoundDrawablesRelative(icon, null, null, null);
+                row.setCompoundDrawablePadding(Math.round(12 * density));
+                Bg.apply(row, color(R.color.app_surface_var), null, null, 16, null, 0, null, color(R.color.app_ripple));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+                lp.bottomMargin = Math.round(8 * density);
+                destinations.addView(row, lp);
+                row.setOnClickListener(v -> { moveSelection(items, target); dialog.dismiss(); });
+            }
+            root.findViewById(R.id.positive_txt).setOnClickListener(v -> {
+                dialog.dismiss(); createSelectionFolder(items);
+            });
+        });
+    }
+
+    private void createSelectionFolder(ArrayList<HashMap<String, Object>> items) {
+        showDialog(R.layout.dialog, R.id.parent, (dialog, root) -> {
+            bindMoveDialog(dialog, root, R.string.selection_new_folder, R.string.selection_move);
+            EditText name = new EditText(this);
+            name.setSingleLine(true); name.setHint(R.string.folder_name); applyCurrentTextScale(name);
+            name.setTextColor(color(R.color.app_text_dark));
+            name.setHintTextColor(color(R.color.app_text_secondary));
+            int padding = Math.round(16 * getResources().getDisplayMetrics().density);
+            name.setPadding(padding, padding, padding, padding);
+            Bg.apply(name, color(R.color.app_surface_var), null, null, 16, null, 0, null, null);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+            lp.topMargin = padding;
+            ((LinearLayout) root).addView(name, 2, lp);
+            root.findViewById(R.id.positive_txt).setOnClickListener(v -> {
+                String title = name.getText().toString().trim();
+                if (title.isEmpty()) { name.setError(getString(R.string.err_name_empty)); return; }
+                long nextId = card_prefs.getLong("lastId", -1) + 1;
+                HashMap<String, Object> created = new HashMap<>();
+                created.put("id", String.valueOf(nextId)); created.put("name", title); created.put("folder", true);
+                created.put("favorite", false); created.put("used", 0d);
+                created.put("colors", "[" + HsvColorPickerView.randomColor() + "]");
+                created.put("grad_style", "tl_br"); created.put("data", new ArrayList<HashMap<String, Object>>());
+                ArrayList<HashMap<String, Object>> container = inFolder && !virtualFavorites
+                        ? resolveContainerList(cards_list_all, folderIdStack) : cards_list_all;
+                container.add(created); card_prefs.edit().putLong("lastId", nextId).apply();
+                moveSelection(items, String.valueOf(nextId)); dialog.dismiss();
+            });
+        });
+    }
+    private void collectMoveTargets(ArrayList<HashMap<String, Object>> list, String path, Set<String> excluded,
+                                    ArrayList<String> labels, ArrayList<String> targets) {
+        for (HashMap<String, Object> item : list) {
+            if (!getBool(item, "folder", false) || excluded.contains(getStr(item, "id"))) continue;
+            String label = path + getStr(item, "name");
+            labels.add(label); targets.add(getStr(item, "id"));
+            collectMoveTargets(normalizeListOfMaps(item.get("data")), label + " / ", excluded, labels, targets);
+        }
+    }
+    private void moveSelection(ArrayList<HashMap<String, Object>> items, String targetId) {
+        Set<String> ids = new LinkedHashSet<>();
+        for (HashMap<String, Object> item : items) ids.add(getStr(item, "id"));
+        if (CardTreeOperations.move(cards_list_all, ids, targetId)) finishSelectionChange();
+        else messages.show(R.string.selection_invalid_move, true);
+    }
+
+    private void deleteItemImages(HashMap<String, Object> item) {
+        for (HashMap<String, Object> child : normalizeListOfMaps(item.get("data"))) deleteItemImages(child);
+        deleteRecursive(new File(getFilesDir(), "card_images/" + getStr(item, "id")));
+    }
+    private void finishSelectionChange() {
+        saveCards(null); cardInteractions.clear();
+        applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
+    }
+
     private void deleteRecursive(File f) {
         if (f == null || !f.exists()) return;
 
@@ -2397,7 +2580,8 @@ public class MainActivity extends AppCompatActivity {
 
             startActivityForResult(intent, REQ_TAKE_PHOTO);
         } catch (Exception e) {
-            SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.camera_failed) + " " + e.getMessage());
+            Log.w("Cards", "camera_failed", e);
+            messages.show(R.string.camera_failed, true);
             pendingCameraUri = null;
             pendingCameraInternalPath = null;
         }
@@ -2423,9 +2607,9 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 if (canAskAgain) {
-                    SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.camera_perm));
+                    messages.show(R.string.camera_perm, true);
                 } else {
-                    SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.camera_fail));
+                    messages.show(R.string.camera_fail, true);
 
                     Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                     intent.setData(android.net.Uri.fromParts("package", getPackageName(), null));
@@ -2553,105 +2737,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==================== IMPORT / EXPORT ====================
+    private void replaceImportedCards(String json) throws java.io.IOException {
+        CardImport.Prepared imported = CardImport.apply(json, card_prefs.getString(PREF_SORT_TYPE, "name"), data -> {
+            String oldCards = card_prefs.getString("cards", "[]");
+            String oldSort = card_prefs.getString(PREF_SORT_TYPE, "name");
+            long oldId = card_prefs.getLong("lastId", -1);
+            boolean saved = card_prefs.edit().putString("cards", data.json).putLong("lastId", data.lastId)
+                    .putString(PREF_SORT_TYPE, data.sort).commit();
+            if (!saved) {
+                // SharedPreferences changes memory even when the disk write fails.
+                card_prefs.edit().putString("cards", oldCards).putLong("lastId", oldId)
+                        .putString(PREF_SORT_TYPE, oldSort).commit();
+            }
+            return saved;
+        });
+        cards_list_all.clear(); cards_list_all.addAll(imported.cards);
+        folderIdStack.clear(); folderNameStack.clear();
+        inFolder = false; virtualFavorites = false; folderPath = "";
+        cardInteractions.clear();
+        applySortFilter(search_txt.getText().toString(), loadSortTypeId(), loadOrderId(), loadFilterId());
+    }
     private void importCardsFromUri(Uri uri) {
-        String prev = new Gson().toJson(cards_list_all);
-
-        InputStream is = null;
-        try {
-            is = getContentResolver().openInputStream(uri);
-            if (is == null) throw new Exception("openInputStream returned null");
-
-            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
-            int r;
-            while ((r = is.read(buf)) != -1) bos.write(buf, 0, r);
-
-            String importedJson = bos.toString("UTF-8");
-
-            saveCards(importedJson);
-
-            ArrayList<HashMap<String, Object>> tmp = new Gson().fromJson(importedJson, new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType());
-            if (tmp == null) tmp = new ArrayList<>();
-
-            tmp = sanitizeTree(tmp);
-
-            folderIdStack.clear();
-            folderNameStack.clear();
-            inFolder = false;
-            folderPath = "";
-
-            cards_list.clear();
-            cards_list_all.clear();
-            cards_list.addAll(tmp);
-            cards_list_all.addAll(tmp);
-
-            loadLastId();
-            applySortFilter(
-                    search_txt.getText().toString(),
-                    loadSortTypeId(),
-                    loadOrderId(),
-                    loadFilterId()
-            );
-
-            SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.import_success));
-        } catch (Exception e) {
-            try {
-                saveCards(prev);
-            } catch (Exception ignored) {}
-
-            try {
-                ArrayList<HashMap<String, Object>> tmp = new Gson().fromJson(prev, new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType());
-                if (tmp == null) tmp = new ArrayList<>();
-
-                tmp = sanitizeTree(tmp);
-
-                folderIdStack.clear();
-                folderNameStack.clear();
-                inFolder = false;
-                folderPath = "";
-
-                cards_list.clear();
-                cards_list_all.clear();
-                cards_list.addAll(tmp);
-                cards_list_all.addAll(tmp);
-
-                loadLastId();
-                applySortFilter(
-                        search_txt.getText().toString(),
-                        loadSortTypeId(),
-                        loadOrderId(),
-                        loadFilterId()
-                );
-            } catch (Exception ignored2) {}
-
-            SketchwareUtil.showMessage(
-                    getApplicationContext(),
-                    getString(R.string.import_fail).concat(" ").concat(String.valueOf(e.getMessage()))
-            );
-        } finally {
-            try { if (is != null) is.close(); } catch (Exception ignored) {}
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            if (input == null) throw new java.io.IOException("Missing input stream");
+            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = input.read(buffer)) != -1) bytes.write(buffer, 0, length);
+            replaceImportedCards(bytes.toString("UTF-8"));
+            messages.show(R.string.import_success, false);
+        } catch (Exception failure) {
+            Log.w("CardImport", "File import failed", failure);
+            messages.show(R.string.import_fail, true);
         }
     }
     private void exportCardsToUri(Uri uri) {
-        String json = new Gson().toJson(cards_list_all);
-
-        OutputStream os = null;
         try {
-            os = getContentResolver().openOutputStream(uri, "wt");
-            if (os == null) throw new Exception("openOutputStream returned null");
-
-            byte[] bytes = json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            os.write(bytes);
-            os.flush();
-
-            SketchwareUtil.showMessage(getApplicationContext(), getString(R.string.export_success));
-        } catch (Exception e) {
-            SketchwareUtil.showMessage(
-                    getApplicationContext(),
-                    getString(R.string.export_fail).concat(" ").concat(String.valueOf(e.getMessage()))
-            );
-        } finally {
-            try { if (os != null) os.close(); } catch (Exception ignored) {}
+            try (OutputStream output = getContentResolver().openOutputStream(uri, "wt")) {
+                if (output == null) throw new java.io.IOException("Missing output stream");
+                output.write(new Gson().toJson(cards_list_all).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            messages.show(R.string.export_success, false);
+        } catch (Exception failure) {
+            Log.w("Cards", "Export failed", failure);
+            messages.show(R.string.export_fail, true);
         }
     }
 
@@ -2879,7 +3008,9 @@ public class MainActivity extends AppCompatActivity {
         animSet.setInterpolator(new LinearInterpolator());
         animSet.start();
     }
-    private static void applyTextScale(TextView tv, float scale) {
+    void applyCurrentTextScale(TextView tv) { applyTextScale(tv, textScaleFromLevel((int) textLevel)); }
+
+    static void applyTextScale(TextView tv, float scale) {
         Object tag = tv.getTag(TAG_BASE_TEXT_PX);
         float basePx;
         if (tag instanceof Float) {
@@ -3206,6 +3337,7 @@ public class MainActivity extends AppCompatActivity {
         if (onBind != null) onBind.bind(d, content);
 
         d.show();
+        messages.track(d);
         setupWindowSize(d, 24);
         return new DialogShell<>(d, content);
     }
@@ -3232,6 +3364,7 @@ public class MainActivity extends AppCompatActivity {
         if (onBind != null) onBind.bind(bs, content);
 
         bs.show();
+        messages.track(bs);
 
         View bSheet = bs.findViewById(com.google.android.material.R.id.design_bottom_sheet);
         if (bSheet != null) {
@@ -3278,7 +3411,33 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<HashMap<String, Object>> _data;
 
         public Cards_recAdapter(ArrayList<HashMap<String, Object>> _arr) {
-            _data = _arr;
+            _data = new ArrayList<>();
+            submitRows(_arr);
+        }
+
+        private String rowKey(HashMap<String, Object> row) {
+            if (row.containsKey(KEY_ROW_TYPE)) return "header:" + row.get("title");
+            return isVirtualFavorites(row) ? "virtual:favorites" : "item:" + getStr(row, "id");
+        }
+        void submitRows(ArrayList<HashMap<String, Object>> rows) {
+            // Snapshot only rendered contents, never copy entire folder trees on the UI thread.
+            final ArrayList<HashMap<String, Object>> next = new ArrayList<>();
+            for (HashMap<String, Object> row : rows) {
+                HashMap<String, Object> snapshot = new HashMap<>(row);
+                snapshot.put("_childCount", normalizeListOfMaps(row.get("data")).size());
+                snapshot.remove("data");
+                if (row.get("images") instanceof List) snapshot.put("images", new ArrayList<>((List) row.get("images")));
+                next.add(snapshot);
+            }
+            final ArrayList<HashMap<String, Object>> previous = _data;
+            DiffUtil.DiffResult diff = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+                public int getOldListSize() { return previous.size(); }
+                public int getNewListSize() { return next.size(); }
+                public boolean areItemsTheSame(int oldPos, int newPos) { return rowKey(previous.get(oldPos)).equals(rowKey(next.get(newPos))); }
+                public boolean areContentsTheSame(int oldPos, int newPos) { return previous.get(oldPos).equals(next.get(newPos)); }
+            });
+            _data = next;
+            diff.dispatchUpdatesTo(this);
         }
 
         @Override
@@ -3316,7 +3475,10 @@ public class MainActivity extends AppCompatActivity {
         public void onBindViewHolder(ViewHolder _holder, final int _position) {
             View _view = _holder.itemView;
 
-            final HashMap<String, Object> m = _data.get(_position);
+            final HashMap<String, Object> snapshot = _data.get(_position);
+            HashMap<String, Object> real = snapshot.containsKey(KEY_ROW_TYPE) || isVirtualFavorites(snapshot)
+                    ? null : findByIdRecursive(cards_list_all, getStr(snapshot, "id"));
+            final HashMap<String, Object> m = real == null ? snapshot : real;
 
             if (_holder.isHeader) {
                 Object titleObj = m.get("title");
@@ -3373,6 +3535,19 @@ public class MainActivity extends AppCompatActivity {
             float scale = textScaleFromLevel((int) textLevel);
             applyTextScale(card_name, scale);
             applyTextScale(card_label, scale);
+            for (TextView caption : new TextView[]{card_name, card_label}) {
+                int tint = color(R.color.app_surface_var) & 0x00FFFFFF;
+                GradientDrawable glass = new CaptionBubble(caption, new int[]{tint | 0x38000000, tint | 0x18000000});
+                float density = getResources().getDisplayMetrics().density;
+                glass.setCornerRadius(14 * density);
+                glass.setStroke(Math.max(1, Math.round(density)), 0x40FFFFFF);
+                caption.setBackground(glass);
+                caption.setTextColor(Color.WHITE);
+                caption.setShadowLayer(2 * density, 0, density, 0x80000000);
+                caption.setAlpha(1f);
+                caption.setPadding(Math.round(10 * density), Math.round(6 * density),
+                        Math.round(10 * density), Math.round(6 * density));
+            }
 
             parent.post(() -> {
                 if (parent.getTag() != m) return;
@@ -3380,7 +3555,11 @@ public class MainActivity extends AppCompatActivity {
                 int w = parent.getWidth();
                 int type_w = (int) Math.round(w * 0.15);
                 int type_m = (int) Math.round(w * 0.05);
-                setSize(parent, KEEP, (int) Math.round(w * 0.7));
+                int titleHeight = card_name.getLineHeight() * 2 + card_name.getPaddingTop() + card_name.getPaddingBottom();
+                int labelHeight = getBool(m, "folder", false) ? card_label.getLineHeight() + card_label.getPaddingTop() + card_label.getPaddingBottom() : 0;
+                int reserved = type_w + type_m;
+                _view.findViewById(R.id.vertical_layout).setPadding(0, 0, 0, reserved);
+                setSize(parent, KEEP, Math.max((int) Math.round(w * 0.7), titleHeight + labelHeight + reserved + 4 * type_m));
                 ViewGroup.LayoutParams t_lp = type_img.getLayoutParams();
                 t_lp.width = type_w;
                 t_lp.height = type_w;
@@ -3394,8 +3573,8 @@ public class MainActivity extends AppCompatActivity {
                 card_name.setLayoutParams(c_mlp);
                 if ((boolean) m.get("folder")) {
                     ArrayList<HashMap<String, Object>> folder_data = new ArrayList<>();
-                    folder_data.addAll((ArrayList<HashMap<String, Object>>) _data.get(_position).get("data"));
-                    int len = folder_data.size();
+                    folder_data.addAll(normalizeListOfMaps(m.get("data")));
+                    int len = isVirtualFavorites(m) ? getInt(m, "_childCount", 0) : folder_data.size();
                     card_name.setAllCaps(false);
                     card_label.setText(itemsCountText(len));
                     card_label.setVisibility(View.VISIBLE);
@@ -3427,6 +3606,7 @@ public class MainActivity extends AppCompatActivity {
             parent.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View _view) {
+                    if (cardInteractions != null && cardInteractions.tap(isVirtualFavorites(m) ? null : getStr(m, "id"))) return;
                     try {
                         double cur = (double) m.get("used");
                         cur++;
@@ -3471,19 +3651,19 @@ public class MainActivity extends AppCompatActivity {
                     } else if (m.containsKey("code") || m.containsKey("images")) {
                         showCardQuickView(m);
                     } else {
-                        displayInfo(m, false);
+                        cardInteractions.selected.add(getStr(m, "id")); cardInteractions.reconcile();
                     }
                 }
             });
-            parent.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View _view) {
-                    if (!isVirtualFavorites(m)) {
-                        displayInfo(m, false);
-                    }
-                    return true;
-                }
-            });
+            parent.setLongClickable(false);
+            ViewCompat.replaceAccessibilityAction(parent,
+                    androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_LONG_CLICK,
+                    getString(R.string.selection_select), (view, args) -> {
+                        if (isVirtualFavorites(m) || cardInteractions == null) return false;
+                        cardInteractions.selected.add(getStr(m, "id")); cardInteractions.reconcile(); return true;
+                    });
+            if (cardInteractions != null) cardInteractions.decorate(_holder.itemView, false);
+
         }
 
         @Override
@@ -3574,6 +3754,7 @@ public class MainActivity extends AppCompatActivity {
                             final TextView add_txt = (TextView) root.findViewById(R.id.add_txt);
                             final TextView close_txt = (TextView) root.findViewById(R.id.close_txt);
                             float scale = textScaleFromLevel((int) textLevel);
+                            color_picker.applyTextScale(scale);
                             applyTextScale(title_txt, scale);
                             applyTextScale(add_txt, scale);
                             applyTextScale(close_txt, scale);
@@ -3581,6 +3762,7 @@ public class MainActivity extends AppCompatActivity {
                             title_txt.setText(getString(isNew ? R.string.add_title : R.string.edit_title));
                             close_img.setOnClickListener(v2 -> dlg.dismiss());
                             if (!isNew) {
+                                color_picker.setColor(((Number) _data.get(pos).get("color")).intValue());
                                 add_txt.setText(getString(R.string.change));
                             }
                             makeButton(close_txt, 0);
