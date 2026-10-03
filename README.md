@@ -26,6 +26,8 @@ Cards is designed to stay predictable, responsive, ad-free, and comfortable to u
 
 ---
 
-## What's new: v0.15.2-alpha
-- Improved UI for cards that contain images
+## What's new: v0.15.3-alpha
+- Improved UI behavior when scrolling and navigating folders
+- Overhauled the color picker
+- General UX and fluidity improvements
 - Found bugs fixed
