@@ -36,6 +36,9 @@ final class FloatingCardBar extends FrameLayout {
                 cancelContentReveal();
             }
         }
+        @Override public void onScrolled(RecyclerView recycler, int dx, int dy) {
+            surface.invalidateBackdrop();
+        }
     };
     private boolean navigating;
     private float navigationReveal;
@@ -47,6 +50,8 @@ final class FloatingCardBar extends FrameLayout {
     private boolean pathTextOnly, showingNewPath;
     private int changedPathChild;
     private android.widget.LinearLayout pendingPathRow;
+    private ValueAnimator pathDriver;
+    private float pathDriverProgress = 1;
 
     private final ViewTreeObserver.OnPreDrawListener observeOverlap;
 
@@ -69,6 +74,7 @@ final class FloatingCardBar extends FrameLayout {
             }
         });
         controls.setElevation(dp(5));
+        surface = new GlassSurface();
         observeOverlap = () -> {
             if (!navigating && !list.hasPendingAdapterUpdates() && !list.isComputingLayout()) {
                 RecyclerView.LayoutManager layout = list.getLayoutManager();
@@ -86,9 +92,11 @@ final class FloatingCardBar extends FrameLayout {
             }
             updatePathTransition();
             layoutPath();
+            if (list.isDirty() || (list.getItemAnimator() != null && list.getItemAnimator().isRunning())) {
+                surface.invalidateBackdrop();
+            }
             return true;
         };
-        surface = new GlassSurface();
         setBackground(surface);
         // Blank areas of the floating controls must not activate a card underneath.
         setClickable(true);
@@ -104,6 +112,7 @@ final class FloatingCardBar extends FrameLayout {
         }
         contentChangePending = false;
         cancelContentReveal();
+        cancelPathDriver();
         navigationReveal = reveal;
         navigating = true;
         list.stopScroll();
@@ -137,6 +146,7 @@ final class FloatingCardBar extends FrameLayout {
         pathWanted = !ids.isEmpty();
         pathTransition = true;
         pathProgress = 0;
+        startPathDriver();
         if (pathWanted) {
             android.widget.LinearLayout textRow = new android.widget.LinearLayout(getContext());
             textRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -195,7 +205,8 @@ final class FloatingCardBar extends FrameLayout {
         if (!pathTransition || pathStrip == null) return;
         RecyclerView.ItemAnimator animator = list.getItemAnimator();
         boolean running = list.hasPendingAdapterUpdates() || list.isComputingLayout()
-                || (animator != null && animator.isRunning());
+                || (animator != null && animator.isRunning()) || pathDriver != null;
+        float driver = pathDriver == null ? 1 : pathDriverProgress;
         float visible = 1;
         float outgoingAlpha = 0;
         boolean incoming = false;
@@ -207,16 +218,17 @@ final class FloatingCardBar extends FrameLayout {
         }
         if (navigating) {
             // Collapse from the actual departure state as destination cards appear.
-            float destination = incoming ? visible : 0;
+            float destination = incoming ? Math.min(visible, driver) : driver;
             setReveal(HeaderScrollState.duringNavigation(navigationReveal, destination, running));
             if (!running && !list.hasPendingAdapterUpdates()) navigating = false;
         }
         if (pathTextOnly) {
             if (!showingNewPath) {
-                setPathTailAlpha(running ? outgoingAlpha : 0);
-                if (!running || outgoingAlpha <= .001f) installPendingPath();
+                float tail = Math.min(outgoingAlpha, 1 - driver);
+                setPathTailAlpha(running ? tail : 0);
+                if (!running || tail <= .001f) installPendingPath();
             }
-            if (showingNewPath) setPathTailAlpha(!running || !incoming ? 1 : visible);
+            if (showingNewPath) setPathTailAlpha(!running || !incoming ? driver : Math.min(visible, driver));
             applyPathProgress(1);
             if (!running) {
                 installPendingPath(); setPathTailAlpha(1);
@@ -230,6 +242,7 @@ final class FloatingCardBar extends FrameLayout {
             visible = 1 - outgoing;
         }
         if (!running) visible = 1;
+        visible = Math.min(visible, driver);
         pathProgress = Math.max(pathProgress, visible);
         applyPathProgress(pathWanted ? pathProgress : 1 - pathProgress);
         if (!running) {
@@ -346,6 +359,7 @@ final class FloatingCardBar extends FrameLayout {
         list.removeOnScrollListener(directScroll);
         contentChangePending = false;
         cancelContentReveal();
+        cancelPathDriver();
         if (selectionEntry != null) selectionEntry.cancel();
         super.onDetachedFromWindow();
     }
@@ -396,6 +410,35 @@ final class FloatingCardBar extends FrameLayout {
         contentReveal.removeAllListeners();
         contentReveal.cancel();
         contentReveal = null;
+    }
+
+    private void startPathDriver() {
+        cancelPathDriver();
+        pathDriverProgress = 0;
+        pathDriver = ValueAnimator.ofFloat(0f, 1f);
+        pathDriver.setDuration(240);
+        pathDriver.setInterpolator(new DecelerateInterpolator());
+        pathDriver.addUpdateListener(animation -> {
+            pathDriverProgress = (float) animation.getAnimatedValue();
+            updatePathTransition();
+            invalidate();
+        });
+        pathDriver.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(android.animation.Animator animation) {
+                pathDriver = null;
+                pathDriverProgress = 1;
+                updatePathTransition();
+            }
+        });
+        pathDriver.start();
+    }
+
+    private void cancelPathDriver() {
+        if (pathDriver == null) return;
+        pathDriver.removeAllListeners();
+        pathDriver.cancel();
+        pathDriver = null;
+        pathDriverProgress = 1;
     }
 
     private void animateContentReveal(float target) {
@@ -461,6 +504,7 @@ final class FloatingCardBar extends FrameLayout {
 
     private final class GlassSurface extends Drawable {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final LiquidGlassBackdrop backdrop = new LiquidGlassBackdrop();
         private final RectF bounds = new RectF();
         private final Path edge = new Path();
         private final Path shape = new Path();
@@ -472,10 +516,13 @@ final class FloatingCardBar extends FrameLayout {
         private LinearGradient glass;
 
         void update(float amount) { this.amount = amount; rebuild(); invalidateSelf(); }
-        @Override protected void onBoundsChange(Rect rect) { bounds.set(rect); rebuild(); }
+        void invalidateBackdrop() {
+            invalidateSelf();
+        }
+        @Override protected void onBoundsChange(Rect rect) { bounds.set(rect); rebuild(); invalidateBackdrop(); }
         private void rebuild() {
-            int top = mix(rest, tint, amount * .45f, Math.round((255 - 38 * amount) * opacity / 255f));
-            int bottom = mix(rest, tint, amount, Math.round((255 - 72 * amount) * opacity / 255f));
+            int top = mix(rest, tint, amount * .45f, Math.round((255 - 155 * amount) * opacity / 255f));
+            int bottom = mix(rest, tint, amount, Math.round((255 - 195 * amount) * opacity / 255f));
             glass = new LinearGradient(0, bounds.top, 0, Math.max(1, bounds.bottom), top, bottom, Shader.TileMode.CLAMP);
             float radius = dp(22) * amount;
             shape.reset();
@@ -487,6 +534,9 @@ final class FloatingCardBar extends FrameLayout {
             edge.quadTo(bounds.right, bounds.bottom, bounds.right, bounds.bottom - radius);
         }
         @Override public void draw(Canvas canvas) {
+            if (LiquidGlassBackdrop.isCapturing()) return;
+            drawLiquidBackdrop(canvas);
+            paint.setAlpha(255);
             paint.setShader(glass); paint.setStyle(Paint.Style.FILL);
             // Only the lower corners soften; the status-bar edge stays continuous.
             canvas.drawPath(shape, paint);
@@ -502,6 +552,10 @@ final class FloatingCardBar extends FrameLayout {
         @Override public void setAlpha(int alpha) { opacity = alpha; rebuild(); invalidateSelf(); }
         @Override public void setColorFilter(ColorFilter filter) { paint.setColorFilter(filter); invalidateSelf(); }
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+        private void drawLiquidBackdrop(Canvas canvas) {
+            backdrop.draw(canvas, FloatingCardBar.this, list, false, bounds, shape,
+                    amount, Math.round(255 * amount * opacity / 255f));
+        }
         private int mix(int from, int to, float fraction, int alpha) {
             return Color.argb(alpha, Math.round(Color.red(from) + (Color.red(to) - Color.red(from)) * fraction),
                     Math.round(Color.green(from) + (Color.green(to) - Color.green(from)) * fraction),

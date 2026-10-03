@@ -594,8 +594,8 @@ public class MainActivity extends AppCompatActivity {
                     Bg.apply(experimentalHeader, null, null, null, 16, null, 0, null, color(R.color.app_ripple));
                     float popupDensity = getResources().getDisplayMetrics().density;
                     int surface = color(R.color.app_surface) & 0x00FFFFFF;
-                    GradientDrawable popupGlass = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                            new int[]{surface | 0xF5000000, surface | 0xE8000000});
+                    GradientDrawable popupGlass = new LiquidGlassDrawable(experimentalContent, root.getRootView(), false,
+                            new int[]{surface | 0xB8000000, surface | 0x98000000});
                     popupGlass.setCornerRadius(16 * popupDensity);
                     popupGlass.setStroke(Math.max(1, Math.round(popupDensity)), color(R.color.app_stroke));
                     experimentalContent.setBackground(popupGlass);
